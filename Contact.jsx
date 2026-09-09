@@ -166,7 +166,7 @@ const Contact = () => {
                         id="name"
                         value={formData.name}
                         onChange={handleChange}
-                        placeholder="Shiv Om"
+                        placeholder="e.g. Alex Vance"
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/40 transition-all"
                       />
                     </div>
