@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin-login
+Disallow: /dashboard
+Disallow: /upload
+Disallow: /settings/
+
+Sitemap: https://music-b2696.web.app/sitemap.xml
