@@ -167,10 +167,10 @@ const Chatbot = () => {
 
       {/* 2. Floating Chat Modal Window */}
       {isOpen && (
-        <div className="w-[calc(100vw-2rem)] sm:w-[390px] h-[520px] max-h-[85vh] rounded-3xl border border-white/15 bg-[#0a0a0f]/95 shadow-2xl flex flex-col overflow-hidden animate-fade-in relative backdrop-blur-2xl">
+        <div className="w-[calc(100vw-2rem)] sm:w-[390px] h-[520px] max-h-[85vh] rounded-3xl border border-white/15 bg-[#0a0a0f]/95 shadow-2xl flex flex-col overflow-hidden animate-fade-in relative backdrop-blur-2xl" style={{ backgroundColor: 'var(--bg-card)' }}>
           
           {/* Header Bar */}
-          <div className="p-4 bg-[#0e0e14] border-b border-white/10 flex items-center justify-between">
+          <div className="p-4 bg-[#0e0e14] border-b border-white/10 flex items-center justify-between" style={{ backgroundColor: 'var(--bg-elevated)' }}>
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
                 <Sparkles className="w-4 h-4 animate-pulse" />
@@ -280,7 +280,7 @@ const Chatbot = () => {
           )}
 
           {/* Input & Send Footer Bar */}
-          <div className="p-3.5 bg-[#0e0e14] border-t border-white/10 flex gap-2 items-center">
+          <div className="p-3.5 bg-[#0e0e14] border-t border-white/10 flex gap-2 items-center" style={{ backgroundColor: 'var(--bg-elevated)' }}>
             <input
               ref={chatInputRef}
               type="text"

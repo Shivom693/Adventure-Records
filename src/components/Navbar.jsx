@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Disc, Menu, X, ShieldAlert, LayoutDashboard, LogOut } from 'lucide-react';
 import logoImg from '../assets/logo.png';
 import BrandLogo from './BrandLogo';
+import ThemeToggle from './ThemeToggle';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -56,7 +57,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="sticky top-0 left-0 w-full z-50 bg-[#070709]/90 backdrop-blur-xl border-b border-white/10 transition-all duration-300">
+    <nav className="sticky top-0 left-0 w-full z-50 bg-[#070709]/90 backdrop-blur-xl border-b border-white/10 transition-all duration-300" style={{ backgroundColor: 'var(--bg-nav)' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           
@@ -83,8 +84,9 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* RIGHT: Login & Get Started */}
+          {/* RIGHT: Theme Toggle, Login & Get Started */}
           <div className="hidden md:flex items-center gap-4">
+            <ThemeToggle />
             {user ? (
               <div className="flex items-center gap-3">
                 {user.role === 'Admin' && (
@@ -140,8 +142,9 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* MOBILE: Hamburger Toggle */}
+          {/* MOBILE: Theme Toggle & Hamburger Toggle */}
           <div className="md:hidden flex items-center gap-2">
+            <ThemeToggle />
             {user && (
               <Link 
                 to="/dashboard" 

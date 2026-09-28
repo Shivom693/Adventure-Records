@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { ThemeProvider } from './context/ThemeContext';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -84,9 +85,10 @@ function App() {
   }, []);
 
   return (
+    <ThemeProvider>
     <Router>
       <ScrollToTop />
-      <div className="flex flex-col min-h-screen relative bg-[#070709] font-outfit">
+      <div className="flex flex-col min-h-screen relative bg-[#070709] font-outfit" style={{ backgroundColor: 'var(--bg-primary)' }}>
         
         {/* Animated Waveform Background globally behind cards */}
         <Waveform />
@@ -187,6 +189,7 @@ function App() {
 
       </div>
     </Router>
+    </ThemeProvider>
   );
 }
 

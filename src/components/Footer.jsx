@@ -19,7 +19,7 @@ const Footer = () => {
   };
 
   return (
-    <footer className="relative bg-[#050507] border-t border-white/10 pt-20 pb-12 z-10 overflow-hidden font-outfit">
+    <footer className="relative bg-[#050507] border-t border-white/10 pt-20 pb-12 z-10 overflow-hidden font-outfit" style={{ backgroundColor: 'var(--bg-footer)' }}>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         

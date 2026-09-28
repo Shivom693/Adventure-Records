@@ -64,7 +64,21 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   </head>
-  <body class="bg-[#030303] text-gray-100 font-inter antialiased min-h-screen overflow-x-hidden">
+  <body class="font-inter antialiased min-h-screen overflow-x-hidden" style="background-color: var(--bg-primary); color: var(--text-primary);">
+    <!-- Blocking theme initialization to prevent FOUC -->
+    <script>
+      (function() {
+        var theme = localStorage.getItem('adventure-theme');
+        var root = document.documentElement;
+        if (theme === 'light') {
+          root.classList.remove('dark');
+          root.classList.add('light');
+        } else {
+          root.classList.add('dark');
+          root.classList.remove('light');
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

@@ -1,8 +1,10 @@
 import React, { useEffect, useRef } from 'react';
+import { useTheme } from '../context/ThemeContext';
 
 const Waveform = () => {
   const canvasRef = useRef(null);
   const mouseRef = useRef({ x: 0, y: 0, targetX: 0, targetY: 0 });
+  const { isDark } = useTheme();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -34,7 +36,7 @@ const Waveform = () => {
       mouse.y += (mouse.targetY - mouse.y) * 0.05;
 
       // Draw faint dot grid (Notion / Linear style)
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+      ctx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.04)';
       const dotSpacing = 50;
       const startX = (mouse.x * 0.3) % dotSpacing;
       const startY = (mouse.y * 0.3) % dotSpacing;
@@ -48,7 +50,7 @@ const Waveform = () => {
 
       // Draw a single ultra-fine wave line running across center height
       ctx.beginPath();
-      ctx.strokeStyle = 'rgba(168, 85, 247, 0.12)';
+      ctx.strokeStyle = isDark ? 'rgba(168, 85, 247, 0.12)' : 'rgba(168, 85, 247, 0.18)';
       ctx.lineWidth = 1;
 
       const centerY = canvas.height * 0.65 + mouse.y;
@@ -77,7 +79,7 @@ const Waveform = () => {
       window.removeEventListener('mousemove', handleMouseMove);
       cancelAnimationFrame(animationFrameId);
     };
-  }, []);
+  }, [isDark]);
 
   return (
     <canvas 
