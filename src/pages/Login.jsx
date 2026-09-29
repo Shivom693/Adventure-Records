@@ -105,12 +105,11 @@ const Login = () => {
 
       // If Firebase auth succeeded but backend fetch was offline/unavailable, fallback to Firebase session
       if (firebaseUser) {
-        const role = (cleanEmail.includes('admin') || cleanEmail === 'tripathihariom573@gmail.com') ? 'Admin' : 'Artist';
         const userObj = {
           email: firebaseUser.email,
           name: firebaseUser.displayName || cleanEmail.split('@')[0],
           artistName: firebaseUser.displayName || cleanEmail.split('@')[0],
-          role: role,
+          role: 'Artist',
           uid: firebaseUser.uid,
           isOtpVerified: true
         };
@@ -119,11 +118,7 @@ const Login = () => {
         localStorage.setItem('user', JSON.stringify(userObj));
         window.dispatchEvent(new Event('auth-change'));
 
-        if (role === 'Admin') {
-          navigate('/admin');
-        } else {
-          navigate('/dashboard');
-        }
+        navigate('/dashboard');
       }
     } catch (err) {
       setError(err.message || 'Unable to connect to authentication server. Please try again.');
