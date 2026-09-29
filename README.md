@@ -1,8 +1,11 @@
-# React + Vite
+# Adventure Records - Music Platform
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Modern Web Application for Music Streaming & Distribution.
 
-Currently, two official plugins are available:
+## Features
+- Google Drive Audio & Artwork Upload Integration
+- Audio Player & Album Showcase
+- Admin Portal & User Authentication
+- Dark / Light Mode Support
+- Secure Firestore & Storage Integration
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
