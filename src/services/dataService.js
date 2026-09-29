@@ -110,9 +110,11 @@ export async function createFirestoreRelease(releaseData) {
 
   const realRelease = {
     userId,
+    title: releaseTitle,
+    artistName: primaryArtist,
     releaseTitle,
-    releaseType: releaseType || 'Single',
     primaryArtist,
+    releaseType: releaseType || 'Single',
     featuringArtists: featuringArtists || '',
     genre: genre || 'Pop',
     language: language || 'Hindi',

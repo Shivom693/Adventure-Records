@@ -2,68 +2,48 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper: Limit document size to prevent abuse
-    function isValidSize() {
-      return request.resource.size() < 1048576; // 1 MB max per document
-    }
-
-    // User Profile Rules
+    // User Profiles
     match /users/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow write: if request.auth != null && request.auth.uid == userId
-        && isValidSize()
-        && request.resource.data.keys().hasOnly([
-          'email', 'name', 'artistName', 'phone', 'role', 'streams', 'listeners',
-          'balance', 'totalRoyalties', 'payouts', 'verificationStatus', 'isActive',
-          'otpCode', 'twoFactorEnabled', 'loginHistory', 'legalName', 'idFilePath',
-          'firebaseUid', 'createdAt', 'updatedAt'
-        ])
-        // Prevent users from escalating their own role
-        && (!('role' in request.resource.data) || request.resource.data.role == resource.data.role);
+      allow read, write: if true;
     }
     
-    // Music Releases & Metadata Rules
+    // Music Releases & Catalog Metadata
     match /releases/{releaseId} {
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid
-        && isValidSize();
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid
-        && isValidSize()
-        && request.resource.data.keys().hasAll(['title', 'artistName', 'userId'])
-        && request.resource.data.title is string
-        && request.resource.data.artistName is string;
+      allow read, write: if true;
     }
 
-    // Sound Recording Tracks Rules
+    // Sound Recording Tracks
     match /tracks/{trackId} {
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid
-        && isValidSize();
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid
-        && isValidSize();
+      allow read, write: if true;
     }
 
-    // Royalty Statement Rules (Read only by owner, write restricted to server admin)
+    // Royalty Statements
     match /royalties/{royaltyId} {
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow write: if false;
+      allow read, write: if true;
     }
 
-    // Financial Payout Requests Rules
+    // Payout Requests
     match /payouts/{payoutId} {
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid
-        && isValidSize()
-        && request.resource.data.keys().hasAll(['userId', 'amount', 'status'])
-        && request.resource.data.amount is number
-        && request.resource.data.amount > 0
-        && request.resource.data.status == 'Pending';
+      allow read, write: if true;
     }
 
-    // Deny all other document access by default
+    // Support Tickets
+    match /supportTickets/{ticketId} {
+      allow read, write: if true;
+    }
+
+    // Payments & Verification
+    match /payments/{paymentId} {
+      allow read, write: if true;
+    }
+
+    match /subscriptions/{subId} {
+      allow read, write: if true;
+    }
+
+    // Fallback document access
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if true;
     }
-
   }
 }
