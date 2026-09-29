@@ -1,17 +1,7 @@
 /**
- * Adventure Records — Secure Authentication, High-Traffic Scalability & Real Email OTP Service
+ * Adventure Records — Secure Authentication Service
+ * OTP generation and verification handled exclusively server-side.
  */
-
-// Generate a cryptographically secure 6-digit numeric OTP
-export const generateSecureOtp = () => {
-  if (window.crypto && window.crypto.getRandomValues) {
-    const array = new Uint32Array(1);
-    window.crypto.getRandomValues(array);
-    const code = 100000 + (array[0] % 900000);
-    return code.toString();
-  }
-  return Math.floor(100000 + Math.random() * 900000).toString();
-};
 
 // Mask email for privacy (e.g. "shivom@gmail.com" -> "s***m@gmail.com")
 export const maskEmail = (email) => {
@@ -23,122 +13,99 @@ export const maskEmail = (email) => {
   return `${name[0]}***${name[name.length - 1]}@${domain}`;
 };
 
-/**
- * Generates and dispatches a 6-digit OTP code directly to session & server without third-party form redirects.
- */
-export const sendOtpToEmail = async (email, userDetails = {}) => {
-  const otp = generateSecureOtp();
-  const now = Date.now();
-  const targetEmail = email.toLowerCase().trim();
-  
-  const otpData = {
-    email: targetEmail,
-    otp: otp,
-    createdAt: now,
-    expiresAt: now + 5 * 60 * 1000, // 5 minutes validity
-    resendAvailableAt: now + 60 * 1000, // 60 seconds cooldown
-    attempts: 0,
-    maxAttempts: 5,
-    verified: false,
-    userDetails: userDetails
-  };
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-  // Save session securely in sessionStorage
-  sessionStorage.setItem('pending_otp_session', JSON.stringify(otpData));
-
-  console.log(`\n=================================================`);
-  console.log(`📬 [VERIFICATION OTP] Generated OTP Code for ${targetEmail} is: ${otp}`);
-  console.log(`=================================================\n`);
-
-  // Attempt server-side email dispatch
-  try {
-    const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-    await fetch(`${backendUrl}/api/send-otp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: targetEmail,
-        otp: otp,
-        subject: "Your Adventure Records verification code",
-        message: `Your Adventure Records verification code is: ${otp}`
-      })
-    }).catch(() => {});
-  } catch (err) {
-    // Non-blocking fallback
-  }
-
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token') || '';
   return {
-    success: true,
-    otp: otp,
-    maskedEmail: maskEmail(targetEmail),
-    expiresInSeconds: 300,
-    resendCooldownSeconds: 60
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
   };
 };
 
 /**
- * Verifies the 6-digit OTP code entered by the user.
+ * Requests OTP dispatch to email via server-side generation.
+ * The OTP is NEVER returned to or stored on the client.
  */
-export const verifyOtpCode = (enteredCode) => {
+export const sendOtpToEmail = async (email, userDetails = {}) => {
+  const targetEmail = email.toLowerCase().trim();
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/send-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: targetEmail,
+        subject: "Your Adventure Records verification code"
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: data.message || 'Failed to send OTP.' };
+    }
+
+    // Store only non-sensitive session metadata (no OTP code)
+    const sessionMeta = {
+      email: targetEmail,
+      createdAt: Date.now(),
+      expiresAt: Date.now() + 5 * 60 * 1000,
+      resendAvailableAt: Date.now() + 60 * 1000,
+      userDetails: userDetails
+    };
+    sessionStorage.setItem('pending_otp_session', JSON.stringify(sessionMeta));
+
+    return {
+      success: true,
+      maskedEmail: maskEmail(targetEmail),
+      expiresInSeconds: 300,
+      resendCooldownSeconds: 60
+    };
+  } catch (err) {
+    return { success: false, error: 'Unable to connect to server.' };
+  }
+};
+
+/**
+ * Verifies the 6-digit OTP code via the backend server.
+ * The server validates the code — it is never checked client-side.
+ */
+export const verifyOtpCode = async (enteredCode) => {
   const rawData = sessionStorage.getItem('pending_otp_session');
   if (!rawData) {
     return { success: false, error: "No active verification session found. Please sign in again." };
   }
 
   const session = JSON.parse(rawData);
-  const now = Date.now();
 
-  // 1. Check expiration (5 minutes)
-  if (now > session.expiresAt) {
-    return { success: false, error: "This verification code has expired. Please request a new code." };
-  }
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: session.email,
+        otp: enteredCode.trim()
+      })
+    });
 
-  // 2. Check maximum attempts (5 attempts)
-  if (session.attempts >= session.maxAttempts) {
-    return { success: false, error: "Too many incorrect attempts. Please request a new code." };
-  }
+    const data = await response.json();
 
-  // Increment attempt counter
-  session.attempts += 1;
-  sessionStorage.setItem('pending_otp_session', JSON.stringify(session));
-
-  // 3. Verify OTP code
-  if (enteredCode.trim() !== session.otp) {
-    const remaining = session.maxAttempts - session.attempts;
-    if (remaining <= 0) {
-      return { success: false, error: "Too many incorrect attempts. Please request a new code." };
+    if (!response.ok) {
+      return { success: false, error: data.message || 'Invalid verification code.' };
     }
-    return { 
-      success: false, 
-      error: `Incorrect verification code. Please try again (${remaining} attempt${remaining === 1 ? '' : 's'} remaining).` 
-    };
+
+    // Clean up session metadata
+    sessionStorage.removeItem('pending_otp_session');
+
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: 'Unable to verify code. Please try again.' };
   }
-
-  // 4. Mark session verified & clear OTP secret
-  session.verified = true;
-  sessionStorage.removeItem('pending_otp_session');
-
-  // Complete authenticated user state
-  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-  const updatedUser = {
-    ...currentUser,
-    ...session.userDetails,
-    email: session.email,
-    otpVerified: true,
-    otpVerifiedAt: new Date().toISOString()
-  };
-
-  localStorage.setItem('user', JSON.stringify(updatedUser));
-  localStorage.setItem('token', 'session_active_' + Date.now());
-  
-  // Dispatch global auth change event
-  window.dispatchEvent(new Event('auth-change'));
-
-  return { success: true, user: updatedUser };
 };
 
 /**
- * Resends a new OTP code to email if 60-second cooldown has passed.
+ * Resends a new OTP code to email if cooldown has passed.
  */
 export const resendOtpCode = async () => {
   const rawData = sessionStorage.getItem('pending_otp_session');
@@ -162,7 +129,8 @@ export const resendOtpCode = async () => {
  */
 export const getAuthStatus = () => {
   const userStr = localStorage.getItem('user');
-  if (!userStr) return { isAuthenticated: false, isOtpVerified: false, user: null };
+  const token = localStorage.getItem('token');
+  if (!userStr || !token) return { isAuthenticated: false, isOtpVerified: false, user: null };
   try {
     const user = JSON.parse(userStr);
     return {
@@ -174,16 +142,6 @@ export const getAuthStatus = () => {
     return { isAuthenticated: false, isOtpVerified: false, user: null };
   }
 };
-
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('token') || '';
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
-  };
-};
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 /**
  * Changes user password via backend API

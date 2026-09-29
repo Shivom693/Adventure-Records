@@ -12,7 +12,7 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   }
 
   // 2. Admin Route Check
-  if (adminOnly && user?.role !== 'Admin' && user?.email !== 'adventureof693@gmail.com') {
+  if (adminOnly && user?.role !== 'Admin') {
     return <Navigate to="/dashboard" replace />;
   }
 

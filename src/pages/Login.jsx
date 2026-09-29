@@ -4,7 +4,7 @@ import { Mail, Lock, LogIn, AlertCircle, RefreshCw, Eye, EyeOff, ShieldAlert } f
 import BrandLogo from '../components/BrandLogo';
 import { isConfigured, auth, googleProvider } from '../firebase';
 import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
-import { sendOtpToEmail } from '../services/authService';
+import { API_URL } from '../config';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -20,7 +20,7 @@ const Login = () => {
     if (storedUserStr) {
       try {
         const u = JSON.parse(storedUserStr);
-        if (u.role === 'Admin' || u.email === 'adventureof693@gmail.com') {
+        if (u.role === 'Admin') {
           navigate('/admin');
         }
       } catch (e) {}
@@ -39,44 +39,60 @@ const Login = () => {
     setLoading(true);
 
     try {
-      let authUserEmail = email.toLowerCase().trim();
-      let displayName = email.split('@')[0];
-      let uid = 'user_' + Date.now();
+      const backendUrl = API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+      // Try Firebase auth first if configured
       if (isConfigured && auth) {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        authUserEmail = userCredential.user.email || authUserEmail;
-        displayName = userCredential.user.displayName || displayName;
-        uid = userCredential.user.uid || uid;
+        try {
+          await signInWithEmailAndPassword(auth, email, password);
+        } catch (firebaseErr) {
+          // If Firebase is configured but auth fails, report the error
+          if (firebaseErr.code === 'auth/user-not-found' || firebaseErr.code === 'auth/wrong-password' || firebaseErr.code === 'auth/invalid-credential') {
+            setError('Invalid email or password credentials.');
+            setLoading(false);
+            return;
+          } else if (firebaseErr.code === 'auth/too-many-requests') {
+            setError('Too many failed attempts. Please try again later or reset your password.');
+            setLoading(false);
+            return;
+          }
+          // For other Firebase errors, fall through to backend auth
+        }
       }
 
-      // Store authentic session user object in localStorage
-      const userProfile = {
-        uid: uid,
-        email: authUserEmail,
-        artistName: displayName,
-        role: authUserEmail === 'adventureof693@gmail.com' ? 'Admin' : 'Artist',
-        otpVerified: true
-      };
-      localStorage.setItem('user', JSON.stringify(userProfile));
-      localStorage.setItem('token', 'token_' + Date.now());
+      // Authenticate via backend server to get a real JWT
+      const response = await fetch(`${backendUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.toLowerCase().trim(), password })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || 'Invalid email or password credentials.');
+        setLoading(false);
+        return;
+      }
+
+      // Store the real server-issued JWT and sanitized user profile
+      const userResponse = { ...data.user };
+      delete userResponse.password;
+      delete userResponse.otpCode;
+      delete userResponse.resetOtpCode;
+
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(userResponse));
       window.dispatchEvent(new Event('auth-change'));
 
-      // Direct seamless login to dashboard / admin panel
-      if (userProfile.role === 'Admin') {
+      // Redirect based on server-validated role
+      if (userResponse.role === 'Admin') {
         navigate('/admin');
       } else {
         navigate('/dashboard');
       }
     } catch (err) {
-      console.error("Login Error:", err);
-      let errorMsg = "Unable to sign in with these credentials. Please check your email and password.";
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        errorMsg = "Invalid email or password credentials.";
-      } else if (err.code === 'auth/too-many-requests') {
-        errorMsg = "Too many failed attempts. Please try again later or reset your password.";
-      }
-      setError(errorMsg);
+      setError('Unable to connect to authentication server. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -88,40 +104,62 @@ const Login = () => {
     setLoading(true);
 
     try {
-      let googleEmail = 'artist_' + Math.floor(Math.random() * 1000) + '@gmail.com';
+      const backendUrl = API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      let googleEmail = '';
       let googleName = 'Independent Artist';
-      let uid = 'google_user_' + Date.now();
+      let uid = '';
 
       if (isConfigured && auth) {
         const result = await signInWithPopup(auth, googleProvider);
         if (result.user && result.user.email) {
           googleEmail = result.user.email;
           googleName = result.user.displayName || googleEmail.split('@')[0];
-          uid = result.user.uid || uid;
+          uid = result.user.uid || '';
         }
       }
 
-      // Store authentic session user object in localStorage
-      const userProfile = {
-        uid: uid,
-        email: googleEmail,
-        artistName: googleName,
-        role: googleEmail === 'adventureof693@gmail.com' ? 'Admin' : 'Artist',
-        otpVerified: true
-      };
-      localStorage.setItem('user', JSON.stringify(userProfile));
-      localStorage.setItem('token', 'google_token_' + Date.now());
+      if (!googleEmail) {
+        setError('Google Sign-In failed. No email received.');
+        setLoading(false);
+        return;
+      }
+
+      // Sync with backend to get a real JWT token
+      const response = await fetch(`${backendUrl}/api/auth/firebase-sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: googleEmail,
+          name: googleName,
+          artistName: googleName,
+          firebaseUid: uid
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || 'Google Sign-In sync failed.');
+        setLoading(false);
+        return;
+      }
+
+      // Store real server-issued JWT and sanitized user
+      const userResponse = { ...data.user };
+      delete userResponse.password;
+      delete userResponse.otpCode;
+
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(userResponse));
       window.dispatchEvent(new Event('auth-change'));
 
-      // Google Sign-In automatically authenticates & redirects to Dashboard
       navigate('/dashboard');
     } catch (err) {
-      console.error("Google Login Error:", err);
-      let errorMsg = err.message || "Google Sign-In failed.";
+      let errorMsg = err.message || 'Google Sign-In failed.';
       if (err.code === 'auth/popup-blocked') {
-        errorMsg = "Popup was blocked by your browser. Please enable popups for this site.";
+        errorMsg = 'Popup was blocked by your browser. Please enable popups for this site.';
       } else if (err.code === 'auth/cancelled-popup-request') {
-        errorMsg = "Sign-in popup was closed before completing.";
+        errorMsg = 'Sign-in popup was closed before completing.';
       }
       setError(errorMsg);
     } finally {

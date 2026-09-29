@@ -2,15 +2,26 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     
-    // User Audio WAV/FLAC Files
+    // User Audio WAV/FLAC Files (max 50 MB per file)
     match /audio/{userId}/{allPaths=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId
+        && request.resource.size < 50 * 1024 * 1024
+        && (request.resource.contentType.matches('audio/.*')
+            || request.resource.contentType == 'application/octet-stream');
     }
 
-    // User Release Artwork Images
+    // User Release Artwork Images (max 10 MB per file)
     match /artwork/{userId}/{allPaths=**} {
       allow read: if true; // Public artwork display for store ingestion
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Deny all other paths by default
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
 
   }

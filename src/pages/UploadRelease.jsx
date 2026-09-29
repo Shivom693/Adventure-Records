@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Music, Image, CheckCircle2, AlertCircle, ArrowRight, Disc, RefreshCw, Lock, ShieldCheck, QrCode } from 'lucide-react';
+import { Music, Image, CheckCircle2, AlertCircle, ArrowRight, Disc, RefreshCw, Lock, ShieldCheck, QrCode, Link2, ExternalLink } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
 import { createFirestoreRelease, uploadArtworkToStorage, uploadAudioToStorage, fetchUserPayments } from '../services/dataService';
@@ -25,6 +25,8 @@ const UploadRelease = () => {
   const [audioFile, setAudioFile] = useState(null);
   const [artworkFile, setArtworkFile] = useState(null);
   const [artworkPreview, setArtworkPreview] = useState(null);
+  const [audioDriveLink, setAudioDriveLink] = useState('');
+  const [artworkDriveLink, setArtworkDriveLink] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStage, setUploadStage] = useState('');
@@ -149,8 +151,16 @@ const UploadRelease = () => {
       newErrors.artistName = 'Primary Artist Name is required.';
     }
     if (!formData.releaseDate) newErrors.releaseDate = 'Target Release Date is required.';
-    if (!audioFile) newErrors.audio = 'Audio file (WAV / FLAC / MP3) is required.';
-    if (!artworkFile) newErrors.artwork = 'Cover artwork image is required.';
+    if (!audioDriveLink.trim()) newErrors.audio = 'Google Drive link for audio file is required.';
+    if (!artworkDriveLink.trim()) newErrors.artwork = 'Google Drive link for cover artwork is required.';
+
+    // Validate Google Drive links
+    if (audioDriveLink.trim() && !audioDriveLink.includes('drive.google.com') && !audioDriveLink.includes('docs.google.com')) {
+      newErrors.audio = 'Please enter a valid Google Drive sharing link.';
+    }
+    if (artworkDriveLink.trim() && !artworkDriveLink.includes('drive.google.com') && !artworkDriveLink.includes('docs.google.com')) {
+      newErrors.artwork = 'Please enter a valid Google Drive sharing link.';
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -174,19 +184,12 @@ const UploadRelease = () => {
     setUploadStage('Uploading cover artwork...');
 
     try {
-      // 1. Real Artwork Upload
-      const artworkUrl = await uploadArtworkToStorage(userId, artworkFile, (progress) => {
-        setUploadProgress(Math.round(progress * 0.4)); // 0% - 40%
-      });
-
-      // 2. Real Audio Upload
-      setUploadStage('Uploading audio track...');
       const tempReleaseId = 'rel_' + Date.now();
-      const audioUrl = await uploadAudioToStorage(userId, tempReleaseId, audioFile, (progress) => {
-        setUploadProgress(40 + Math.round(progress * 0.5)); // 40% - 90%
-      });
 
-      // 3. Real Firestore Document Creation
+      // Use Drive links directly
+      const artworkUrl = artworkDriveLink.trim();
+      const audioUrl = audioDriveLink.trim();
+      setUploadProgress(50);
       setUploadStage('Saving release details...');
       setUploadProgress(95);
 
@@ -509,14 +512,14 @@ const UploadRelease = () => {
               </div>
             </div>
 
-            {/* Section 3: File Upload Areas (LOCKED UNTIL PAYMENT VERIFIED) */}
+            {/* Section 3: Google Drive Links (LOCKED UNTIL PAYMENT VERIFIED) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               
-              {/* Audio Upload */}
+              {/* Audio Drive Link */}
               <div className={`minimal-card p-8 space-y-4 bg-[#09090d] relative ${!paymentVerified ? 'opacity-70' : ''}`}>
                 <div className="flex justify-between items-center">
                   <h3 className="font-heading font-bold text-base text-white flex items-center gap-2">
-                    <Music className="w-4 h-4 text-white" /> Upload Audio *
+                    <Music className="w-4 h-4 text-white" /> Audio File *
                   </h3>
                   {!paymentVerified && (
                     <span className="px-2.5 py-0.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] font-bold uppercase flex items-center gap-1">
@@ -526,50 +529,63 @@ const UploadRelease = () => {
                 </div>
                 <p className="text-[11px] text-zinc-400">Supported formats: WAV, FLAC, MP3 (16-bit / 24-bit 44.1kHz)</p>
 
-                <label 
-                  onClick={(e) => {
-                    if (!paymentVerified) {
-                      e.preventDefault();
-                      setIsPaymentModalOpen(true);
-                    }
-                  }}
-                  className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center transition-all bg-white/2 ${
-                    paymentVerified 
-                      ? 'border-white/15 hover:border-white/40 cursor-pointer hover:bg-white/5' 
-                      : 'border-red-500/20 cursor-pointer bg-red-500/5'
-                  }`}
-                >
-                  {!paymentVerified ? (
-                    <>
-                      <Lock className="w-8 h-8 text-red-400 mb-2" />
-                      <span className="text-xs font-bold text-white">Click to Pay ₹{currentPrice} & Unlock Upload</span>
-                      <span className="text-[10px] text-red-400/80 mt-1">Payment Verification Required</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-8 h-8 text-zinc-400 mb-2" />
-                      <span className="text-xs font-semibold text-white">
-                        {audioFile ? audioFile.name : 'Click or Drop Audio File'}
-                      </span>
-                      <span className="text-[10px] text-zinc-500 mt-1">Maximum size: 250MB</span>
-                    </>
-                  )}
-                  <input 
-                    type="file" 
-                    accept=".wav,.flac,.mp3" 
-                    disabled={!paymentVerified}
-                    onChange={handleAudioDrop} 
-                    className="hidden" 
-                  />
-                </label>
-                {errors.audio && <p className="text-red-400 text-[10px]">{errors.audio}</p>}
+                {!paymentVerified ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsPaymentModalOpen(true)}
+                    className="w-full border-2 border-dashed border-red-500/20 rounded-2xl p-8 flex flex-col items-center justify-center text-center bg-red-500/5 cursor-pointer transition-all hover:bg-red-500/10"
+                  >
+                    <Lock className="w-8 h-8 text-red-400 mb-2" />
+                    <span className="text-xs font-bold text-white">Click to Pay ₹{currentPrice} & Unlock</span>
+                    <span className="text-[10px] text-red-400/80 mt-1">Payment Verification Required</span>
+                  </button>
+                ) : (
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+                      <Link2 className="w-3 h-3" /> Paste Google Drive sharing link
+                    </label>
+                    <div className="relative">
+                      <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                      <input
+                        type="url"
+                        value={audioDriveLink}
+                        onChange={(e) => {
+                          setAudioDriveLink(e.target.value);
+                          if (e.target.value.trim()) {
+                            setErrors(prev => ({ ...prev, audio: null }));
+                          }
+                        }}
+                        placeholder="https://drive.google.com/file/d/..."
+                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-10 py-3.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/40 transition-all"
+                      />
+                      {audioDriveLink && (
+                        <a 
+                          href={audioDriveLink} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400 hover:text-emerald-300 transition-colors"
+                          title="Open link"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                    </div>
+                    {audioDriveLink && (
+                      <p className="text-emerald-400/80 text-[10px] flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Audio Drive link attached ✓
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {errors.audio && <p className="text-red-400 text-[10px] mt-1">{errors.audio}</p>}
               </div>
 
-              {/* Artwork Upload */}
+              {/* Artwork Drive Link */}
               <div className={`minimal-card p-8 space-y-4 bg-[#09090d] relative ${!paymentVerified ? 'opacity-70' : ''}`}>
                 <div className="flex justify-between items-center">
                   <h3 className="font-heading font-bold text-base text-white flex items-center gap-2">
-                    <Image className="w-4 h-4 text-white" /> Upload Artwork *
+                    <Image className="w-4 h-4 text-white" /> Cover Artwork *
                   </h3>
                   {!paymentVerified && (
                     <span className="px-2.5 py-0.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-[10px] font-bold uppercase flex items-center gap-1">
@@ -579,43 +595,56 @@ const UploadRelease = () => {
                 </div>
                 <p className="text-[11px] text-zinc-400">Recommended: Square 3000 × 3000 px JPG/PNG file</p>
 
-                <label 
-                  onClick={(e) => {
-                    if (!paymentVerified) {
-                      e.preventDefault();
-                      setIsPaymentModalOpen(true);
-                    }
-                  }}
-                  className={`border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-center transition-all bg-white/2 relative min-h-[140px] ${
-                    paymentVerified 
-                      ? 'border-white/15 hover:border-white/40 cursor-pointer hover:bg-white/5' 
-                      : 'border-red-500/20 cursor-pointer bg-red-500/5'
-                  }`}
-                >
-                  {!paymentVerified ? (
-                    <>
-                      <Lock className="w-8 h-8 text-red-400 mb-2" />
-                      <span className="text-xs font-bold text-white">Click to Pay ₹{currentPrice} & Unlock Upload</span>
-                      <span className="text-[10px] text-red-400/80 mt-1">Payment Verification Required</span>
-                    </>
-                  ) : artworkPreview ? (
-                    <img src={artworkPreview} alt="Cover Preview" className="w-24 h-24 object-cover rounded-xl shadow-lg" />
-                  ) : (
-                    <>
-                      <Image className="w-8 h-8 text-zinc-400 mb-2" />
-                      <span className="text-xs font-semibold text-white">Click or Drop Artwork File</span>
-                      <span className="text-[10px] text-zinc-500 mt-1">RGB Color Mode, 300 DPI</span>
-                    </>
-                  )}
-                  <input 
-                    type="file" 
-                    accept="image/jpeg,image/png" 
-                    disabled={!paymentVerified}
-                    onChange={handleArtworkDrop} 
-                    className="hidden" 
-                  />
-                </label>
-                {errors.artwork && <p className="text-red-400 text-[10px]">{errors.artwork}</p>}
+                {!paymentVerified ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsPaymentModalOpen(true)}
+                    className="w-full border-2 border-dashed border-red-500/20 rounded-2xl p-8 flex flex-col items-center justify-center text-center bg-red-500/5 cursor-pointer transition-all hover:bg-red-500/10"
+                  >
+                    <Lock className="w-8 h-8 text-red-400 mb-2" />
+                    <span className="text-xs font-bold text-white">Click to Pay ₹{currentPrice} & Unlock</span>
+                    <span className="text-[10px] text-red-400/80 mt-1">Payment Verification Required</span>
+                  </button>
+                ) : (
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
+                      <Link2 className="w-3 h-3" /> Paste Google Drive sharing link
+                    </label>
+                    <div className="relative">
+                      <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                      <input
+                        type="url"
+                        value={artworkDriveLink}
+                        onChange={(e) => {
+                          setArtworkDriveLink(e.target.value);
+                          if (e.target.value.trim()) {
+                            setErrors(prev => ({ ...prev, artwork: null }));
+                          }
+                        }}
+                        placeholder="https://drive.google.com/file/d/..."
+                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-10 py-3.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/40 transition-all"
+                      />
+                      {artworkDriveLink && (
+                        <a 
+                          href={artworkDriveLink} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400 hover:text-emerald-300 transition-colors"
+                          title="Open link"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                    </div>
+                    {artworkDriveLink && (
+                      <p className="text-emerald-400/80 text-[10px] flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Artwork Drive link attached ✓
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {errors.artwork && <p className="text-red-400 text-[10px] mt-1">{errors.artwork}</p>}
               </div>
 
             </div>

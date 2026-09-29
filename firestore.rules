@@ -2,21 +2,45 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    // Helper: Limit document size to prevent abuse
+    function isValidSize() {
+      return request.resource.size() < 1048576; // 1 MB max per document
+    }
+
     // User Profile Rules
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId
+        && isValidSize()
+        && request.resource.data.keys().hasOnly([
+          'email', 'name', 'artistName', 'phone', 'role', 'streams', 'listeners',
+          'balance', 'totalRoyalties', 'payouts', 'verificationStatus', 'isActive',
+          'otpCode', 'twoFactorEnabled', 'loginHistory', 'legalName', 'idFilePath',
+          'firebaseUid', 'createdAt', 'updatedAt'
+        ])
+        // Prevent users from escalating their own role
+        && (!('role' in request.resource.data) || request.resource.data.role == resource.data.role);
     }
     
     // Music Releases & Metadata Rules
     match /releases/{releaseId} {
-      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid
+        && isValidSize();
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid
+        && isValidSize()
+        && request.resource.data.keys().hasAll(['title', 'artistName', 'userId'])
+        && request.resource.data.title is string
+        && request.resource.data.artistName is string;
     }
 
     // Sound Recording Tracks Rules
     match /tracks/{trackId} {
-      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid
+        && isValidSize();
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid
+        && isValidSize();
     }
 
     // Royalty Statement Rules (Read only by owner, write restricted to server admin)
@@ -28,7 +52,17 @@ service cloud.firestore {
     // Financial Payout Requests Rules
     match /payouts/{payoutId} {
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid
+        && isValidSize()
+        && request.resource.data.keys().hasAll(['userId', 'amount', 'status'])
+        && request.resource.data.amount is number
+        && request.resource.data.amount > 0
+        && request.resource.data.status == 'Pending';
+    }
+
+    // Deny all other document access by default
+    match /{document=**} {
+      allow read, write: if false;
     }
 
   }

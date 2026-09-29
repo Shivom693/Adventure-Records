@@ -33,9 +33,18 @@ app.set('trust proxy', 1);
 
 // Middleware
 app.use(cors({
-  origin: '*',
+  origin: function (origin, callback) {
+    const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:5000').split(',').map(o => o.trim());
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -44,11 +53,24 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('X-XSS-Protection', '0'); // Modern browsers use CSP instead; '1; mode=block' can cause issues
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  res.setHeader('Content-Security-Policy', [
+    "default-src 'self'",
+    "script-src 'self' https://apis.google.com https://www.gstatic.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data: https: blob:",
+    "connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.firebaseapp.com wss://*.firebaseio.com " + (process.env.ALLOWED_ORIGINS || 'http://localhost:5173'),
+    "frame-src https://accounts.google.com https://*.firebaseapp.com",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'"
+  ].join('; '));
   next();
 });
 
@@ -57,8 +79,15 @@ const sanitizeInput = (data) => {
   if (typeof data === 'string') {
     return data
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      .replace(/javascript:/gi, '')
-      .replace(/on\w+\s*=/gi, '');
+      .replace(/<(iframe|object|embed|applet|form|link|meta|base)[^>]*>/gi, '')
+      .replace(/<svg[^>]*>[\s\S]*?<\/svg>/gi, '')
+      .replace(/<img[^>]*\s+on\w+\s*=[^>]*>/gi, '')
+      .replace(/javascript\s*:/gi, '')
+      .replace(/vbscript\s*:/gi, '')
+      .replace(/data\s*:\s*text\/html/gi, '')
+      .replace(/on\w+\s*=/gi, '')
+      .replace(/expression\s*\(/gi, '')
+      .replace(/url\s*\(\s*['"]?\s*javascript/gi, '');
   }
   if (Array.isArray(data)) {
     return data.map(sanitizeInput);
@@ -166,9 +195,10 @@ app.post('/api/send-otp', async (req, res) => {
     return res.status(400).json({ message: 'Email and OTP code are required.' });
   }
 
-  console.log(`\n=================================================`);
-  console.log(`📬 [SERVER OTP DISPATCH] Verification Code for ${email} is: ${otp}`);
-  console.log(`=================================================\n`);
+  const isDevMode = process.env.NODE_ENV !== 'production';
+  if (isDevMode) {
+    console.log(`📬 [SERVER OTP DISPATCH] Verification code generated for ${email}`);
+  }
 
   const emailUser = process.env.EMAIL_USER;
   const emailPass = process.env.EMAIL_PASS;

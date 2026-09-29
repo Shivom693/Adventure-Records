@@ -1,16 +1,40 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { db } from '../db/dbFallback.js';
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'adventure_records_secret_key';
 
-// 1. IN-MEMORY LOGIN ATTEMPT LIMITER
-const loginAttempts = {}; // Schema: { ip: { count: Number, lockUntil: Number } }
+// Use environment JWT_SECRET; if missing, generate a random one (will invalidate on restart, which is safe)
+const JWT_SECRET = process.env.JWT_SECRET && process.env.JWT_SECRET !== 'adventure_records_secret_key'
+  ? process.env.JWT_SECRET
+  : (() => {
+      const generated = crypto.randomBytes(64).toString('hex');
+      console.warn('⚠️  JWT_SECRET not set or using default — generated ephemeral secret. Set a strong JWT_SECRET in .env for production.');
+      return generated;
+    })();
+
+const IS_DEV = process.env.NODE_ENV !== 'production';
+
+// 1. IN-MEMORY LOGIN ATTEMPT LIMITER (Map-based with automatic cleanup)
+const loginAttempts = new Map(); // Schema: Map<ip, { count: Number, lockUntil: Number }>
+
+// Periodic cleanup every 30 minutes to prevent memory leak under sustained attack
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, record] of loginAttempts.entries()) {
+    if (record.lockUntil < now && record.count === 0) {
+      loginAttempts.delete(ip);
+    } else if (record.lockUntil < now) {
+      // Reset count after lockout expires
+      record.count = 0;
+    }
+  }
+}, 30 * 60 * 1000);
 
 const checkLoginAttempts = (ip) => {
-  const record = loginAttempts[ip];
+  const record = loginAttempts.get(ip);
   if (record && record.lockUntil > Date.now()) {
     const minutesLeft = Math.ceil((record.lockUntil - Date.now()) / (60 * 1000));
     return { blocked: true, minutesLeft };
@@ -19,22 +43,20 @@ const checkLoginAttempts = (ip) => {
 };
 
 const recordLoginFailure = (ip) => {
-  if (!loginAttempts[ip]) {
-    loginAttempts[ip] = { count: 1, lockUntil: 0 };
+  const record = loginAttempts.get(ip);
+  if (!record) {
+    loginAttempts.set(ip, { count: 1, lockUntil: 0 });
   } else {
-    loginAttempts[ip].count += 1;
-  }
-
-  // Lock out for 15 minutes after 5 failures
-  if (loginAttempts[ip].count >= 5) {
-    loginAttempts[ip].lockUntil = Date.now() + 15 * 60 * 1000;
+    record.count += 1;
+    // Lock out for 15 minutes after 5 failures
+    if (record.count >= 5) {
+      record.lockUntil = Date.now() + 15 * 60 * 1000;
+    }
   }
 };
 
 const clearLoginFailures = (ip) => {
-  if (loginAttempts[ip]) {
-    delete loginAttempts[ip];
-  }
+  loginAttempts.delete(ip);
 };
 
 // JWT Authentication Middleware
@@ -73,9 +95,9 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ message: 'User with this email already exists.' });
     }
 
-    // Generate 6-digit OTP code
-    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Generate 6-digit OTP code using crypto for better randomness
+    const generatedOtp = crypto.randomInt(100000, 999999).toString();
+    const hashedPassword = await bcrypt.hash(password, 12);
     
     // Default stats
     const defaultStats = {
@@ -101,10 +123,10 @@ router.post('/signup', async (req, res) => {
       ...defaultStats
     });
 
-    // LOG OTP in terminal for easy local testing/verification
-    console.log(`\n=================================================`);
-    console.log(`📬 [OTP DISPATCH] Verification OTP for ${email} is: ${generatedOtp}`);
-    console.log(`=================================================\n`);
+    // Log OTP status only in development mode, never reveal the code in production
+    if (IS_DEV) {
+      console.log(`📬 [OTP DISPATCH] Verification OTP generated for ${email}`);
+    }
 
     res.status(200).json({
       message: 'Signup details accepted. Verification OTP code has been dispatched.',
@@ -349,7 +371,7 @@ router.put('/change-password', authenticateToken, async (req, res) => {
       }
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
     await db.users.findByIdAndUpdate(user._id || user.id, { password: hashedPassword });
 
     res.status(200).json({ message: 'Password updated successfully!' });
@@ -371,15 +393,15 @@ router.post('/forgot-password', async (req, res) => {
     
     // Always return success response to prevent email enumeration attack
     if (user) {
-      const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      const generatedOtp = crypto.randomInt(100000, 999999).toString();
       await db.users.findByIdAndUpdate(user._id || user.id, {
         resetOtpCode: generatedOtp,
         resetOtpExpires: Date.now() + 15 * 60 * 1000 // 15 mins
       });
 
-      console.log(`\n=================================================`);
-      console.log(`📬 [RESET PASSWORD OTP] Verification code for ${email} is: ${generatedOtp}`);
-      console.log(`=================================================\n`);
+      if (IS_DEV) {
+        console.log(`📬 [RESET PASSWORD OTP] Code generated for ${email}`);
+      }
     }
 
     res.status(200).json({
@@ -409,7 +431,7 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ message: 'Invalid or expired OTP code.' });
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
     await db.users.findByIdAndUpdate(user._id || user.id, {
       password: hashedPassword,
       resetOtpCode: null,
