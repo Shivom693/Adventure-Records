@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "green": "node -e \"fs.appendFileSync('CONTRIBUTIONS.md', '\\n- Contribution: ' + new Date().toLocaleString())\" && git add . && git commit --author=\"Shiv Om Tripathi <tripathishivom573@gmail.com>\" -m \"feat: daily contribution update\" && git pull --rebase origin main && git push origin main"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",
