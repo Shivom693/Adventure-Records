@@ -7,16 +7,18 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyAG7PPZn7Dj4ANWfgaqvYnSLAXp0cBUnBc',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'music-b2696.firebaseapp.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'music-b2696',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'music-b2696.firebasestorage.app',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '234429527949',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:234429527949:web:af6f66fd3b1b53e171afc4'
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-// Check if Firebase variables are filled
-const isConfigured = Boolean(firebaseConfig.apiKey);
+// Check if Firebase variables are configured
+const isConfigured = Boolean(firebaseConfig.apiKey) && 
+  firebaseConfig.apiKey !== 'your_firebase_api_key_here' && 
+  !firebaseConfig.apiKey.startsWith('your_');
 
 let app;
 let auth;

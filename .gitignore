@@ -16,6 +16,17 @@ dist-ssr
 .env.local
 .env.*.local
 *.env
+*.pem
+*.key
+
+# Firebase build cache & runtime data
+.firebase/
+users.json
+releases.json
+server/data/*.json
+
+# Node binary folder & local automation scripts
+node/
 
 # Editor directories and files
 .vscode/*
