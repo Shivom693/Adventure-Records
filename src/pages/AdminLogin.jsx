@@ -111,11 +111,11 @@ const AdminLogin = () => {
     <div className="relative pt-20 flex items-center justify-center min-h-[calc(100vh-80px)] overflow-hidden">
       
       {/* Red/Purple Glow */}
-      <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-red-600/5 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-purple-600/5 rounded-full blur-[90px] pointer-events-none" />
+      <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-[#585589]/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-[#53527D]/10 rounded-full blur-[90px] pointer-events-none" />
 
       <div className="w-full max-w-md px-4 py-8 z-10">
-        <div className="glass-panel rounded-3xl p-8 sm:p-10 border-red-500/20 shadow-2xl relative">
+        <div className="glass-panel rounded-3xl p-8 sm:p-10 border-[#585589]/30 shadow-2xl relative">
           
           <div className="text-center mb-8">
             <img 
@@ -123,11 +123,11 @@ const AdminLogin = () => {
               alt="Adventure Records Logo" 
               className="h-14 w-auto object-contain mx-auto mb-4" 
             />
-            <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto text-red-400 mb-2">
+            <div className="w-10 h-10 rounded-xl bg-[#585589]/20 border border-[#585589]/40 flex items-center justify-center mx-auto text-[#DEDCFF] mb-2">
               <ShieldCheck className="w-5 h-5" />
             </div>
-            <h2 className="font-orbitron font-extrabold text-xl text-white">Owner Portal</h2>
-            <p className="text-red-500/60 text-[10px] mt-1 tracking-widest uppercase font-bold">
+            <h2 className="font-heading font-extrabold text-xl text-white">Owner Portal</h2>
+            <p className="text-[#DEDCFF]/70 text-[10px] mt-1 tracking-widest uppercase font-bold">
               Secure Admin Gate
             </p>
           </div>
@@ -162,7 +162,7 @@ const AdminLogin = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@adventurerecords.com"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-red-500/40 transition-all"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-[#585589] transition-all"
                 />
               </div>
             </div>
@@ -180,7 +180,7 @@ const AdminLogin = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-12 py-3.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-red-500/40 transition-all"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-12 py-3.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-[#585589] transition-all"
                 />
                 <button
                   type="button"
@@ -213,7 +213,7 @@ const AdminLogin = () => {
                 {/* Visual Captcha Box */}
                 <div className="w-1/2 h-11 bg-zinc-900 rounded-xl border border-white/10 flex items-center justify-center font-mono font-bold tracking-widest text-white text-base select-none shadow-inner relative overflow-hidden bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-zinc-800 to-zinc-950">
                   <div className="absolute inset-0 bg-transparent opacity-30 select-none pointer-events-none text-zinc-600 line-through decoration-double tracking-tighter">//////////////////////</div>
-                  <span className="skew-x-12 rotate-3 text-red-400">{captchaCode}</span>
+                  <span className="skew-x-12 rotate-3 text-[#DEDCFF]">{captchaCode}</span>
                 </div>
 
                 {/* Input box */}
@@ -223,7 +223,7 @@ const AdminLogin = () => {
                   value={captchaInput}
                   onChange={(e) => setCaptchaInput(e.target.value)}
                   placeholder="Enter Code"
-                  className="w-1/2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-red-500/40 text-center font-mono transition-all"
+                  className="w-1/2 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#585589] text-center font-mono transition-all"
                 />
               </div>
             </div>
@@ -232,7 +232,7 @@ const AdminLogin = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 rounded-xl bg-gradient-to-r from-red-700 to-red-500 text-white font-bold text-sm tracking-wide hover:shadow-[0_0_20px_rgba(239,68,68,0.3)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              className="w-full py-4 rounded-xl bg-[#585589] hover:bg-[#53527D] text-white font-bold text-sm tracking-wide shadow-[0_0_20px_rgba(88,85,137,0.3)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {loading ? (
                 <>

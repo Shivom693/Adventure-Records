@@ -265,7 +265,7 @@ const VerifyOtp = () => {
                   onChange={(e) => handleChange(idx, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(idx, e)}
                   disabled={loading}
-                  className="w-11 h-13 sm:w-12 sm:h-14 bg-white/5 border border-white/15 focus:border-white text-center text-xl font-heading font-bold text-white rounded-xl focus:outline-none focus:ring-1 focus:ring-white transition-all disabled:opacity-50"
+                  className="w-11 h-13 sm:w-12 sm:h-14 bg-white/5 border border-white/15 focus:border-[#585589] text-center text-xl font-heading font-bold text-white rounded-xl focus:outline-none focus:ring-1 focus:ring-[#585589] transition-all disabled:opacity-50"
                 />
               ))}
             </div>

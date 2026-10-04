@@ -1,7 +1,9 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { 
   getAuth, 
-  GoogleAuthProvider
+  GoogleAuthProvider,
+  setPersistence,
+  browserLocalPersistence
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
@@ -28,18 +30,24 @@ let storage;
 
 if (isConfigured) {
   try {
-    app = initializeApp(firebaseConfig);
+    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
+    
+    // Explicitly configure LOCAL persistence for permanent authentication
+    setPersistence(auth, browserLocalPersistence).catch((err) => {
+      console.warn("⚠️ Failed to set browserLocalPersistence:", err);
+    });
+
     db = getFirestore(app);
     storage = getStorage(app);
     googleProvider = new GoogleAuthProvider();
     googleProvider.setCustomParameters({ prompt: 'select_account' });
-    console.log("🔥 Firebase Auth, Firestore & Storage initialized successfully!");
+    console.log("🔥 Firebase Auth (with Local Persistence), Firestore & Storage initialized successfully!");
   } catch (error) {
     console.error("❌ Firebase client initialization failed:", error);
   }
 } else {
-  console.log("⚠️ Firebase client running in local configuration mode.");
+  console.log("⚠️ Firebase client running in fallback mode.");
 }
 
 export { auth, googleProvider, db, storage, isConfigured };

@@ -8,7 +8,7 @@ const FloatingDisc = ({ size = 'md', delay = false }) => {
     xl: 'w-96 h-96 border-[10px]'
   };
 
-  const glowColors = 'border-purple-500/20 shadow-[0_0_30px_rgba(168,85,247,0.3),_0_0_60px_rgba(59,130,246,0.2)]';
+  const glowColors = 'border-[#585589]/30 shadow-[0_0_30px_rgba(88,85,137,0.3)]';
   const animClass = delay ? 'animate-float-delayed' : 'animate-float';
 
   return (
@@ -25,7 +25,7 @@ const FloatingDisc = ({ size = 'md', delay = false }) => {
           <div className="absolute inset-10 rounded-full border border-zinc-800/40 pointer-events-none" />
           
           {/* Record Label (Center) */}
-          <div className="w-[35%] h-[35%] rounded-full bg-gradient-to-tr from-purple-500 via-indigo-600 to-blue-500 flex items-center justify-center p-1 border border-black shadow-[0_0_10px_rgba(0,0,0,0.8)]">
+          <div className="w-[35%] h-[35%] rounded-full bg-gradient-to-tr from-[#585589] via-[#53527D] to-[#DEDCFF] flex items-center justify-center p-1 border border-black shadow-[0_0_10px_rgba(0,0,0,0.8)]">
             
             {/* Core Spindle Hole */}
             <div className="w-[20%] h-[20%] rounded-full bg-black border border-zinc-700" />

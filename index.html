@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en" class="light">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/logo.png" />
@@ -36,27 +36,41 @@
     
     <!-- JSON-LD Structured Data Schema for Google Search -->
     <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "Organization",
-        "name": "Adventure Records",
-        "alternateName": ["Adventure Records Music", "Adventure Records Distribution"],
-        "url": "https://music-b2696.web.app/",
-        "logo": "https://music-b2696.web.app/logo.png",
-        "description": "Adventure Records is a next-gen music distribution platform for independent artists and record labels.",
-        "sameAs": [
-          "https://www.instagram.com/adventurerecods693/",
-          "https://www.linkedin.com/in/shiv-om-tripathi-4219ba414/",
-          "https://www.youtube.com/@AdventureRecord693",
-          "https://x.com/51274Shivom"
-        ],
-        "contactPoint": {
-          "@type": "ContactPoint",
-          "telephone": "+91-9691546208",
-          "contactType": "customer service",
-          "email": "adventureof693@gmail.com"
+      [
+        {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "name": "Adventure Records",
+          "url": "https://music-b2696.web.app/",
+          "alternateName": ["Adventure Records Music", "Adventure Records Distribution"],
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://music-b2696.web.app/resources?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "Adventure Records",
+          "alternateName": ["Adventure Records Music", "Adventure Records Distribution"],
+          "url": "https://music-b2696.web.app/",
+          "logo": "https://music-b2696.web.app/logo.png",
+          "description": "Adventure Records is a next-gen music distribution platform for independent artists and record labels.",
+          "sameAs": [
+            "https://www.instagram.com/adventurerecods693/",
+            "https://www.linkedin.com/in/shiv-om-tripathi-4219ba414/",
+            "https://www.youtube.com/@AdventureRecord693",
+            "https://x.com/51274Shivom"
+          ],
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "telephone": "+91-9691546208",
+            "contactType": "customer service",
+            "email": "adventureof693@gmail.com"
+          }
         }
-      }
+      ]
     </script>
     
     <!-- Google Fonts -->
@@ -66,16 +80,17 @@
   </head>
   <body class="font-inter antialiased min-h-screen overflow-x-hidden" style="background-color: var(--bg-primary); color: var(--text-primary);">
     <!-- Blocking theme initialization to prevent FOUC -->
+
     <script>
       (function() {
         var theme = localStorage.getItem('adventure-theme');
         var root = document.documentElement;
-        if (theme === 'light') {
-          root.classList.remove('dark');
-          root.classList.add('light');
-        } else {
+        if (theme === 'dark') {
           root.classList.add('dark');
           root.classList.remove('light');
+        } else {
+          root.classList.remove('dark');
+          root.classList.add('light');
         }
       })();
     </script>

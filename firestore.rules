@@ -1,49 +1,109 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // User Profiles
-    match /users/{userId} {
-      allow read, write: if true;
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
     }
     
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        (request.auth.token.email != null && request.auth.token.email == 'adventureof693@gmail.com') ||
+        (request.auth.token.admin == true)
+      );
+    }
+
+    // User Profiles
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow create: if isAuthenticated() && isOwner(userId);
+      allow update: if isAuthenticated() && (
+        isAdmin() || 
+        (isOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'verificationStatus']))
+      );
+      allow delete: if isAdmin();
+    }
+
     // Music Releases & Catalog Metadata
     match /releases/{releaseId} {
-      allow read, write: if true;
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        isAdmin() || 
+        (
+          resource.data.userId == request.auth.uid && 
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'paymentStatus', 'uploadUnlocked', 'rejectionReason', 'changesRequired'])
+        )
+      );
+      allow delete: if isAdmin();
     }
 
     // Sound Recording Tracks
     match /tracks/{trackId} {
-      allow read, write: if true;
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
     }
 
     // Royalty Statements
     match /royalties/{royaltyId} {
-      allow read, write: if true;
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow write: if isAdmin();
     }
 
     // Payout Requests
     match /payouts/{payoutId} {
-      allow read, write: if true;
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
     }
 
     // Support Tickets
     match /supportTickets/{ticketId} {
-      allow read, write: if true;
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if true; // Allow guest & user support ticket creation
+      allow update, delete: if isAdmin();
     }
 
     // Payments & Verification
     match /payments/{paymentId} {
-      allow read, write: if true;
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
     }
 
+    // Subscriptions
     match /subscriptions/{subId} {
-      allow read, write: if true;
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
     }
 
-    // Fallback document access
+    // Fallback document access: Deny all unlisted documents by default
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }
+

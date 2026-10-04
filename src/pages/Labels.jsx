@@ -4,22 +4,22 @@ import { Building2, Users, Layers, ShieldCheck, PieChart, ArrowRight, CheckCircl
 
 const labelFeatures = [
   {
-    icon: <Users className="w-6 h-6 text-purple-400" />,
+    icon: <Users className="w-6 h-6 text-[#DEDCFF]" />,
     title: 'Multi-Artist Catalog Roster Management',
     description: 'Manage multiple artist profiles under your official custom Record Label name with unified catalog dashboards.'
   },
   {
-    icon: <PieChart className="w-6 h-6 text-indigo-400" />,
+    icon: <PieChart className="w-6 h-6 text-[#DEDCFF]" />,
     title: 'Automated Revenue Splits & Payouts',
     description: 'Configure automated revenue splits for roster artists, producers, and managers with automated monthly payouts.'
   },
   {
-    icon: <ShieldCheck className="w-6 h-6 text-cyan-400" />,
+    icon: <ShieldCheck className="w-6 h-6 text-[#DEDCFF]" />,
     title: 'YouTube Content ID & Rights Protection',
     description: 'Protect master recordings across YouTube, TikTok, and Instagram with automated fingerprinting and claim management.'
   },
   {
-    icon: <Layers className="w-6 h-6 text-emerald-400" />,
+    icon: <Layers className="w-6 h-6 text-[#DEDCFF]" />,
     title: 'Priority Bulk Upload Engine',
     description: 'Ingest full catalogs and back-catalogs rapidly with high-speed parallel server processing.'
   }
@@ -30,16 +30,16 @@ const Labels = () => {
     <div className="relative pt-12 pb-24 overflow-x-hidden min-h-screen">
       
       {/* Background Ambient Glows */}
-      <div className="absolute top-20 right-10 w-[500px] h-[350px] bg-indigo-600/10 blur-[160px] rounded-full pointer-events-none" />
+      <div className="absolute top-20 right-10 w-[500px] h-[350px] bg-[#585589]/10 blur-[160px] rounded-full pointer-events-none" />
 
       {/* Header */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16 text-center space-y-4">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-semibold uppercase tracking-wider">
-          <Building2 className="w-4 h-4 text-indigo-400" /> Enterprise & Independent Record Labels
+        <div className="minimal-badge mx-auto">
+          <Building2 className="w-4 h-4 text-[#DEDCFF]" /> Enterprise & Independent Record Labels
         </div>
         <h1 className="font-heading font-black text-4xl sm:text-6xl text-white tracking-tight">
           Scalable Infrastructure for <br />
-          <span className="bg-gradient-to-r from-purple-400 via-indigo-300 to-cyan-400 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-[#DEDCFF] via-white to-[#585589] bg-clip-text text-transparent">
             Record Labels & Imprints
           </span>
         </h1>
@@ -54,7 +54,7 @@ const Labels = () => {
           {labelFeatures.map((feat, idx) => (
             <div 
               key={idx}
-              className="p-8 rounded-3xl bg-[#0d0d14] border border-white/10 hover:border-indigo-500/40 transition-all duration-300 space-y-4"
+              className="p-8 rounded-3xl bg-[#0d0d12] border border-white/10 hover:border-[#585589]/50 transition-all duration-300 space-y-4"
             >
               <div className="p-3.5 rounded-2xl bg-white/5 w-fit border border-white/5">
                 {feat.icon}
@@ -88,14 +88,14 @@ const Labels = () => {
 
       {/* CTA */}
       <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-20">
-        <div className="p-10 rounded-3xl bg-gradient-to-r from-indigo-950/50 via-purple-950/40 to-black border border-indigo-500/30 space-y-6">
+        <div className="p-10 rounded-3xl bg-gradient-to-r from-[#585589]/30 via-[#585589]/10 to-transparent border border-[#585589]/40 space-y-6 shadow-[0_0_30px_rgba(88,85,137,0.15)]">
           <h2 className="font-heading font-bold text-3xl text-white">Scale Your Record Label Today</h2>
           <p className="text-zinc-300 text-sm max-w-xl mx-auto">
             Get unlimited artist profiles, custom label branding, and dedicated manager support.
           </p>
           <Link
             to="/signup"
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold text-sm shadow-[0_0_25px_rgba(99,102,241,0.4)] transition-all"
+            className="btn-primary inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold text-sm"
           >
             Get Started as Label <ArrowRight className="w-4 h-4" />
           </Link>

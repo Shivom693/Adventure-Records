@@ -85,22 +85,22 @@ const ArtistDistributionGuide = () => {
 
         {/* Benefits Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="minimal-card p-6 bg-[#09090d] space-y-3">
-            <UserCheck className="w-8 h-8 text-amber-400" />
+          <div className="minimal-card p-6 bg-[#0d0d12] space-y-3">
+            <UserCheck className="w-8 h-8 text-[#DEDCFF]" />
             <h2 className="font-bold text-white text-lg">Total Creative Freedom</h2>
             <p className="text-zinc-400 text-xs leading-relaxed">
               You choose when to release, how your artwork looks, and retain complete authority over your creative catalogue.
             </p>
           </div>
-          <div className="minimal-card p-6 bg-[#09090d] space-y-3">
-            <Sparkles className="w-8 h-8 text-amber-400" />
+          <div className="minimal-card p-6 bg-[#0d0d12] space-y-3">
+            <Sparkles className="w-8 h-8 text-[#DEDCFF]" />
             <h2 className="font-bold text-white text-lg">Instant Global Reach</h2>
             <p className="text-zinc-400 text-xs leading-relaxed">
               Distribute to 150+ streaming platforms across 200+ countries, putting your music directly into the ears of global fans.
             </p>
           </div>
-          <div className="minimal-card p-6 bg-[#09090d] space-y-3">
-            <Award className="w-8 h-8 text-amber-400" />
+          <div className="minimal-card p-6 bg-[#0d0d12] space-y-3">
+            <Award className="w-8 h-8 text-[#DEDCFF]" />
             <h2 className="font-bold text-white text-lg">Keep 100% Earnings</h2>
             <p className="text-zinc-400 text-xs leading-relaxed">
               No hidden percentage cuts. Every rupee generated from Spotify, Apple Music, and regional platforms belongs to you.
@@ -109,7 +109,7 @@ const ArtistDistributionGuide = () => {
         </div>
 
         {/* Content Section */}
-        <div className="minimal-card p-8 bg-[#09090d] space-y-6">
+        <div className="minimal-card p-8 bg-[#0d0d12] space-y-6">
           <h2 className="font-heading font-bold text-xl text-white border-b border-white/10 pb-3">
             Essential Steps for Artists Before Releasing Music
           </h2>
@@ -119,25 +119,25 @@ const ArtistDistributionGuide = () => {
             </p>
             <ul className="space-y-3 list-none">
               <li className="flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-5 h-5 text-[#DEDCFF] shrink-0 mt-0.5" />
                 <div>
                   <strong className="text-white">Mastering for Streaming:</strong> Ensure your mix is professionally mastered with a peak loudness suitable for digital DSP normalization (typically -14 LUFS).
                 </div>
               </li>
               <li className="flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-5 h-5 text-[#DEDCFF] shrink-0 mt-0.5" />
                 <div>
                   <strong className="text-white">High Quality Artwork:</strong> Prepare a 3000 x 3000 pixel square cover art image without low-quality pixelation or misleading text.
                 </div>
               </li>
               <li className="flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-5 h-5 text-[#DEDCFF] shrink-0 mt-0.5" />
                 <div>
                   <strong className="text-white">Accurate Metadata & Credits:</strong> Properly credit songwriters, lyricists, producers, and featured artists to ensure accurate royalty distribution.
                 </div>
               </li>
               <li className="flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-5 h-5 text-[#DEDCFF] shrink-0 mt-0.5" />
                 <div>
                   <strong className="text-white">Planning Lead Time:</strong> Submit your release at least 10 to 14 days prior to your target release date to pitch to official Spotify for Artists & Apple Music editorial playlists.
                 </div>

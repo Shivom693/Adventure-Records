@@ -109,10 +109,10 @@ const UpiPaymentModal = ({ isOpen, onClose, paymentType = 'release', targetId, t
         {/* Header */}
         <div className="text-center space-y-2 mb-6">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-semibold uppercase tracking-wider">
-            <ShieldCheck className="w-3.5 h-3.5" /> Official Merchant UPI Gateway
+            <ShieldCheck className="w-3.5 h-3.5" /> Instant UPI Payment Gateway
           </div>
-          <h2 className="font-heading font-black text-2xl text-white tracking-wide">{merchantName} Payment</h2>
-          <p className="text-zinc-400 text-xs">{title || 'Official Distribution Service'}</p>
+          <h2 className="font-heading font-bold text-2xl text-white tracking-wide">{merchantName} Payment</h2>
+          <p className="text-zinc-400 text-xs">{title || 'Distribution Service'}</p>
         </div>
 
         {/* Amount Box */}
@@ -130,7 +130,7 @@ const UpiPaymentModal = ({ isOpen, onClose, paymentType = 'release', targetId, t
             </div>
             <h3 className="font-heading font-bold text-lg text-white">Payment submitted for verification.</h3>
             <p className="text-zinc-300 text-xs leading-relaxed">
-              Your transaction UTR <span className="font-mono font-bold text-amber-400">{utr}</span> (₹{amount}) has been recorded. Our billing team will verify it shortly.
+              Your transaction UTR <span className="font-mono font-bold text-[#DEDCFF]">{utr}</span> (₹{amount}) has been recorded. Our billing team will verify it shortly.
             </p>
             <p className="text-zinc-500 text-[11px]">
               Upon admin verification, your status will change to <span className="text-emerald-400 font-semibold">Payment Verified ✓</span> and features will be unlocked.
@@ -177,7 +177,7 @@ const UpiPaymentModal = ({ isOpen, onClose, paymentType = 'release', targetId, t
             <div className="p-3.5 rounded-xl bg-black/40 border border-white/10 flex items-center justify-between text-xs">
               <div>
                 <span className="text-zinc-500 text-[10px] uppercase font-bold block">Receiver Merchant UPI ID</span>
-                <span className="font-mono font-bold text-amber-400 text-sm select-all">{merchantUpi}</span>
+                <span className="font-mono font-bold text-[#DEDCFF] text-sm select-all">{merchantUpi}</span>
               </div>
               <button onClick={handleCopyUpi} className="text-xs text-zinc-400 hover:text-white font-semibold underline">
                 {copied ? 'Copied' : 'Copy'}

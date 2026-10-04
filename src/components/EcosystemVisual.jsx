@@ -46,9 +46,9 @@ const platformNodes = [
   {
     name: 'TikTok',
     sub: 'Sounds & Viral Charts',
-    icon: <Video className="w-4 h-4 text-indigo-400" />,
-    color: 'border-indigo-500/30 bg-indigo-500/10 text-indigo-300',
-    glow: 'shadow-[0_0_20px_rgba(99,102,241,0.2)]',
+    icon: <Video className="w-4 h-4 text-[#DEDCFF]" />,
+    color: 'border-[#585589]/40 bg-[#585589]/15 text-[#DEDCFF]',
+    glow: 'shadow-[0_0_20px_rgba(88,85,137,0.2)]',
     pos: 'top-[18%] left-[2%] sm:left-[5%]'
   }
 ];
@@ -58,18 +58,18 @@ const EcosystemVisual = () => {
     <div className="relative w-full max-w-lg aspect-square flex items-center justify-center p-4 sm:p-8 select-none">
       
       {/* Background Radial Glow */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-purple-600/15 via-indigo-600/10 to-cyan-500/10 rounded-full blur-[70px] pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-tr from-[#585589]/25 via-[#53527D]/15 to-[#DEDCFF]/10 rounded-full blur-[70px] pointer-events-none" />
 
       {/* Orbit Rings */}
-      <div className="absolute w-[82%] h-[82%] rounded-full border border-purple-500/15 animate-spin-slow" />
-      <div className="absolute w-[58%] h-[58%] rounded-full border border-dashed border-indigo-500/20" />
+      <div className="absolute w-[82%] h-[82%] rounded-full border border-[#585589]/25 animate-spin-slow" />
+      <div className="absolute w-[58%] h-[58%] rounded-full border border-dashed border-[#585589]/30" />
 
       {/* SVG Connecting Pulse Beams */}
       <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
         <defs>
           <linearGradient id="beamGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#a855f7" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#6366f1" stopOpacity="0.2" />
+            <stop offset="0%" stopColor="#585589" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#53527D" stopOpacity="0.3" />
           </linearGradient>
         </defs>
         
@@ -87,24 +87,24 @@ const EcosystemVisual = () => {
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.6 }}
-        className="relative z-20 flex flex-col items-center justify-center p-5 sm:p-6 rounded-3xl bg-[#0b0b12]/90 backdrop-blur-2xl border-2 border-purple-500/50 shadow-[0_0_50px_rgba(168,85,247,0.4)] text-center group"
+        className="relative z-20 flex flex-col items-center justify-center p-5 sm:p-6 rounded-3xl bg-[#0c0b1a]/90 backdrop-blur-2xl border-2 border-[#585589] shadow-[0_0_50px_rgba(88,85,137,0.5)] text-center group"
       >
-        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-purple-600 via-indigo-500 to-purple-400 p-[2px] flex items-center justify-center shadow-lg mb-2 group-hover:scale-105 transition-transform duration-300">
-          <div className="w-full h-full bg-[#08080d] rounded-[14px] flex items-center justify-center">
-            <Disc className="w-6 h-6 sm:w-7 sm:h-7 text-purple-400 animate-spin-slow" />
+        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-[#585589] p-[2px] flex items-center justify-center shadow-lg mb-2 group-hover:scale-105 transition-transform duration-300">
+          <div className="w-full h-full bg-[#0c0b1a] rounded-[14px] flex items-center justify-center">
+            <Disc className="w-6 h-6 sm:w-7 sm:h-7 text-[#DEDCFF] animate-spin-slow" />
           </div>
         </div>
         <span className="font-heading font-black text-xs sm:text-sm text-white tracking-wider uppercase">
           Adventure Records
         </span>
-        <span className="text-[9px] text-purple-300 font-semibold tracking-widest uppercase mt-0.5 px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20">
+        <span className="text-[9px] text-[#DEDCFF] font-semibold tracking-widest uppercase mt-0.5 px-2 py-0.5 rounded-full bg-[#585589]/30 border border-[#585589]/50">
           Distribution Core
         </span>
 
         {/* Central Pulse Indicator */}
         <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
-          <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-purple-500" />
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#DEDCFF] opacity-75" />
+          <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-[#585589]" />
         </span>
       </motion.div>
 
@@ -136,9 +136,9 @@ const EcosystemVisual = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.6 }}
-        className="absolute bottom-[-18px] sm:bottom-[-24px] z-30 flex items-center gap-2 px-4 py-2 rounded-full bg-[#0d0d15]/90 backdrop-blur-xl border border-white/15 text-white text-xs font-semibold shadow-xl hover:border-purple-500/40 transition-all"
+        className="absolute bottom-[-18px] sm:bottom-[-24px] z-30 flex items-center gap-2 px-4 py-2 rounded-full bg-[#0c0b1a]/90 backdrop-blur-xl border border-[#585589]/40 text-white text-xs font-semibold shadow-xl hover:border-[#585589] transition-all"
       >
-        <Globe className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
+        <Globe className="w-3.5 h-3.5 text-[#DEDCFF] animate-pulse" />
         <span>+ Other Digital Platforms (150+ Stores)</span>
       </motion.div>
 

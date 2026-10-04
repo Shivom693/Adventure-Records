@@ -167,7 +167,7 @@ const termsSections = [
         <p className="text-gray-300 leading-relaxed mb-3">
           If your Content contains samples, beats, loops, sounds, recordings, or other third-party materials, you are responsible for obtaining all necessary licenses and permissions.
         </p>
-        <p className="text-yellow-300/90 text-sm bg-yellow-500/10 border border-yellow-500/20 p-3 rounded-xl mb-3">
+        <p className="text-[#DEDCFF] text-sm bg-[#585589]/15 border border-[#585589]/30 p-3 rounded-xl mb-3">
           Purchasing or downloading a beat, sample, loop, or instrumental does not automatically give you unlimited distribution or commercial rights.
         </p>
         <p className="text-gray-300 text-sm mb-2">
@@ -834,7 +834,7 @@ const Terms = () => {
                   onClick={() => scrollToSection(sec.id)}
                   className={`w-full text-left px-3 py-2 rounded-xl transition-all duration-200 truncate ${
                     activeSection === sec.id
-                      ? 'bg-purple-600/30 border border-purple-500/40 text-purple-200 font-semibold'
+                      ? 'bg-[#585589]/30 border border-[#585589]/40 text-[#DEDCFF] font-semibold'
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -851,7 +851,7 @@ const Terms = () => {
                 <p className="text-gray-400 text-sm">No sections match your search "{searchTerm}".</p>
                 <button
                   onClick={() => setSearchTerm('')}
-                  className="px-4 py-2 rounded-xl bg-purple-600 text-white text-xs font-semibold"
+                  className="px-4 py-2 rounded-xl bg-[#585589] hover:bg-[#53527D] text-white text-xs font-semibold"
                 >
                   Clear Search Filter
                 </button>
@@ -865,7 +865,7 @@ const Terms = () => {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.3 }}
-                  className="glass-panel p-6 sm:p-8 rounded-3xl border-white/5 hover:border-purple-500/30 transition-all scroll-mt-28"
+                  className="glass-panel p-6 sm:p-8 rounded-3xl border-white/5 hover:border-[#585589]/30 transition-all scroll-mt-28"
                 >
                   <h2 className="font-orbitron font-bold text-lg sm:text-xl text-white mb-4 pb-3 border-b border-white/5">
                     {sec.title}
@@ -879,12 +879,12 @@ const Terms = () => {
 
             {/* Back to top button floating control */}
             <div className="flex justify-between items-center pt-8 border-t border-white/5">
-              <Link to="/contact" className="text-xs text-purple-400 hover:underline">
+              <Link to="/contact" className="text-xs text-[#DEDCFF] hover:underline">
                 Have questions about these terms? Contact Support
               </Link>
               <button
                 onClick={scrollToTop}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-purple-600 hover:border-purple-500 text-xs text-white transition-all"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-[#585589] hover:border-[#585589] text-xs text-white transition-all"
               >
                 <ArrowUp className="w-3.5 h-3.5" /> Back to Top
               </button>

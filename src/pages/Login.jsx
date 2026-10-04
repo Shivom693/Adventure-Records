@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, LogIn, AlertCircle, RefreshCw, Eye, EyeOff, ShieldAlert } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo';
-import { isConfigured, auth, googleProvider } from '../firebase';
-import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config';
 
 const Login = () => {
@@ -13,19 +12,19 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  const { user, login, loginWithGoogle, isAuthenticated, authLoading, mapFirebaseAuthError } = useAuth();
   const navigate = useNavigate();
 
-  React.useEffect(() => {
-    const storedUserStr = localStorage.getItem('user');
-    if (storedUserStr) {
-      try {
-        const u = JSON.parse(storedUserStr);
-        if (u.role === 'Admin') {
-          navigate('/admin');
-        }
-      } catch (e) {}
+  // If user is already authenticated, redirect automatically
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && user) {
+      if (user.role === 'Admin') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     }
-  }, [navigate]);
+  }, [isAuthenticated, authLoading, user, navigate]);
 
   // Email + Password Login Handler
   const handleEmailLogin = async (e) => {
@@ -41,87 +40,34 @@ const Login = () => {
     const cleanEmail = email.toLowerCase().trim();
 
     try {
-      const backendUrl = API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      let firebaseUser = null;
+      // Primary: Authenticate via Firebase Auth with local persistence
+      const profile = await login(cleanEmail, password);
 
-      // Try Firebase auth first if configured
-      if (isConfigured && auth) {
-        try {
-          const userCred = await signInWithEmailAndPassword(auth, cleanEmail, password);
-          firebaseUser = userCred.user;
-        } catch (firebaseErr) {
-          if (firebaseErr.code === 'auth/user-not-found' || firebaseErr.code === 'auth/wrong-password' || firebaseErr.code === 'auth/invalid-credential') {
-            setError('Invalid email or password credentials.');
-            setLoading(false);
-            return;
-          } else if (firebaseErr.code === 'auth/too-many-requests') {
-            setError('Too many failed attempts. Please try again later or reset your password.');
-            setLoading(false);
-            return;
-          }
-          // For other Firebase errors, continue to try backend auth
-        }
-      }
-
-      // Try authenticating via backend server to get a real JWT
+      // Secondary: Try syncing with backend server if online
       try {
+        const backendUrl = API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
         const response = await fetch(`${backendUrl}/api/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: cleanEmail, password })
         });
-
         if (response.ok) {
           const data = await response.json();
-          const userResponse = { ...data.user };
-          delete userResponse.password;
-          delete userResponse.otpCode;
-          delete userResponse.resetOtpCode;
-
-          localStorage.setItem('token', data.token);
-          localStorage.setItem('user', JSON.stringify(userResponse));
-          window.dispatchEvent(new Event('auth-change'));
-
-          if (userResponse.role === 'Admin') {
-            navigate('/admin');
-          } else {
-            navigate('/dashboard');
+          if (data.token) {
+            localStorage.setItem('token', data.token);
           }
-          return;
-        } else if (!firebaseUser) {
-          const data = await response.json().catch(() => ({}));
-          setError(data.message || 'Invalid email or password credentials.');
-          setLoading(false);
-          return;
         }
-      } catch (backendFetchErr) {
-        // Backend server is offline / unreachable
-        if (!firebaseUser) {
-          setError('Unable to connect to authentication server. Please try again.');
-          setLoading(false);
-          return;
-        }
+      } catch (backendErr) {
+        // Backend offline fallback - Firebase session is active
       }
 
-      // If Firebase auth succeeded but backend fetch was offline/unavailable, fallback to Firebase session
-      if (firebaseUser) {
-        const userObj = {
-          email: firebaseUser.email,
-          name: firebaseUser.displayName || cleanEmail.split('@')[0],
-          artistName: firebaseUser.displayName || cleanEmail.split('@')[0],
-          role: 'Artist',
-          uid: firebaseUser.uid,
-          isOtpVerified: true
-        };
-
-        localStorage.setItem('token', `firebase-${firebaseUser.uid}`);
-        localStorage.setItem('user', JSON.stringify(userObj));
-        window.dispatchEvent(new Event('auth-change'));
-
+      if (profile?.role === 'Admin') {
+        navigate('/admin');
+      } else {
         navigate('/dashboard');
       }
     } catch (err) {
-      setError(err.message || 'Unable to connect to authentication server. Please try again.');
+      setError(mapFirebaseAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -133,79 +79,30 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const backendUrl = API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      let googleEmail = '';
-      let googleName = 'Independent Artist';
-      let uid = '';
+      const profile = await loginWithGoogle();
 
-      if (isConfigured && auth) {
-        const result = await signInWithPopup(auth, googleProvider);
-        if (result.user && result.user.email) {
-          googleEmail = result.user.email;
-          googleName = result.user.displayName || googleEmail.split('@')[0];
-          uid = result.user.uid || '';
-        }
-      }
-
-      if (!googleEmail) {
-        setError('Google Sign-In failed. No email received.');
-        setLoading(false);
-        return;
-      }
-
-      // Sync with backend to get a real JWT token if server is online
+      // Sync with backend if online
       try {
-        const response = await fetch(`${backendUrl}/api/auth/firebase-sync`, {
+        const backendUrl = API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        await fetch(`${backendUrl}/api/auth/firebase-sync`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            email: googleEmail,
-            name: googleName,
-            artistName: googleName,
-            firebaseUid: uid
+            email: profile.email,
+            name: profile.name,
+            artistName: profile.artistName,
+            firebaseUid: profile.uid
           })
         });
+      } catch (syncErr) {}
 
-        if (response.ok) {
-          const data = await response.json();
-          const userResponse = { ...data.user };
-          delete userResponse.password;
-          delete userResponse.otpCode;
-
-          localStorage.setItem('token', data.token);
-          localStorage.setItem('user', JSON.stringify(userResponse));
-          window.dispatchEvent(new Event('auth-change'));
-
-          navigate('/dashboard');
-          return;
-        }
-      } catch (syncErr) {
-        // Backend offline fallback to Firebase user session
+      if (profile?.role === 'Admin') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
       }
-
-      // Fallback: Log in directly with Firebase Google user profile
-      const userObj = {
-        email: googleEmail,
-        name: googleName,
-        artistName: googleName,
-        role: 'Artist',
-        uid: uid,
-        isOtpVerified: true
-      };
-
-      localStorage.setItem('token', `firebase-google-${uid}`);
-      localStorage.setItem('user', JSON.stringify(userObj));
-      window.dispatchEvent(new Event('auth-change'));
-
-      navigate('/dashboard');
     } catch (err) {
-      let errorMsg = err.message || 'Google Sign-In failed.';
-      if (err.code === 'auth/popup-blocked') {
-        errorMsg = 'Popup was blocked by your browser. Please enable popups for this site.';
-      } else if (err.code === 'auth/cancelled-popup-request') {
-        errorMsg = 'Sign-in popup was closed before completing.';
-      }
-      setError(errorMsg);
+      setError(mapFirebaseAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -273,7 +170,7 @@ const Login = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@domain.com"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 pl-11 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/40 transition-all"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 pl-11 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#585589] transition-all"
                 />
                 <Mail className="w-4 h-4 text-zinc-500 absolute left-4 top-1/2 -translate-y-1/2" />
               </div>
@@ -293,7 +190,7 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 pl-11 pr-11 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/40 transition-all"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 pl-11 pr-11 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#585589] transition-all"
                 />
                 <Lock className="w-4 h-4 text-zinc-500 absolute left-4 top-1/2 -translate-y-1/2" />
                 <button

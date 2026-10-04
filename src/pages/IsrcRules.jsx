@@ -44,8 +44,8 @@ const isrcSections = [
             <p className="text-gray-300">Each distinct sound recording must have its own ISRC. You must not assign the same ISRC to two different recordings.</p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-yellow-950/20 border border-yellow-500/20">
-            <h4 className="font-orbitron font-semibold text-yellow-300 text-xs mb-1">Rule 2 — Do Not Create a New ISRC for the Same Recording</h4>
+          <div className="p-4 rounded-2xl bg-[#585589]/15 border border-[#585589]/40">
+            <h4 className="font-orbitron font-semibold text-[#DEDCFF] text-xs mb-1">Rule 2 — Do Not Create a New ISRC for the Same Recording</h4>
             <p className="text-gray-300 mb-2">If a recording already has a valid ISRC and the recording has not materially changed, the existing ISRC should be used.</p>
             <p className="text-gray-400 text-xs">Do not create another ISRC simply because you changed distributor, changed label, changed country, re-uploaded, or transferred ownership.</p>
           </div>
@@ -469,7 +469,7 @@ const IsrcRules = () => {
                   onClick={() => scrollToSection(sec.id)}
                   className={`w-full text-left px-3 py-2 rounded-xl transition-all duration-200 truncate ${
                     activeSection === sec.id
-                      ? 'bg-purple-600/30 border border-purple-500/40 text-purple-200 font-semibold'
+                      ? 'bg-[#585589]/30 border border-[#585589]/40 text-[#DEDCFF] font-semibold'
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -486,7 +486,7 @@ const IsrcRules = () => {
                 <p className="text-gray-400 text-sm">No rules section matches "{searchTerm}".</p>
                 <button
                   onClick={() => setSearchTerm('')}
-                  className="px-4 py-2 rounded-xl bg-purple-600 text-white text-xs font-semibold"
+                  className="px-4 py-2 rounded-xl bg-[#585589] hover:bg-[#53527D] text-white text-xs font-semibold"
                 >
                   Clear Search Filter
                 </button>
@@ -500,7 +500,7 @@ const IsrcRules = () => {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.3 }}
-                  className="glass-panel p-6 sm:p-8 rounded-3xl border-white/5 hover:border-purple-500/30 transition-all scroll-mt-28"
+                  className="glass-panel p-6 sm:p-8 rounded-3xl border-white/5 hover:border-[#585589]/30 transition-all scroll-mt-28"
                 >
                   <h2 className="font-orbitron font-bold text-lg sm:text-xl text-white mb-4 pb-3 border-b border-white/5">
                     {sec.title}
@@ -514,12 +514,12 @@ const IsrcRules = () => {
 
             {/* Back to top */}
             <div className="flex justify-between items-center pt-8 border-t border-white/5">
-              <Link to="/contact" className="text-xs text-purple-400 hover:underline">
+              <Link to="/contact" className="text-xs text-[#DEDCFF] hover:underline">
                 Questions about code identifiers? Contact Support
               </Link>
               <button
                 onClick={scrollToTop}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-purple-600 hover:border-purple-500 text-xs text-white transition-all"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-[#585589] hover:border-[#585589] text-xs text-white transition-all"
               >
                 <ArrowUp className="w-3.5 h-3.5" /> Back to Top
               </button>

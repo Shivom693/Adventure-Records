@@ -95,9 +95,9 @@ const FreeMusicDistribution = () => {
         </div>
 
         {/* Honest Business Model Callout */}
-        <div className="minimal-card p-6 sm:p-8 bg-amber-500/5 border-amber-500/20 text-amber-200 space-y-3">
+        <div className="minimal-card p-6 sm:p-8 bg-[#585589]/10 border border-[#585589]/30 text-zinc-200 space-y-3 shadow-[0_0_30px_rgba(88,85,137,0.1)]">
           <div className="flex items-center gap-2 font-bold text-base text-white">
-            <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
+            <AlertCircle className="w-5 h-5 text-[#DEDCFF] shrink-0" />
             <span>Honest Pricing & Transparency at Adventure Records</span>
           </div>
           <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed">
@@ -106,7 +106,7 @@ const FreeMusicDistribution = () => {
         </div>
 
         {/* Section 1: What is Free Music Distribution */}
-        <div className="minimal-card p-8 bg-[#09090d] space-y-6">
+        <div className="minimal-card p-8 bg-[#0d0d12] space-y-6">
           <h2 className="font-heading font-bold text-xl text-white border-b border-white/10 pb-3">
             1. What Does "Free Music Distribution" Mean?
           </h2>
@@ -132,14 +132,14 @@ const FreeMusicDistribution = () => {
         </div>
 
         {/* Section 2: Technical Checklist for Releases */}
-        <div className="minimal-card p-8 bg-[#09090d] space-y-6">
+        <div className="minimal-card p-8 bg-[#0d0d12] space-y-6">
           <h2 className="font-heading font-bold text-xl text-white border-b border-white/10 pb-3">
             2. Technical Requirements for Music Release Submission
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs sm:text-sm">
             <div className="space-y-2">
               <h3 className="font-bold text-white flex items-center gap-2">
-                <Music className="w-4 h-4 text-amber-400" /> Audio Master Format
+                <Music className="w-4 h-4 text-[#DEDCFF]" /> Audio Master Format
               </h3>
               <p className="text-zinc-400 text-xs leading-relaxed">
                 High-resolution 16-bit or 24-bit WAV or FLAC audio files (44.1kHz sample rate). Uncompressed audio ensures broadcast quality on all streaming services.
@@ -147,7 +147,7 @@ const FreeMusicDistribution = () => {
             </div>
             <div className="space-y-2">
               <h3 className="font-bold text-white flex items-center gap-2">
-                <Disc className="w-4 h-4 text-amber-400" /> Cover Artwork Specifications
+                <Disc className="w-4 h-4 text-[#DEDCFF]" /> Cover Artwork Specifications
               </h3>
               <p className="text-zinc-400 text-xs leading-relaxed">
                 Square image (3000 × 3000 pixels) in JPG or PNG format, RGB color mode. Artwork must not contain social media handles, pricing text, or blurry elements.
@@ -155,7 +155,7 @@ const FreeMusicDistribution = () => {
             </div>
             <div className="space-y-2">
               <h3 className="font-bold text-white flex items-center gap-2">
-                <FileText className="w-4 h-4 text-amber-400" /> ISRC & UPC Identifiers
+                <FileText className="w-4 h-4 text-[#DEDCFF]" /> ISRC & UPC Identifiers
               </h3>
               <p className="text-zinc-400 text-xs leading-relaxed">
                 International Standard Recording Code (ISRC) tracks individual audio recordings, while Universal Product Code (UPC) tracks the complete release package.
@@ -163,7 +163,7 @@ const FreeMusicDistribution = () => {
             </div>
             <div className="space-y-2">
               <h3 className="font-bold text-white flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-amber-400" /> Copyright Ownership
+                <ShieldCheck className="w-4 h-4 text-[#DEDCFF]" /> Copyright Ownership
               </h3>
               <p className="text-zinc-400 text-xs leading-relaxed">
                 You must hold 100% legal ownership or authorized rights for all sound recordings, samples, beat licenses, and musical compositions.
@@ -173,7 +173,7 @@ const FreeMusicDistribution = () => {
         </div>
 
         {/* Section 3: Adventure Records Pricing Table */}
-        <div className="minimal-card p-8 bg-[#09090d] space-y-6">
+        <div className="minimal-card p-8 bg-[#0d0d12] space-y-6">
           <h2 className="font-heading font-bold text-xl text-white border-b border-white/10 pb-3">
             3. Adventure Records Distribution Pricing
           </h2>
@@ -187,7 +187,7 @@ const FreeMusicDistribution = () => {
                 Single Details →
               </Link>
             </div>
-            <div className="p-6 rounded-2xl bg-white/5 border border-amber-500/30 bg-amber-500/5 text-center space-y-3">
+            <div className="p-6 rounded-2xl bg-[#585589]/15 border border-[#585589]/40 text-center space-y-3 shadow-[0_0_20px_rgba(88,85,137,0.15)]">
               <span className="text-2xl">💿</span>
               <h3 className="font-bold text-white text-base">EP</h3>
               <p className="font-heading font-black text-3xl text-white">₹500</p>

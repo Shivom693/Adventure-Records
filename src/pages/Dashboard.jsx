@@ -7,6 +7,7 @@ import {
   Disc
 } from 'lucide-react';
 import { auth, db } from '../firebase';
+import { useAuth } from '../context/AuthContext';
 import { 
   fetchUserReleases, fetchUserRoyalties, fetchUserPayouts, 
   fetchUserTickets, submitSupportTicket, requestPayoutFirestore 
@@ -14,14 +15,15 @@ import {
 import { API_URL } from '../config';
 
 const Dashboard = () => {
+  const { user: contextUser, authLoading } = useAuth();
   const [user, setUser] = useState(null);
   const [releases, setReleases] = useState([]);
   const [royalties, setRoyalties] = useState({ totalEarnings: 0, totalStreams: 0, items: [] });
   const [payouts, setPayouts] = useState([]);
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeSubTab, setActiveSubTab] = useState('analytics'); // 'analytics', 'catalog', 'payouts', 'tickets', 'security'
-  
+  const [activeSubTab, setActiveSubTab] = useState('analytics');
+
   // Payout Request Modal
   const [payoutAmount, setPayoutAmount] = useState('');
   const [payoutMethod, setPayoutMethod] = useState('UPI / Bank Transfer');
@@ -57,43 +59,33 @@ const Dashboard = () => {
 
   const loadDashboardData = async () => {
     try {
-      const storedUserStr = localStorage.getItem('user');
-      const authUser = auth?.currentUser;
+      let currentUser = contextUser;
+      if (!currentUser) {
+        const storedUserStr = localStorage.getItem('user');
+        if (storedUserStr) {
+          try { currentUser = JSON.parse(storedUserStr); } catch (e) {}
+        }
+      }
 
-      if (!storedUserStr && !authUser) {
-        navigate('/login');
+      if (!currentUser) {
+        setLoading(false);
         return;
-      }
-
-      let currentUser = null;
-      if (storedUserStr) {
-        try { currentUser = JSON.parse(storedUserStr); } catch (e) {}
-      }
-      if (!currentUser && authUser) {
-        currentUser = {
-          uid: authUser.uid,
-          email: authUser.email,
-          artistName: authUser.displayName || authUser.email.split('@')[0],
-          role: authUser.email === 'adventureof693@gmail.com' ? 'Admin' : 'Artist'
-        };
       }
 
       setUser(currentUser);
       
       // Initialize profile fields
-      if (currentUser) {
-        setProfileData({
-          artistName: currentUser.artistName || currentUser.displayName || '',
-          fullName: currentUser.name || currentUser.fullName || '',
-          phone: currentUser.phone || '',
-          genre: currentUser.genre || 'Pop',
-          bio: currentUser.bio || '',
-          spotifyUrl: currentUser.spotifyUrl || '',
-          instagramUrl: currentUser.instagramUrl || ''
-        });
-      }
+      setProfileData({
+        artistName: currentUser.artistName || currentUser.displayName || '',
+        fullName: currentUser.name || currentUser.fullName || '',
+        phone: currentUser.phone || '',
+        genre: currentUser.genre || 'Pop',
+        bio: currentUser.bio || '',
+        spotifyUrl: currentUser.spotifyUrl || '',
+        instagramUrl: currentUser.instagramUrl || ''
+      });
 
-      const uid = currentUser?.uid || currentUser?.id || authUser?.uid;
+      const uid = currentUser?.uid || currentUser?.id || auth?.currentUser?.uid;
 
       if (uid) {
         // Run all queries concurrently with timeouts
@@ -117,8 +109,10 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    if (!authLoading) {
+      loadDashboardData();
+    }
+  }, [contextUser, authLoading]);
 
   // Real Payout Request Submit
   const handlePayoutSubmit = async (e) => {
@@ -332,12 +326,12 @@ const Dashboard = () => {
           <div className="minimal-card p-6 bg-[#0d0d12] border-white/10 space-y-2">
             <div className="flex justify-between items-center text-zinc-400 text-xs uppercase font-bold tracking-wider">
               <span>Available Earnings</span>
-              <CircleDollarSign className="w-4 h-4 text-amber-400" />
+              <CircleDollarSign className="w-4 h-4 text-[#DEDCFF]" />
             </div>
             <h3 className="font-heading font-extrabold text-3xl text-white">₹{totalEarningsDisplay}</h3>
             <button
               onClick={() => setPayoutModal(true)}
-              className="text-[11px] text-amber-400 font-semibold hover:underline block text-left"
+              className="text-[11px] text-[#DEDCFF] font-semibold hover:underline block text-left"
             >
               Withdraw Funds →
             </button>
@@ -454,7 +448,7 @@ const Dashboard = () => {
                       <div className="flex items-center gap-2">
                         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                           rel.paymentStatus === 'paid' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' :
-                          rel.paymentStatus === 'pending_verification' ? 'bg-amber-500/10 border border-amber-500/30 text-amber-400' :
+                          rel.paymentStatus === 'pending_verification' ? 'bg-[#585589]/20 border border-[#585589]/40 text-[#DEDCFF]' :
                           'bg-red-500/10 border border-red-500/30 text-red-400'
                         }`}>
                           {rel.paymentStatus === 'paid' ? 'Payment Verified ✓' :
@@ -464,7 +458,7 @@ const Dashboard = () => {
                         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                           rel.status === 'approved' || rel.status === 'distributed' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' :
                           rel.status === 'rejected' ? 'bg-red-500/10 border border-red-500/30 text-red-400' :
-                          rel.status === 'changes_required' ? 'bg-amber-500/10 border border-amber-500/30 text-amber-400' :
+                          rel.status === 'changes_required' ? 'bg-[#585589]/20 border border-[#585589]/40 text-[#DEDCFF]' :
                           'bg-white/10 border border-white/20 text-zinc-300'
                         }`}>
                           {rel.status?.replace('_', ' ')}
@@ -479,7 +473,7 @@ const Dashboard = () => {
                       </div>
                     )}
                     {rel.changesRequired && (
-                      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs">
+                      <div className="p-3 rounded-xl bg-[#585589]/20 border border-[#585589]/40 text-[#DEDCFF] text-xs">
                         <strong>Action Required:</strong> {rel.changesRequired}
                       </div>
                     )}
@@ -519,7 +513,7 @@ const Dashboard = () => {
                     <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                       pay.status === 'Paid' || pay.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' :
                       pay.status === 'Cancelled' || pay.status === 'rejected' ? 'bg-red-500/10 text-red-400 border border-red-500/30' :
-                      'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                      'bg-[#585589]/20 text-[#DEDCFF] border border-[#585589]/40'
                     }`}>
                       {pay.status}
                     </span>
@@ -621,7 +615,7 @@ const Dashboard = () => {
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-white">{tic.subject}</span>
                         <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase ${
-                          tic.status === 'Open' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                          tic.status === 'Open' ? 'bg-[#585589]/20 text-[#DEDCFF] border border-[#585589]/40' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
                         }`}>
                           {tic.status}
                         </span>
@@ -647,7 +641,7 @@ const Dashboard = () => {
                 <h3 className="font-heading font-bold text-lg text-white">Edit Artist Profile</h3>
                 <p className="text-zinc-400 text-xs mt-0.5">Update your stage name, contact information, and public artist metadata.</p>
               </div>
-              <UserCheck className="w-5 h-5 text-amber-400" />
+              <UserCheck className="w-5 h-5 text-[#DEDCFF]" />
             </div>
 
             {profileSuccess && (

@@ -84,42 +84,42 @@ const IsrcGuide = () => {
         </div>
 
         {/* Breakdown Card */}
-        <div className="minimal-card p-8 bg-[#09090d] space-y-6">
+        <div className="minimal-card p-8 bg-[#0d0d12] space-y-6">
           <h2 className="font-heading font-bold text-xl text-white border-b border-white/10 pb-3">
             Understanding ISRC Structure (12 Characters)
           </h2>
           <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed">
-            An ISRC code uniquely identifies a specific audio recording (e.g., <code className="bg-white/10 px-2 py-1 rounded text-amber-400 font-mono text-xs">US-S1Z-24-00001</code>). It acts like a digital fingerprint or serial number for your song.
+            An ISRC code uniquely identifies a specific audio recording (e.g., <code className="bg-[#585589]/20 border border-[#585589]/30 px-2 py-1 rounded text-[#DEDCFF] font-mono text-xs">US-S1Z-24-00001</code>). It acts like a digital fingerprint or serial number for your song.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-center text-xs">
             <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-              <span className="font-mono text-amber-400 font-bold text-base block">US</span>
+              <span className="font-mono text-[#DEDCFF] font-bold text-base block">US</span>
               <span className="text-zinc-400">Country Code (2 Letters)</span>
             </div>
             <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-              <span className="font-mono text-amber-400 font-bold text-base block">S1Z</span>
+              <span className="font-mono text-[#DEDCFF] font-bold text-base block">S1Z</span>
               <span className="text-zinc-400">Registrant Code (3 Alphanumeric)</span>
             </div>
             <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-              <span className="font-mono text-amber-400 font-bold text-base block">24</span>
+              <span className="font-mono text-[#DEDCFF] font-bold text-base block">24</span>
               <span className="text-zinc-400">Year of Reference (2 Digits)</span>
             </div>
             <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-              <span className="font-mono text-amber-400 font-bold text-base block">00001</span>
+              <span className="font-mono text-[#DEDCFF] font-bold text-base block">00001</span>
               <span className="text-zinc-400">Designation Code (5 Digits)</span>
             </div>
           </div>
         </div>
 
         {/* Why ISRCs Matter */}
-        <div className="minimal-card p-8 bg-[#09090d] space-y-6">
+        <div className="minimal-card p-8 bg-[#0d0d12] space-y-6">
           <h2 className="font-heading font-bold text-xl text-white border-b border-white/10 pb-3">
             Why ISRC Codes Are Essential for Artists
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs sm:text-sm text-zinc-300">
             <div className="space-y-2">
               <h3 className="font-bold text-white flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-amber-400" /> Accurate Royalty Reporting
+                <CheckCircle2 className="w-4 h-4 text-[#DEDCFF]" /> Accurate Royalty Reporting
               </h3>
               <p className="text-zinc-400 text-xs leading-relaxed">
                 Platforms like Spotify, Apple Music, and YouTube use ISRCs to log streams and allocate performance royalties back to the rights holder.
@@ -127,7 +127,7 @@ const IsrcGuide = () => {
             </div>
             <div className="space-y-2">
               <h3 className="font-bold text-white flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-amber-400" /> Preserving Stream Counts
+                <CheckCircle2 className="w-4 h-4 text-[#DEDCFF]" /> Preserving Stream Counts
               </h3>
               <p className="text-zinc-400 text-xs leading-relaxed">
                 If you ever transfer your catalog from another distributor to Adventure Records, using the same ISRC ensures your play counts and playlist placements stay intact.

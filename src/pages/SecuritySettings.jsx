@@ -10,6 +10,7 @@ import {
   changePasswordBackend, fetchActiveSessions, revokeOtherSessions, 
   toggle2FABackend, deleteAccountBackend 
 } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
 
 const SecuritySettings = () => {
   const [user, setUser] = useState(null);
@@ -80,11 +81,11 @@ const SecuritySettings = () => {
       case 2:
         return { score: 1, label: 'Weak', color: 'bg-red-500', width: 'w-1/4', checks };
       case 3:
-        return { score: 2, label: 'Fair', color: 'bg-amber-500', width: 'w-2/4', checks };
+        return { score: 2, label: 'Fair', color: 'bg-[#585589]', width: 'w-2/4', checks };
       case 4:
-        return { score: 3, label: 'Strong', color: 'bg-blue-500', width: 'w-3/4', checks };
+        return { score: 3, label: 'Strong', color: 'bg-[#53527D]', width: 'w-3/4', checks };
       case 5:
-        return { score: 4, label: 'Exceptional', color: 'bg-emerald-500', width: 'w-full', checks };
+        return { score: 4, label: 'Exceptional', color: 'bg-[#DEDCFF]', width: 'w-full', checks };
       default:
         return { score: 0, label: 'None', color: 'bg-zinc-800', width: 'w-0', checks };
     }
@@ -167,14 +168,10 @@ const SecuritySettings = () => {
     setLoadingSessions(false);
   };
 
+  const { logout } = useAuth();
+
   const handleLogout = async () => {
-    if (isConfigured && auth) {
-      try { await signOut(auth); } catch (e) {}
-    }
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    sessionStorage.removeItem('pending_otp_session');
-    window.dispatchEvent(new Event('auth-change'));
+    await logout();
     navigate('/');
   };
 
@@ -243,7 +240,7 @@ const SecuritySettings = () => {
 
             <div className="space-y-1 p-3.5 bg-white/[0.02] border border-white/5 rounded-xl">
               <span className="text-zinc-500 font-semibold uppercase tracking-wider text-[10px]">Multi-Factor 2FA</span>
-              <div className={`flex items-center gap-1.5 font-semibold text-xs mt-1 ${twoFactorEnabled ? 'text-emerald-400' : 'text-amber-400'}`}>
+              <div className={`flex items-center gap-1.5 font-semibold text-xs mt-1 ${twoFactorEnabled ? 'text-emerald-400' : 'text-[#DEDCFF]'}`}>
                 {twoFactorEnabled ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
                 {twoFactorEnabled ? '2FA Active' : '2FA Optional'}
               </div>
@@ -452,10 +449,45 @@ const SecuritySettings = () => {
           </div>
         </div>
 
+        {/* DPDP Act 2023 Data Principal Controls */}
+        <div className="minimal-card p-8 bg-[#09090d] border-blue-500/20 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-blue-500/20 pb-4">
+            <div>
+              <h2 className="font-heading font-bold text-lg text-blue-400 flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5" /> DPDP Act 2023 (India) Privacy & Consent Controls
+              </h2>
+              <p className="text-xs text-zinc-400 mt-1">
+                Manage your statutory Data Principal rights, consent withdrawal, and processing summary requests under India's Digital Personal Data Protection Act, 2023.
+              </p>
+            </div>
+            <span className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[10px] font-extrabold uppercase tracking-wider">
+              DPDP Act Compliant
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 space-y-2">
+              <h3 className="font-semibold text-white">Data Processing Consent</h3>
+              <p className="text-zinc-400 text-[11px]">Active for distribution, ingestion & royalty accounting.</p>
+              <span className="inline-block text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
+                Consent Granted (Sec 5)
+              </span>
+            </div>
+
+            <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 space-y-2">
+              <h3 className="font-semibold text-white">Data Protection Officer (DPO)</h3>
+              <p className="text-zinc-400 text-[11px]">Grievance Officer Email: <code className="text-sky-300">adventureof693@gmail.com</code></p>
+              <span className="inline-block text-[10px] text-sky-400 font-bold bg-sky-500/10 border border-sky-500/30 px-2.5 py-0.5 rounded-full">
+                72h Grievance SLA (Sec 13)
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Danger Zone & Account Deletion */}
         <div className="minimal-card p-8 bg-[#09090d] border-red-500/20 space-y-6">
           <h2 className="font-heading font-bold text-lg text-red-400 flex items-center gap-2 border-b border-red-500/20 pb-4">
-            <Trash2 className="w-5 h-5" /> Account Actions & Data Privacy
+            <Trash2 className="w-5 h-5" /> Account Actions & Erasure (DPDP Sec 12)
           </h2>
 
           <div className="flex flex-wrap gap-4 pt-2">
@@ -470,10 +502,11 @@ const SecuritySettings = () => {
               onClick={() => setShowDeleteModal(true)}
               className="px-6 py-3 rounded-xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold flex items-center gap-2 cursor-pointer"
             >
-              <Trash2 className="w-4 h-4" /> Permanent Account Deletion
+              <Trash2 className="w-4 h-4" /> Request Data Erasure & Account Deletion
             </button>
           </div>
         </div>
+
 
       </div>
 

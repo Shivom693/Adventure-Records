@@ -3,95 +3,107 @@
 @tailwind utilities;
 
 /* ═══════════════════════════════════════════
-   THEME CSS VARIABLES
+   ADVENTURE RECORDS — DESIGN SYSTEM
+   Color Palette:
+     Text (Light): #050315
+     Text (Dark):  #FFFFFF
+     Background (Light): #FFFFFF
+     Background (Dark):  #000000
    ═══════════════════════════════════════════ */
 
 :root {
-  /* Dark theme (default) */
-  --bg-primary: #070709;
-  --bg-secondary: #0d0d12;
-  --bg-card: #0d0d12;
-  --bg-elevated: #121218;
-  --bg-footer: #050507;
-  --bg-nav: rgba(7, 7, 9, 0.9);
-  --bg-surface: rgba(255, 255, 255, 0.05);
-  --bg-surface-hover: rgba(255, 255, 255, 0.1);
+  /* Global Theme Variables */
+  --text: #050315;
+  --background: #FFFFFF;
+  --primary: #000000;
+  --secondary: #000000;
+  --accent: #000000;
 
-  --text-primary: #e4e4e7;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
-  --text-heading: #ffffff;
+  /* Brand palette tokens (LIGHT MODE DEFAULT) */
+  --color-text: #050315;
+  --color-background: #FFFFFF;
+  --color-primary: #000000;
+  --color-primary-hover: #1f1f1f;
 
-  --border-default: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(255, 255, 255, 0.18);
-  --border-subtle: rgba(255, 255, 255, 0.1);
-  --border-muted: rgba(255, 255, 255, 0.12);
+  --text-primary: #050315;
+  --text-heading: #050315;
+  --text-secondary: #050315;
 
-  --btn-primary-bg: #ffffff;
-  --btn-primary-text: #070709;
-  --btn-primary-hover: #f4f4f5;
-  --btn-primary-shadow: rgba(255, 255, 255, 0.25);
-
-  --btn-secondary-bg: rgba(255, 255, 255, 0.05);
-  --btn-secondary-border: rgba(255, 255, 255, 0.12);
-  --btn-secondary-text: #ffffff;
-  --btn-secondary-hover-bg: rgba(255, 255, 255, 0.1);
-  --btn-secondary-hover-border: rgba(255, 255, 255, 0.25);
-
-  --badge-bg: rgba(255, 255, 255, 0.05);
-  --badge-border: rgba(255, 255, 255, 0.1);
-  --badge-text: #a1a1aa;
-
-  --scrollbar-track: #070709;
-  --scrollbar-thumb: #27272a;
-  --scrollbar-thumb-hover: #3f3f46;
-
-  --wave-dot-color: rgba(255, 255, 255, 0.03);
-  --wave-line-color: rgba(168, 85, 247, 0.12);
-}
-
-/* Light theme overrides */
-.light {
-  --bg-primary: #f8f8fa;
-  --bg-secondary: #ffffff;
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #fafafa;
   --bg-card: #ffffff;
-  --bg-elevated: #f0f0f4;
-  --bg-footer: #f0f0f3;
-  --bg-nav: rgba(248, 248, 250, 0.92);
+  --bg-elevated: #f4f4f6;
+  --bg-footer: #ffffff;
+  --bg-nav: rgba(255, 255, 255, 0.96);
   --bg-surface: rgba(0, 0, 0, 0.04);
   --bg-surface-hover: rgba(0, 0, 0, 0.08);
 
-  --text-primary: #18181b;
-  --text-secondary: #52525b;
-  --text-muted: #a1a1aa;
-  --text-heading: #09090b;
+  --border-default: rgba(0, 0, 0, 0.15);
+  --border-hover: rgba(0, 0, 0, 0.35);
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-muted: rgba(0, 0, 0, 0.20);
 
-  --border-default: rgba(0, 0, 0, 0.08);
-  --border-hover: rgba(0, 0, 0, 0.16);
-  --border-subtle: rgba(0, 0, 0, 0.06);
-  --border-muted: rgba(0, 0, 0, 0.1);
-
-  --btn-primary-bg: #09090b;
+  --btn-primary-bg: #000000;
   --btn-primary-text: #ffffff;
-  --btn-primary-hover: #18181b;
-  --btn-primary-shadow: rgba(0, 0, 0, 0.15);
+  --btn-primary-hover: #222222;
 
-  --btn-secondary-bg: rgba(0, 0, 0, 0.04);
-  --btn-secondary-border: rgba(0, 0, 0, 0.1);
-  --btn-secondary-text: #18181b;
-  --btn-secondary-hover-bg: rgba(0, 0, 0, 0.08);
-  --btn-secondary-hover-border: rgba(0, 0, 0, 0.2);
+  --btn-secondary-bg: #000000;
+  --btn-secondary-text: #ffffff;
+  --btn-secondary-hover-bg: #222222;
 
-  --badge-bg: rgba(0, 0, 0, 0.04);
-  --badge-border: rgba(0, 0, 0, 0.08);
-  --badge-text: #52525b;
+  --badge-bg: #f4f4f6;
+  --badge-border: rgba(0, 0, 0, 0.2);
+  --badge-text: #050315;
 
-  --scrollbar-track: #f8f8fa;
-  --scrollbar-thumb: #d4d4d8;
-  --scrollbar-thumb-hover: #a1a1aa;
+  --scrollbar-track: #ffffff;
+  --scrollbar-thumb: #000000;
+  --scrollbar-thumb-hover: #333333;
+}
 
-  --wave-dot-color: rgba(0, 0, 0, 0.04);
-  --wave-line-color: rgba(168, 85, 247, 0.15);
+/* ═══════════════════════════════════════════
+   DARK THEME VARIABLES
+   ═══════════════════════════════════════════ */
+.dark {
+  --text: #ffffff;
+  --background: #000000;
+  --primary: #ffffff;
+
+  --color-text: #ffffff;
+  --color-background: #000000;
+
+  --text-primary: #ffffff;
+  --text-heading: #ffffff;
+  --text-secondary: #e4e4e7;
+
+  --bg-primary: #0a0a0c;
+  --bg-secondary: #111115;
+  --bg-card: #141418;
+  --bg-elevated: #1c1c22;
+  --bg-footer: #08080a;
+  --bg-nav: rgba(10, 10, 12, 0.95);
+  --bg-surface: rgba(255, 255, 255, 0.05);
+  --bg-surface-hover: rgba(255, 255, 255, 0.1);
+
+  --border-default: rgba(255, 255, 255, 0.15);
+  --border-hover: rgba(255, 255, 255, 0.35);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-muted: rgba(255, 255, 255, 0.20);
+
+  --btn-primary-bg: #ffffff;
+  --btn-primary-text: #000000;
+  --btn-primary-hover: #e4e4e7;
+
+  --btn-secondary-bg: #1f1f23;
+  --btn-secondary-text: #ffffff;
+  --btn-secondary-hover-bg: #2c2c32;
+
+  --badge-bg: rgba(255, 255, 255, 0.1);
+  --badge-border: rgba(255, 255, 255, 0.2);
+  --badge-text: #ffffff;
+
+  --scrollbar-track: #0a0a0c;
+  --scrollbar-thumb: #333336;
+  --scrollbar-thumb-hover: #52525b;
 }
 
 @layer base {
@@ -108,10 +120,10 @@
   h1, h2, h3, h4, h5, h6, .font-heading {
     font-family: 'Outfit', 'Inter', sans-serif;
     letter-spacing: -0.035em;
-    font-weight: 700;
+    font-weight: 800;
   }
 
-  /* Custom Minimalist Scrollbar */
+  /* Custom Scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -142,32 +154,26 @@
   transform: translateY(-2px);
 }
 
-/* Subtle Accent Button */
+/* Primary Button */
 .btn-primary {
-  background-color: var(--btn-primary-bg);
-  color: var(--btn-primary-text);
+  background-color: var(--btn-primary-bg) !important;
+  color: var(--btn-primary-text) !important;
   font-weight: 600;
   transition: all 0.25s ease;
 }
-
-.btn-primary:hover {
-  background-color: var(--btn-primary-hover);
-  box-shadow: 0 0 25px var(--btn-primary-shadow);
-  transform: translateY(-1px);
+.btn-primary * {
+  color: var(--btn-primary-text) !important;
 }
 
+/* Secondary Button */
 .btn-secondary {
-  background-color: var(--btn-secondary-bg);
-  border: 1px solid var(--btn-secondary-border);
-  color: var(--btn-secondary-text);
+  background-color: var(--btn-secondary-bg) !important;
+  color: var(--btn-secondary-text) !important;
   font-weight: 600;
   transition: all 0.25s ease;
 }
-
-.btn-secondary:hover {
-  background-color: var(--btn-secondary-hover-bg);
-  border-color: var(--btn-secondary-hover-border);
-  transform: translateY(-1px);
+.btn-secondary * {
+  color: var(--btn-secondary-text) !important;
 }
 
 /* Minimal Badge */
@@ -180,10 +186,10 @@
   background-color: var(--badge-bg);
   border: 1px solid var(--badge-border);
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--badge-text);
+  color: var(--badge-text) !important;
 }
 
 /* Spin animation for disc */
@@ -196,7 +202,7 @@
   animation: spinSlow 20s linear infinite;
 }
 
-/* Confetti alignment */
+/* Canvas confetti container */
 .canvas-confetti-holder {
   position: fixed;
   inset: 0;
@@ -205,93 +211,255 @@
 }
 
 /* ═══════════════════════════════════════════
-   LIGHT MODE SPECIFIC OVERRIDES
+   LIGHT MODE SPECIFIC OVERRIDES (#050315 TEXT & #FFFFFF BG)
    ═══════════════════════════════════════════ */
 
-/* Light mode: override common Tailwind dark backgrounds */
-.light .bg-\[\#070709\] { background-color: var(--bg-primary) !important; }
-.light .bg-\[\#050507\] { background-color: var(--bg-footer) !important; }
-.light .bg-\[\#0d0d12\] { background-color: var(--bg-card) !important; }
-.light .bg-\[\#121218\] { background-color: var(--bg-elevated) !important; }
-.light .bg-\[\#09090b\] { background-color: var(--bg-primary) !important; }
-
-/* Light mode: override common nav/backdrop backgrounds */
-.light .bg-\[\#070709\]\/90 { background-color: var(--bg-nav) !important; }
-.light .bg-\[\#070709\]\/98 { background-color: rgba(248, 248, 250, 0.98) !important; }
-
-/* Light mode: override text colors */
-.light .text-white { color: var(--text-heading) !important; }
-.light .text-zinc-400 { color: var(--text-secondary) !important; }
-.light .text-zinc-300 { color: var(--text-secondary) !important; }
-.light .text-zinc-500 { color: var(--text-muted) !important; }
-.light .text-\[\#e4e4e7\] { color: var(--text-primary) !important; }
-
-/* Light mode: override border colors */
-.light .border-white\/10 { border-color: var(--border-default) !important; }
-.light .border-white\/15 { border-color: var(--border-muted) !important; }
-.light .border-white\/8 { border-color: var(--border-subtle) !important; }
-
-/* Light mode: override surface backgrounds */
-.light .bg-white\/5 { background-color: var(--bg-surface) !important; }
-.light .bg-white\/10 { background-color: var(--bg-surface-hover) !important; }
-.light .bg-white\/3 { background-color: rgba(0, 0, 0, 0.02) !important; }
-
-/* Light mode: ensure accent buttons remain correct */
-.light .bg-white.text-black,
-.light .bg-white {
-  background-color: var(--btn-primary-bg) !important;
-  color: var(--btn-primary-text) !important;
+.light body {
+  background-color: #ffffff !important;
+  color: #050315 !important;
 }
 
-/* Light mode: avatar circle - invert from white/black to black/white */
-.light .bg-white.text-black.font-bold {
-  background-color: #18181b !important;
+.light h1, .light h2, .light h3, .light h4, .light h5, .light h6,
+.light p, .light span, .light div, .light li, .light td, .light th, .light a, .light label, .light code, .light input, .light select, .light textarea {
+  color: #050315;
+}
+
+.light .text-white { color: #050315 !important; }
+.light .text-zinc-100, .light .text-zinc-200, .light .text-zinc-300 { color: #050315 !important; }
+.light .text-zinc-400, .light .text-zinc-500, .light .text-zinc-600 { color: #52525b !important; }
+.light .text-gray-100, .light .text-gray-200, .light .text-gray-300 { color: #050315 !important; }
+.light .text-gray-400, .light .text-gray-500 { color: #52525b !important; }
+.light .text-black { color: #050315 !important; }
+
+/* Light mode tick icons & waveform lines high contrast fixes */
+.light .text-\[\#DEDCFF\] {
+  color: #050315 !important;
+}
+.light svg.text-\[\#DEDCFF\],
+.light .lucide-check,
+.light .lucide-check-circle,
+.light .lucide-check-circle-2 {
+  color: #050315 !important;
+  stroke: #050315 !important;
+}
+.light .bg-\[\#DEDCFF\]\/70,
+.light .bg-\[\#DEDCFF\] {
+  background-color: #050315 !important;
+}
+
+/* Chatbot Floating Action Button Icon Protection */
+.chatbot-bubble-btn,
+.chatbot-bubble-btn *,
+.light .chatbot-bubble-btn,
+.light .chatbot-bubble-btn *,
+.dark .chatbot-bubble-btn,
+.dark .chatbot-bubble-btn * {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+/* Light mode page dark backgrounds overridden to white */
+.light .bg-\[\#0c0b1a\],
+.light .bg-\[\#080714\],
+.light .bg-\[\#13112a\],
+.light .bg-\[\#1a1835\],
+.light .bg-\[\#110f24\],
+.light .bg-\[\#0e0d20\],
+.light .bg-\[\#070709\],
+.light .bg-\[\#050507\],
+.light .bg-\[\#0d0d12\],
+.light .bg-\[\#121218\],
+.light .bg-\[\#09090b\],
+.light .bg-\[\#09090d\],
+.light .bg-\[\#09090e\],
+.light .bg-\[\#0b0b10\],
+.light .bg-\[\#0a0a0e\],
+.light .bg-\[\#0d0d14\],
+.light .bg-\[\#0e0e14\],
+.light .bg-\[\#181630\] {
+  background-color: #ffffff !important;
+}
+
+/* Light mode borders */
+.light .border-white\/10,
+.light .border-white\/15,
+.light .border-white\/8,
+.light .border-white\/5,
+.light .border-white\/20 {
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Dark background containers in Light Mode MUST have crisp WHITE text & icons */
+.light .bg-black,
+.light .bg-black *,
+.light .bg-\[\#000000\],
+.light .bg-\[\#000000\] *,
+.light .bg-zinc-900,
+.light .bg-zinc-900 *,
+.light .bg-zinc-950,
+.light .bg-zinc-950 *,
+.light .btn-primary,
+.light .btn-primary *,
+.light .btn-secondary,
+.light .btn-secondary * {
   color: #ffffff !important;
 }
 
-/* Light mode: hover states */
-.light .hover\:bg-white\/5:hover { background-color: var(--bg-surface) !important; }
-.light .hover\:bg-white\/10:hover { background-color: var(--bg-surface-hover) !important; }
-.light .hover\:text-white:hover { color: var(--text-heading) !important; }
-.light .hover\:border-white\/50:hover { border-color: rgba(0, 0, 0, 0.3) !important; }
+/* ═══════════════════════════════════════════
+   DARK MODE SPECIFIC OVERRIDES (#FFFFFF TEXT & DARK BG)
+   ═══════════════════════════════════════════ */
 
-/* Light mode: card/gradient backgrounds in pages */
-.light .from-\[\#070709\] { --tw-gradient-from: var(--bg-primary) !important; }
-.light .to-\[\#070709\] { --tw-gradient-to: var(--bg-primary) !important; }
-.light .via-\[\#0d0d12\] { --tw-gradient-via: var(--bg-card) !important; }
-
-/* Light mode: Shadows for depth */
-.light .minimal-card {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+.dark body {
+  background-color: #0a0a0c !important;
+  color: #ffffff !important;
 }
 
-.light .minimal-card-hover:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6,
+.dark p, .dark span, .dark div, .dark li, .dark td, .dark th, .dark a, .dark label, .dark code, .dark input, .dark select, .dark textarea {
+  color: #ffffff;
 }
 
-/* Light mode: keep brand gold/amber accents vivid */
-.light .text-amber-400 { color: #d97706 !important; }
-.light .text-amber-500 { color: #b45309 !important; }
-.light .text-yellow-400 { color: #ca8a04 !important; }
-.light .border-amber-500\/30 { border-color: rgba(217, 119, 6, 0.3) !important; }
-.light .bg-amber-500\/10 { background-color: rgba(217, 119, 6, 0.1) !important; }
+.dark .text-black,
+.dark .text-\[\#050315\] {
+  color: #ffffff !important;
+}
 
-/* Light mode: keep red accents for admin/danger */
-.light .text-red-400 { color: #dc2626 !important; }
-.light .border-red-500\/30 { border-color: rgba(220, 38, 38, 0.3) !important; }
-.light .bg-red-500\/10 { background-color: rgba(220, 38, 38, 0.08) !important; }
+.dark .text-zinc-600, .dark .text-zinc-500 {
+  color: #a1a1aa !important;
+}
+.dark .text-zinc-400, .dark .text-zinc-300, .dark .text-zinc-200, .dark .text-zinc-100 {
+  color: #e4e4e7 !important;
+}
 
-/* Smooth theme transition for all elements */
+/* Dark mode card & surface overrides */
+.dark .minimal-card {
+  background-color: #141418 !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+.dark .minimal-card-hover:hover {
+  background-color: #1c1c22 !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+}
+
+.dark .minimal-badge {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+.dark .minimal-badge * {
+  color: #ffffff !important;
+}
+
+/* Dark mode page backgrounds */
+.dark .bg-white {
+  background-color: #0a0a0c !important;
+}
+.dark .bg-black\/5 {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+.dark .border-black\/15,
+.dark .border-black\/20,
+.dark .border-black\/10 {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* Buttons in Dark Mode */
+.dark .btn-primary {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+.dark .btn-primary * {
+  color: #000000 !important;
+}
+.dark .btn-primary:hover {
+  background-color: #e4e4e7 !important;
+}
+
+.dark .btn-secondary {
+  background-color: #1f1f23 !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+.dark .btn-secondary * {
+  color: #ffffff !important;
+}
+.dark .btn-secondary:hover {
+  background-color: #2c2c32 !important;
+}
+
+/* ═══════════════════════════════════════════
+   CRITICAL EXCEPTIONS (NEVER OVERRIDE THESE)
+   1. Admin Console: Red
+   2. DPDP Act 2023 Compliance: Emerald Green
+   ═══════════════════════════════════════════ */
+
+/* Admin Console Red Override */
+.light .text-red-600, .light .text-red-500, .light .text-red-400,
+.dark .text-red-600, .dark .text-red-500, .dark .text-red-400,
+a[href*="admin-login"] {
+  color: #dc2626 !important;
+}
+
+/* DPDP Act 2023 Compliance Emerald Green Override */
+.light .text-emerald-600, .light .text-emerald-500, .light .text-emerald-400,
+.dark .text-emerald-600, .dark .text-emerald-500, .dark .text-emerald-400 {
+  color: #059669 !important;
+}
+
+/* Smooth theme transitions */
 *, *::before, *::after {
   transition-property: background-color, border-color, color, box-shadow;
   transition-duration: 0.3s;
   transition-timing-function: ease;
 }
 
-/* Exclude animations from the global theme transition */
+/* Exclude canvas & animations from transition delay */
 .animate-spin-slow,
 .canvas-confetti-holder,
 canvas {
   transition: none !important;
 }
 
+/* ═══════════════════════════════════════════
+   3D VINYL PLAYER CONTAINER OVERRIDES
+   Must ALWAYS remain dark charcoal container with crisp WHITE control text & icons
+   in BOTH Bright (Light) Mode and Dark Mode!
+   ═══════════════════════════════════════════ */
+.vinyl-container,
+.vinyl-container *,
+.light .vinyl-container,
+.light .vinyl-container *,
+.dark .vinyl-container,
+.dark .vinyl-container * {
+  color: #ffffff !important;
+}
+
+.vinyl-container .bg-\[\#18181B\],
+.light .vinyl-container .bg-\[\#18181B\],
+.dark .vinyl-container .bg-\[\#18181B\] {
+  background-color: #18181B !important;
+}
+
+.vinyl-container .bg-black,
+.light .vinyl-container .bg-black,
+.dark .vinyl-container .bg-black {
+  background-color: #000000 !important;
+}
+
+.vinyl-container .bg-\[\#050505\],
+.light .vinyl-container .bg-\[\#050505\],
+.dark .vinyl-container .bg-\[\#050505\] {
+  background-color: #050505 !important;
+}
+
+.vinyl-container .border-white\/12,
+.light .vinyl-container .border-white\/12,
+.dark .vinyl-container .border-white\/12 {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.vinyl-container .border-white\/15,
+.light .vinyl-container .border-white\/15,
+.dark .vinyl-container .border-white\/15 {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}

@@ -71,12 +71,12 @@ const Resources = () => {
       />
 
       {/* Background Ambient Glows */}
-      <div className="absolute top-20 left-10 w-[500px] h-[350px] bg-amber-500/5 blur-[160px] rounded-full pointer-events-none" />
+      <div className="absolute top-20 left-10 w-[500px] h-[350px] bg-[#585589]/10 blur-[160px] rounded-full pointer-events-none" />
 
       {/* Header */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-16 text-center space-y-4">
         <div className="minimal-badge mx-auto">
-          <BookOpen className="w-4 h-4 text-amber-400" /> Knowledge Center & Educational Guides
+          <BookOpen className="w-4 h-4 text-[#DEDCFF]" /> Knowledge Center & Educational Guides
         </div>
         <h1 className="font-heading font-black text-4xl sm:text-6xl text-white tracking-tight">
           Creator Resources & Guides
@@ -92,10 +92,10 @@ const Resources = () => {
           {resourcesList.map((res, idx) => (
             <div 
               key={idx}
-              className="minimal-card minimal-card-hover p-6 flex flex-col justify-between space-y-4 bg-[#09090d]"
+              className="minimal-card minimal-card-hover p-6 flex flex-col justify-between space-y-4 bg-[#0d0d12]"
             >
               <div className="space-y-3">
-                <span className="px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] font-bold uppercase tracking-wider">
+                <span className="px-2.5 py-1 rounded-full bg-[#585589]/20 border border-[#585589]/40 text-[#DEDCFF] text-[10px] font-bold uppercase tracking-wider">
                   {res.badge}
                 </span>
                 <h3 className="font-heading font-bold text-lg text-white pt-1">{res.title}</h3>
@@ -105,9 +105,9 @@ const Resources = () => {
               <div className="pt-4">
                 <Link
                   to={res.link}
-                  className="inline-flex items-center gap-2 text-amber-400 hover:text-amber-300 font-semibold text-xs tracking-wide group"
+                  className="inline-flex items-center gap-2 text-[#DEDCFF] hover:text-white font-semibold text-xs tracking-wide group"
                 >
-                  Read Guide <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                  Read Guide <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform text-[#DEDCFF]" />
                 </Link>
               </div>
             </div>
@@ -117,8 +117,8 @@ const Resources = () => {
 
       {/* Help Banner */}
       <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center pt-8">
-        <div className="minimal-card p-10 bg-white/5 border border-white/10 space-y-6">
-          <HelpCircle className="w-10 h-10 text-amber-400 mx-auto" />
+        <div className="minimal-card p-10 bg-[#0d0d12] border border-[#585589]/30 space-y-6 shadow-[0_0_30px_rgba(88,85,137,0.1)]">
+          <HelpCircle className="w-10 h-10 text-[#DEDCFF] mx-auto" />
           <h2 className="font-heading font-bold text-2xl text-white">Need Personalized Support?</h2>
           <p className="text-zinc-400 text-sm max-w-xl mx-auto">
             Our support team and AI Assistant are available 24/7 to answer your distribution questions.

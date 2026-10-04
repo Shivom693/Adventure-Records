@@ -84,13 +84,13 @@ const CopyrightGuide = () => {
         </div>
 
         {/* Two Copyright Types */}
-        <div className="minimal-card p-8 bg-[#09090d] space-y-6">
+        <div className="minimal-card p-8 bg-[#0d0d12] space-y-6">
           <h2 className="font-heading font-bold text-xl text-white border-b border-white/10 pb-3">
             The Two Essential Music Copyrights
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-              <div className="flex items-center gap-2 text-amber-400 font-bold text-base">
+              <div className="flex items-center gap-2 text-[#DEDCFF] font-bold text-base">
                 <Lock className="w-5 h-5" /> <span>1. Sound Recording Copyright ℗</span>
               </div>
               <p className="text-zinc-400 text-xs sm:text-sm leading-relaxed">
@@ -98,7 +98,7 @@ const CopyrightGuide = () => {
               </p>
             </div>
             <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-              <div className="flex items-center gap-2 text-amber-400 font-bold text-base">
+              <div className="flex items-center gap-2 text-[#DEDCFF] font-bold text-base">
                 <FileText className="w-5 h-5" /> <span>2. Composition Copyright ©</span>
               </div>
               <p className="text-zinc-400 text-xs sm:text-sm leading-relaxed">
@@ -108,10 +108,44 @@ const CopyrightGuide = () => {
           </div>
         </div>
 
+        {/* 3. Cover Artwork & Image Copyright Guidelines */}
+        <div className="minimal-card p-8 bg-[#0d0d12] space-y-6">
+          <h2 className="font-heading font-bold text-xl text-white border-b border-white/10 pb-3">
+            Cover Artwork & Image Copyright Rules
+          </h2>
+          <p className="text-zinc-400 text-xs sm:text-sm leading-relaxed">
+            All cover artwork submitted with your single, EP, or album must strictly comply with international image copyright laws and digital streaming store guidelines:
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm">
+            <div className="p-5 rounded-xl bg-white/5 border border-white/10 space-y-2">
+              <h4 className="font-bold text-white flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> Allowed Artwork Images
+              </h4>
+              <ul className="list-disc pl-5 text-zinc-400 space-y-1 text-xs">
+                <li>Original photographs taken and owned by you or your team</li>
+                <li>Custom graphic designs created specifically for your release</li>
+                <li>Royalty-free stock images with commercial distribution license</li>
+                <li>AI-generated artwork where you hold full commercial usage rights</li>
+              </ul>
+            </div>
+            <div className="p-5 rounded-xl bg-red-500/10 border border-red-500/20 space-y-2">
+              <h4 className="font-bold text-red-300 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-red-400 shrink-0" /> Prohibited Image Content
+              </h4>
+              <ul className="list-disc pl-5 text-red-200/80 space-y-1 text-xs">
+                <li>Images downloaded from Google Images, Pinterest, or internet searches</li>
+                <li>Photos of celebrities, famous artists, or public figures without written consent</li>
+                <li>Brand logos, trademarks, store icons (Spotify/Apple logos), or social media handles</li>
+                <li>Blurry, low-resolution, or non-square imagery (Minimum 3000x3000px required)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
         {/* Rights Retention Guarantee */}
-        <div className="minimal-card p-8 bg-amber-500/5 border border-amber-500/20 space-y-4">
+        <div className="minimal-card p-8 bg-[#585589]/10 border border-[#585589]/30 space-y-4 shadow-[0_0_30px_rgba(88,85,137,0.1)]">
           <div className="flex items-center gap-3 font-bold text-lg text-white">
-            <ShieldCheck className="w-6 h-6 text-amber-400" />
+            <ShieldCheck className="w-6 h-6 text-[#DEDCFF]" />
             <span>Adventure Records Non-Exclusive Guarantee</span>
           </div>
           <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed">

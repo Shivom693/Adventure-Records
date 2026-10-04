@@ -257,7 +257,7 @@ const UploadRelease = () => {
             Create New Release
           </h1>
           <p className="text-zinc-400 text-sm">
-            Select release format, pay via official UPI (<span className="text-amber-400 font-mono">9691546208@ptyes</span>), and submit UTR proof for Admin verification.
+            Select release format, pay via official UPI (<span className="text-[#DEDCFF] font-mono">9691546208@ptyes</span>), and submit UTR proof for Admin verification.
           </p>
         </div>
 
@@ -265,7 +265,7 @@ const UploadRelease = () => {
         {!paymentVerified && (
           <div className={`p-6 rounded-2xl border transition-all ${
             paymentPending 
-              ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+              ? 'bg-[#585589]/20 border-[#585589]/40 text-[#DEDCFF]'
               : 'bg-red-500/10 border-red-500/30 text-red-300'
           }`}>
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -273,7 +273,7 @@ const UploadRelease = () => {
                 <div className="flex items-center gap-2 font-bold text-sm text-white">
                   {paymentPending ? (
                     <>
-                      <RefreshCw className="w-5 h-5 text-amber-400 animate-spin" />
+                      <RefreshCw className="w-5 h-5 text-[#DEDCFF] animate-spin" />
                       <span>Payment Submitted — Verification Pending</span>
                     </>
                   ) : (

@@ -255,7 +255,7 @@ const AdminPanel = () => {
                         <span className={`text-[10px] font-bold uppercase px-3 py-1 rounded-full ${
                           pay.status === 'verified' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' :
                           pay.status === 'rejected' ? 'bg-red-500/10 text-red-400 border border-red-500/30' :
-                          'bg-amber-500/10 text-amber-400 border border-amber-500/30 animate-pulse'
+                          'bg-[#585589]/20 text-[#DEDCFF] border border-[#585589]/40 animate-pulse'
                         }`}>
                           {pay.status === 'pending_verification' ? 'PENDING VERIFICATION' : pay.status?.toUpperCase()}
                         </span>
@@ -271,7 +271,7 @@ const AdminPanel = () => {
                         <p className="text-xs text-zinc-300">
                           User: <strong className="text-white">{pay.userEmail}</strong>
                         </p>
-                        <p className="text-xs font-mono text-amber-400 font-bold">
+                        <p className="text-xs font-mono text-[#DEDCFF] font-bold">
                           UTR / Trans ID: {pay.utr} • App: {pay.upiApp}
                         </p>
                         <p className="text-[10px] text-zinc-500">
@@ -345,7 +345,7 @@ const AdminPanel = () => {
                         <h4 className="font-heading font-bold text-base text-white">{rel.releaseTitle}</h4>
                         <p className="text-zinc-400 text-xs">{rel.primaryArtist} • {rel.genre} • {rel.releaseType}</p>
                         <p className="text-[10px] text-zinc-500 font-mono">
-                          Payment: <span className={rel.paymentStatus === 'paid' ? 'text-emerald-400 font-bold' : 'text-amber-400'}>{rel.paymentStatus || 'unpaid'}</span> • UPC: {rel.upc || 'Not assigned'}
+                          Payment: <span className={rel.paymentStatus === 'paid' ? 'text-emerald-400 font-bold' : 'text-[#DEDCFF]'}>{rel.paymentStatus || 'unpaid'}</span> • UPC: {rel.upc || 'Not assigned'}
                         </p>
                       </div>
                     </div>
@@ -354,7 +354,7 @@ const AdminPanel = () => {
                       <span className={`text-[10px] font-bold uppercase px-3 py-1 rounded-full ${
                         rel.status === 'approved' || rel.status === 'distributed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' :
                         rel.status === 'rejected' ? 'bg-red-500/10 text-red-400 border border-red-500/30' :
-                        rel.status === 'changes_required' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' :
+                        rel.status === 'changes_required' ? 'bg-[#585589]/20 text-[#DEDCFF] border border-[#585589]/40' :
                         'bg-white/10 text-zinc-300 border border-white/20'
                       }`}>
                         {rel.status?.replace('_', ' ')}
@@ -369,7 +369,7 @@ const AdminPanel = () => {
 
                       <button
                         onClick={() => { setSelectedRelease(rel); setReviewAction('changes_required'); }}
-                        className="px-3.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-[11px] font-bold uppercase border border-amber-500/30"
+                        className="px-3.5 py-1.5 rounded-lg bg-[#585589]/20 hover:bg-[#585589]/30 text-[#DEDCFF] text-[11px] font-bold uppercase border border-[#585589]/40"
                       >
                         Request Changes
                       </button>
@@ -406,7 +406,7 @@ const AdminPanel = () => {
                         <p className="text-zinc-400 text-xs">From: {tic.name} ({tic.email})</p>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
-                        tic.status === 'Open' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                        tic.status === 'Open' ? 'bg-[#585589]/20 text-[#DEDCFF] border border-[#585589]/40' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
                       }`}>
                         {tic.status}
                       </span>
@@ -440,7 +440,7 @@ const AdminPanel = () => {
                 {paymentAction === 'verified' ? 'Verify UPI Payment' : 'Reject UPI Payment'}
               </h3>
               <p className="text-zinc-400 text-xs mt-1">
-                UTR: <strong className="text-amber-400 font-mono">{selectedPayment.utr}</strong> (₹{selectedPayment.amount})
+                UTR: <strong className="text-[#DEDCFF] font-mono">{selectedPayment.utr}</strong> (₹{selectedPayment.amount})
               </p>
               <p className="text-zinc-500 text-[11px]">User: {selectedPayment.userEmail}</p>
             </div>

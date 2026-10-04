@@ -1,23 +1,37 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bot, X, Send, Sparkles, User, RotateCcw, AlertCircle, RefreshCw } from 'lucide-react';
-import { API_URL } from '../config';
-import { auth } from '../firebase';
+import { Bot, X, Send, Sparkles, User, RotateCcw, RefreshCw, WifiOff } from 'lucide-react';
+import { queryAiAssistant } from '../services/aiService';
 
 const Chatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     { 
       role: 'assistant', 
-      text: "Hi! I'm the Adventure Records AI Assistant. How can I help you?" 
+      text: "Hi! I'm the Adventure Records AI Assistant. How can I help you with your music releases, pricing, or metadata today?" 
     }
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [errorState, setErrorState] = useState(null);
   const [lastPrompt, setLastPrompt] = useState('');
+  const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' ? !navigator.onLine : false);
 
   const messagesEndRef = useRef(null);
   const chatInputRef = useRef(null);
+
+  // Monitor network online/offline state
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Auto-scroll to latest message
   const scrollToBottom = () => {
@@ -51,7 +65,7 @@ const Chatbot = () => {
     setMessages([
       { 
         role: 'assistant', 
-        text: "Hi! I'm the Adventure Records AI Assistant. How can I help you?" 
+        text: "Hi! I'm the Adventure Records AI Assistant. How can I help you with your music releases, pricing, or metadata today?" 
       }
     ]);
     setErrorState(null);
@@ -68,69 +82,36 @@ const Chatbot = () => {
     setErrorState(null);
     setLastPrompt(trimmedText);
 
-    // Append user message
+    // 1. Append User Message
     const userMsg = { role: 'user', text: trimmedText };
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
     setIsTyping(true);
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+    // 2. Query AI Service
+    const result = await queryAiAssistant({
+      message: trimmedText,
+      history: updatedMessages
+    });
 
-    try {
-      // Get Firebase Auth Token if signed in
-      let idToken = null;
-      const currentUser = auth?.currentUser;
-      if (currentUser) {
-        try {
-          idToken = await currentUser.getIdToken(false);
-        } catch (e) {
-          console.warn('Failed to retrieve Firebase ID Token:', e);
-        }
-      }
+    setIsTyping(false);
 
-      const headers = { 'Content-Type': 'application/json' };
-      if (idToken) {
-        headers['Authorization'] = `Bearer ${idToken}`;
-      } else {
-        const storedToken = localStorage.getItem('token');
-        if (storedToken) headers['Authorization'] = `Bearer ${storedToken}`;
-      }
-
-      // Execute real backend query to Gemini API endpoint
-      const response = await fetch(`${API_URL}/api/chatbot/query`, {
-        method: 'POST',
-        headers,
-        signal: controller.signal,
-        body: JSON.stringify({
-          message: trimmedText,
-          history: updatedMessages.map(m => ({ role: m.role, content: m.text }))
-        })
-      });
-
-      clearTimeout(timeoutId);
-      const data = await response.json();
-      setIsTyping(false);
-
-      if (response.ok && data.reply) {
-        setMessages(prev => [...prev, { role: 'assistant', text: data.reply }]);
-      } else {
-        throw new Error(data.message || 'Failed to process request.');
-      }
-    } catch (error) {
-      clearTimeout(timeoutId);
-      console.error('Chatbot API Request Error:', error);
-      setIsTyping(false);
-      
-      const errorMessage = "Sorry, I couldn't process that request right now. Please try again.";
-      setErrorState(errorMessage);
+    if (result.success && result.reply) {
+      setMessages(prev => [
+        ...prev, 
+        { role: 'assistant', text: result.reply }
+      ]);
+    } else {
+      const errorMsg = result.message || "Sorry, I couldn't process that request right now. Please try again.";
+      setErrorState(errorMsg);
 
       setMessages(prev => [
         ...prev, 
         { 
           role: 'assistant', 
-          text: errorMessage,
-          isError: true 
+          text: errorMsg,
+          isError: true,
+          canRetry: result.canRetry !== false
         }
       ]);
     }
@@ -139,13 +120,15 @@ const Chatbot = () => {
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      if (!isTyping && input.trim()) {
+        handleSendMessage();
+      }
     }
   };
 
   const suggestions = [
     "How much does a Single cost?",
-    "Single vs EP vs Album differences?",
+    "Single vs EP vs Album pricing?",
     "What audio & artwork format is required?",
     "What is the Merchant UPI ID?"
   ];
@@ -157,34 +140,44 @@ const Chatbot = () => {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="p-4 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 text-black font-bold shadow-[0_4px_25px_rgba(234,179,8,0.4)] hover:shadow-[0_0_35px_rgba(234,179,8,0.7)] hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center cursor-pointer border border-amber-300/40 group"
+          className="chatbot-bubble-btn relative p-4 rounded-full bg-[#050315] dark:bg-[#585589] hover:bg-[#1a1835] dark:hover:bg-[#53527D] text-white font-bold shadow-[0_8px_30px_rgba(0,0,0,0.35)] dark:shadow-[0_8px_30px_rgba(88,85,137,0.5)] hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center cursor-pointer border-2 border-white/30 group"
           title="Open Adventure Records AI Assistant"
           aria-label="Open Adventure Records AI Assistant"
         >
-          <Bot className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
+          <Bot className="w-6 h-6 text-white group-hover:rotate-12 transition-transform duration-300 stroke-2" />
+          
+          {/* Live AI Active Indicator Dot */}
+          <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white" />
+          </span>
         </button>
       )}
 
       {/* 2. Floating Chat Modal Window */}
       {isOpen && (
-        <div className="w-[calc(100vw-2rem)] sm:w-[390px] h-[520px] max-h-[85vh] rounded-3xl border border-white/15 bg-[#0a0a0f]/95 shadow-2xl flex flex-col overflow-hidden animate-fade-in relative backdrop-blur-2xl" style={{ backgroundColor: 'var(--bg-card)' }}>
-          
+        <div 
+          role="dialog" 
+          aria-label="Adventure Records AI Assistant Chat Window"
+          className="w-[calc(100vw-2rem)] sm:w-[400px] h-[540px] max-h-[85vh] rounded-3xl border border-black/15 dark:border-white/15 bg-white dark:bg-[#0a0a0f] shadow-2xl flex flex-col overflow-hidden animate-fade-in relative backdrop-blur-2xl" 
+        >
+
           {/* Header Bar */}
-          <div className="p-4 bg-[#0e0e14] border-b border-white/10 flex items-center justify-between" style={{ backgroundColor: 'var(--bg-elevated)' }}>
+          <div className="p-4 bg-slate-100 dark:bg-[#0e0e14] border-b border-black/10 dark:border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <div className="p-2 rounded-xl bg-black/10 dark:bg-[#585589]/20 text-[#050315] dark:text-[#DEDCFF] border border-black/15 dark:border-[#585589]/40">
                 <Sparkles className="w-4 h-4 animate-pulse" />
               </div>
               <div>
-                <h4 className="font-heading font-bold text-sm text-white">Adventure AI</h4>
-                <p className="text-[10px] text-zinc-400 font-semibold tracking-wider uppercase">Official Music Assistant</p>
+                <h4 className="font-heading font-bold text-sm text-[#050315] dark:text-white">Adventure AI</h4>
+                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-semibold tracking-wider uppercase">Official Music Assistant</p>
               </div>
             </div>
             
             <div className="flex items-center gap-1">
               <button
                 onClick={handleClearChat}
-                className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
+                className="p-2 rounded-lg text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                 title="Clear Chat History"
                 aria-label="Clear Chat History"
               >
@@ -192,7 +185,7 @@ const Chatbot = () => {
               </button>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
+                className="p-2 rounded-lg text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                 title="Close Chat"
                 aria-label="Close Chat"
               >
@@ -200,6 +193,14 @@ const Chatbot = () => {
               </button>
             </div>
           </div>
+
+          {/* Offline Banner */}
+          {isOffline && (
+            <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-amber-700 dark:text-amber-400 text-xs font-semibold flex items-center gap-2">
+              <WifiOff className="w-3.5 h-3.5 shrink-0" />
+              <span>Offline Mode: You are currently disconnected from the internet.</span>
+            </div>
+          )}
 
           {/* Messages Log Container */}
           <div className="flex-grow overflow-y-auto p-4 space-y-4">
@@ -213,8 +214,8 @@ const Chatbot = () => {
                 {/* Avatar Icon */}
                 <div className={`w-8 h-8 rounded-xl shrink-0 flex items-center justify-center font-bold text-xs uppercase ${
                   msg.role === 'user' 
-                    ? 'bg-white/10 text-white border border-white/15' 
-                    : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                    ? 'bg-[#050315] text-white dark:bg-white/10 dark:text-white border border-black/10 dark:border-white/15' 
+                    : 'bg-slate-200 text-[#050315] dark:bg-[#585589]/30 dark:text-[#DEDCFF] border border-black/10 dark:border-[#585589]/40'
                 }`}>
                   {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                 </div>
@@ -222,19 +223,19 @@ const Chatbot = () => {
                 {/* Message Bubble */}
                 <div className={`p-3.5 rounded-2xl text-xs leading-relaxed whitespace-pre-wrap ${
                   msg.role === 'user'
-                    ? 'bg-amber-500/20 border border-amber-500/30 text-white rounded-tr-none'
+                    ? 'bg-[#050315] text-white dark:bg-[#585589] rounded-tr-none shadow-md font-medium'
                     : msg.isError 
-                      ? 'bg-red-500/10 border border-red-500/30 text-red-300 rounded-tl-none'
-                      : 'bg-white/5 border border-white/10 text-zinc-200 rounded-tl-none'
+                      ? 'bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-300 rounded-tl-none font-medium'
+                      : 'bg-slate-100 dark:bg-white/5 border border-black/10 dark:border-white/10 text-[#050315] dark:text-zinc-200 rounded-tl-none font-medium'
                 }`}>
                   {msg.text}
 
                   {/* Retry Button on Failure */}
-                  {msg.isError && lastPrompt && (
+                  {msg.isError && msg.canRetry !== false && lastPrompt && (
                     <div className="pt-2.5">
                       <button
                         onClick={() => handleSendMessage(lastPrompt)}
-                        className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 font-bold text-[10px] uppercase tracking-wider transition-all border border-red-500/30 cursor-pointer"
+                        className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-700 dark:text-red-300 font-bold text-[10px] uppercase tracking-wider transition-all border border-red-500/30 cursor-pointer"
                       >
                         <RefreshCw className="w-3 h-3" /> Retry
                       </button>
@@ -247,15 +248,15 @@ const Chatbot = () => {
             {/* Real Gemini Typing Status Indicator */}
             {isTyping && (
               <div className="flex gap-3 max-w-[85%]">
-                <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-slate-200 text-[#050315] dark:bg-[#585589]/30 dark:text-[#DEDCFF] border border-black/10 dark:border-[#585589]/40 flex items-center justify-center">
                   <Bot className="w-4 h-4" />
                 </div>
-                <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-2 rounded-tl-none text-xs text-zinc-400">
-                  <span className="italic font-medium text-amber-400/90">Adventure Records AI is typing...</span>
+                <div className="p-3.5 rounded-2xl bg-slate-100 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center gap-2 rounded-tl-none text-xs text-zinc-600 dark:text-zinc-400">
+                  <span className="italic font-semibold text-[#050315] dark:text-[#DEDCFF]">Adventure Records AI is thinking...</span>
                   <div className="flex gap-1 items-center">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-bounce" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-bounce delay-100" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-bounce delay-200" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#050315] dark:bg-[#585589] animate-bounce" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#050315] dark:bg-[#585589] animate-bounce delay-100" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#050315] dark:bg-[#585589] animate-bounce delay-200" />
                   </div>
                 </div>
               </div>
@@ -264,14 +265,14 @@ const Chatbot = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick Suggestions Pills (Shown on startup) */}
+          {/* Quick Suggestions Pills (Shown when conversation is short) */}
           {messages.length <= 2 && (
-            <div className="px-4 pb-2 pt-2 flex flex-wrap gap-2 border-t border-white/5 bg-white/2">
+            <div className="px-4 pb-2 pt-2 flex flex-wrap gap-2 border-t border-black/5 dark:border-white/5 bg-slate-50 dark:bg-white/2">
               {suggestions.map((sug, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleSendMessage(sug)}
-                  className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white text-[11px] text-left transition-all duration-200 cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-white dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-[#585589]/20 border border-black/10 dark:border-white/10 text-[#050315] dark:text-zinc-300 hover:text-black dark:hover:text-white text-[11px] text-left transition-all duration-200 cursor-pointer font-medium shadow-2xs"
                 >
                   {sug}
                 </button>
@@ -280,25 +281,26 @@ const Chatbot = () => {
           )}
 
           {/* Input & Send Footer Bar */}
-          <div className="p-3.5 bg-[#0e0e14] border-t border-white/10 flex gap-2 items-center" style={{ backgroundColor: 'var(--bg-elevated)' }}>
+          <div className="p-3.5 bg-slate-100 dark:bg-[#0e0e14] border-t border-black/10 dark:border-white/10 flex gap-2 items-center">
             <input
               ref={chatInputRef}
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyPress}
-              placeholder="Ask Adventure Records AI..."
-              className="flex-grow bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500/50 transition-all"
+              disabled={isTyping}
+              placeholder={isOffline ? "Offline mode active..." : "Ask Adventure Records AI..."}
+              className="flex-grow bg-white dark:bg-white/5 border border-black/15 dark:border-white/10 rounded-xl px-4 py-2.5 text-xs text-[#050315] dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:border-[#050315] dark:focus:border-[#585589] transition-all font-medium disabled:opacity-60"
             />
 
             <button
               onClick={() => handleSendMessage()}
               disabled={!input.trim() || isTyping}
-              className="p-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold disabled:opacity-40 hover:shadow-[0_0_15px_rgba(234,179,8,0.4)] transition-all cursor-pointer flex items-center justify-center shrink-0"
+              className="p-2.5 rounded-xl bg-[#050315] dark:bg-[#585589] hover:bg-black dark:hover:bg-[#53527D] text-white font-bold disabled:opacity-40 transition-all cursor-pointer flex items-center justify-center shrink-0 shadow-md"
               title="Send Message"
               aria-label="Send Message"
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-4 h-4 text-white" />
             </button>
           </div>
 

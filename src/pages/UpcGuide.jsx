@@ -93,8 +93,8 @@ const UpcGuide = () => {
               <thead>
                 <tr className="border-b border-white/10 text-white font-bold">
                   <th className="py-3 px-4">Feature</th>
-                  <th className="py-3 px-4 text-amber-400">ISRC Code</th>
-                  <th className="py-3 px-4 text-amber-400">UPC Barcode</th>
+                  <th className="py-3 px-4 text-[#DEDCFF]">ISRC Code</th>
+                  <th className="py-3 px-4 text-[#DEDCFF]">UPC Barcode</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">

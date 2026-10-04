@@ -36,7 +36,7 @@ const Waveform = () => {
       mouse.y += (mouse.targetY - mouse.y) * 0.05;
 
       // Draw faint dot grid (Notion / Linear style)
-      ctx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.04)';
+      ctx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(5, 3, 21, 0.08)';
       const dotSpacing = 50;
       const startX = (mouse.x * 0.3) % dotSpacing;
       const startY = (mouse.y * 0.3) % dotSpacing;
@@ -50,8 +50,8 @@ const Waveform = () => {
 
       // Draw a single ultra-fine wave line running across center height
       ctx.beginPath();
-      ctx.strokeStyle = isDark ? 'rgba(168, 85, 247, 0.12)' : 'rgba(168, 85, 247, 0.18)';
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = isDark ? 'rgba(88, 85, 137, 0.3)' : 'rgba(5, 3, 21, 0.25)';
+      ctx.lineWidth = 1.5;
 
       const centerY = canvas.height * 0.65 + mouse.y;
 

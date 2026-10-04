@@ -13,8 +13,8 @@ export const useTheme = () => {
 export const ThemeProvider = ({ children }) => {
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem('adventure-theme');
-    // Default to dark mode (the current design)
-    return saved ? saved === 'dark' : true;
+    // Default to bright / light mode as requested by user
+    return saved ? saved === 'dark' : false;
   });
 
   useEffect(() => {

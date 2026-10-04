@@ -67,37 +67,38 @@ const VinylScene = ({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.2;
 
     container.appendChild(renderer.domElement);
 
     // ----------------------------------------------------
-    // 2. STUDIO LIGHTING ENVIRONMENT
+    // 2. STUDIO MONOCHROME LIGHTING (PREMIUM STUDIO LIGHTS)
     // ----------------------------------------------------
+    // Ambient Light (Soft overall fill)
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
     scene.add(ambientLight);
 
-    // Key Specular Light (creates shiny vinyl groove highlights)
-    const keyLight = new THREE.DirectionalLight(0xfffbeb, 2.0);
-    keyLight.position.set(4, 6, 5);
+    // Key Directional Light (Creates glossy specular highlights on vinyl grooves)
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.6);
+    keyLight.position.set(4, 7, 5);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 1024;
     keyLight.shadow.mapSize.height = 1024;
     keyLight.shadow.bias = -0.001;
     scene.add(keyLight);
 
-    // Amber Gold Rim Light (Matches Adventure Records aesthetic)
-    const rimLight = new THREE.SpotLight(0xeab308, 3.2, 15, Math.PI / 4, 0.5);
-    rimLight.position.set(-5, -3, -3);
+    // Neutral White Edge Rim Light (Highlights 3D bevel contour of record)
+    const rimLight = new THREE.DirectionalLight(0xffffff, 1.4);
+    rimLight.position.set(-4, 5, -3);
     scene.add(rimLight);
 
-    // Subtle Blue Fill Light
-    const fillLight = new THREE.PointLight(0x38bdf8, 1.0, 10);
-    fillLight.position.set(-4, 4, 3);
+    // Neutral White Soft Fill Light
+    const fillLight = new THREE.PointLight(0xe4e4e7, 0.8, 10);
+    fillLight.position.set(-3, 3, 3);
     scene.add(fillLight);
 
     // ----------------------------------------------------
-    // 3. 3D EXTRUDED VINYL RECORD MESH
+    // 3. 3D EXTRUDED GLOSSY VINYL RECORD MESH
     // ----------------------------------------------------
     const { labelTexture, bumpTexture, roughnessTexture } = createVinylTextures();
 
@@ -116,30 +117,31 @@ const VinylScene = ({
       bevelEnabled: true,
       bevelSegments: 6,
       steps: 1,
-      bevelSize: 0.02,
-      bevelThickness: 0.018,
+      bevelSize: 0.025,
+      bevelThickness: 0.02,
       curveSegments: 96
     };
 
     const vinylGeometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
     vinylGeometry.center();
 
-    // Materials: Disc face with grooves & label vs edge plastic
+    // Disc face material: Glossy near-black #050505 with grooves & label texture
     const faceMaterial = new THREE.MeshStandardMaterial({
-      color: 0x0a0a0c,
+      color: 0x050505,
       roughnessMap: roughnessTexture,
       bumpMap: bumpTexture,
-      bumpScale: 0.016,
+      bumpScale: 0.018,
       map: labelTexture,
-      metalness: 0.35,
-      roughness: 0.22,
+      metalness: 0.45,
+      roughness: 0.18,
       side: THREE.DoubleSide
     });
 
+    // Outer edge plastic rim material
     const edgeMaterial = new THREE.MeshStandardMaterial({
-      color: 0x050507,
-      roughness: 0.3,
-      metalness: 0.5
+      color: 0x080808,
+      roughness: 0.2,
+      metalness: 0.6
     });
 
     const vinylMesh = new THREE.Mesh(vinylGeometry, [faceMaterial, edgeMaterial]);
@@ -150,7 +152,7 @@ const VinylScene = ({
     vinylGroup.add(vinylMesh);
     scene.add(vinylGroup);
 
-    // Initial presentation angle
+    // Initial presentation tilt angle
     vinylGroup.rotation.x = 0.45;
     vinylGroup.rotation.y = -0.3;
 
@@ -162,8 +164,8 @@ const VinylScene = ({
     shadowCanvas.height = 256;
     const sCtx = shadowCanvas.getContext('2d');
     const sGrad = sCtx.createRadialGradient(128, 128, 10, 128, 128, 120);
-    sGrad.addColorStop(0, 'rgba(0, 0, 0, 0.65)');
-    sGrad.addColorStop(0.5, 'rgba(0, 0, 0, 0.28)');
+    sGrad.addColorStop(0, 'rgba(0, 0, 0, 0.7)');
+    sGrad.addColorStop(0.5, 'rgba(0, 0, 0, 0.3)');
     sGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
     sCtx.fillStyle = sGrad;
     sCtx.fillRect(0, 0, 256, 256);
@@ -173,7 +175,7 @@ const VinylScene = ({
     const shadowMat = new THREE.MeshBasicMaterial({
       map: shadowTex,
       transparent: true,
-      opacity: 0.45,
+      opacity: 0.5,
       depthWrite: false
     });
     const shadowPlane = new THREE.Mesh(shadowGeo, shadowMat);
@@ -181,8 +183,8 @@ const VinylScene = ({
     shadowPlane.position.y = -2.8;
     scene.add(shadowPlane);
 
-    // Floating dust particles
-    const particleCount = 35;
+    // Floating subtle dust particles
+    const particleCount = 30;
     const particleGeo = new THREE.BufferGeometry();
     const particlePos = new Float32Array(particleCount * 3);
     for (let i = 0; i < particleCount * 3; i += 3) {
@@ -192,10 +194,10 @@ const VinylScene = ({
     }
     particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePos, 3));
     const particleMat = new THREE.PointsMaterial({
-      color: 0xeab308,
-      size: 0.035,
+      color: 0xffffff,
+      size: 0.03,
       transparent: true,
-      opacity: 0.35
+      opacity: 0.25
     });
     const particles = new THREE.Points(particleGeo, particleMat);
     scene.add(particles);
@@ -394,8 +396,8 @@ const VinylScene = ({
 
   if (!isWebGlSupported) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center p-8 bg-[#09090d] rounded-3xl border border-white/10 text-center space-y-4">
-        <div className="w-24 h-24 rounded-full border-4 border-amber-500/40 bg-zinc-900 flex items-center justify-center text-amber-400 font-bold text-xl animate-spin-slow shadow-2xl">
+      <div className="w-full h-full flex flex-col items-center justify-center p-8 bg-[#18181B] rounded-3xl border border-white/12 text-center space-y-4 shadow-2xl">
+        <div className="w-24 h-24 rounded-full border-4 border-white/20 bg-black flex items-center justify-center text-white font-bold text-xl animate-spin-slow shadow-2xl">
           AR
         </div>
         <p className="text-zinc-400 text-xs">

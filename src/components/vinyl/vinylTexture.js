@@ -2,14 +2,15 @@ import * as THREE from 'three';
 
 /**
  * Creates ultra-high-resolution (2048x2048) procedural canvas textures for the 3D Vinyl Record.
- * Features a glossy black disc with crisp, ultra-legible PURE WHITE "ADVENTURE RECORDS" branding.
+ * Features a glossy black disc with crisp concentric sound grooves, specular highlights,
+ * and elegant PURE WHITE "ADVENTURE RECORDS" center label branding.
  */
 
 export function createVinylTextures() {
-  const size = 2048; // Double resolution for crystal-clear readability
+  const size = 2048; // High resolution for crisp details and smooth curves
   
   // ----------------------------------------------------
-  // 1. CENTER LABEL TEXTURE (BRIGHT WHITE & ONYX BLACK DESIGN)
+  // 1. CENTER LABEL & DISC SURFACE TEXTURE
   // ----------------------------------------------------
   const labelCanvas = document.createElement('canvas');
   labelCanvas.width = size;
@@ -17,22 +18,23 @@ export function createVinylTextures() {
   const ctx = labelCanvas.getContext('2d');
 
   const center = size / 2;
-  const labelRadius = size * 0.32; // Generous label size for maximum readability
+  const labelRadius = size * 0.30; // 30% label size for balanced proportions
 
-  // Clear background
+  // Clear canvas
   ctx.clearRect(0, 0, size, size);
 
-  // Outer Vinyl Disc Base Color (Deep Glossy Black)
+  // Outer Vinyl Disc Base Surface (Glossy Near-Black #050505)
   ctx.beginPath();
-  ctx.arc(center, center, size * 0.49, 0, Math.PI * 2);
-  ctx.fillStyle = '#08080a';
+  ctx.arc(center, center, size * 0.495, 0, Math.PI * 2);
+  ctx.fillStyle = '#050505';
   ctx.fill();
 
-  // Subtle Concentric Sound Groove Reflections on Disc Surface
+  // Subtle Concentric Sound Groove Bands on Disc Surface (Light reflections)
   const grooveBands = [
-    { start: 0.33, end: 0.38, alpha: 0.18 },
-    { start: 0.39, end: 0.44, alpha: 0.15 },
-    { start: 0.45, end: 0.485, alpha: 0.22 }
+    { start: 0.31, end: 0.36, alpha: 0.08 },
+    { start: 0.365, end: 0.41, alpha: 0.12 },
+    { start: 0.415, end: 0.455, alpha: 0.09 },
+    { start: 0.46, end: 0.49, alpha: 0.14 }
   ];
   
   grooveBands.forEach(b => {
@@ -43,56 +45,64 @@ export function createVinylTextures() {
     ctx.fill();
   });
 
-  // Center Paper Label Background (Onyx Black with Radial Shimmer)
+  // Individual micro-groove sheen rings
+  for (let r = size * 0.31; r < size * 0.49; r += 6) {
+    ctx.beginPath();
+    ctx.arc(center, center, r, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255, 255, 255, ${0.03 + (Math.sin(r * 0.05) + 1) * 0.04})`;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // Center Paper Label Background (Charcoal to Onyx Black Gradient)
   ctx.beginPath();
   ctx.arc(center, center, labelRadius, 0, Math.PI * 2);
   const labelGrad = ctx.createRadialGradient(center, center, 20, center, center, labelRadius);
-  labelGrad.addColorStop(0, '#1c1c22');
-  labelGrad.addColorStop(0.6, '#111116');
-  labelGrad.addColorStop(1, '#07070a');
+  labelGrad.addColorStop(0, '#222228');
+  labelGrad.addColorStop(0.5, '#141418');
+  labelGrad.addColorStop(1, '#09090b');
   ctx.fillStyle = labelGrad;
   ctx.fill();
 
   // Outer Metallic Silver & White Double Border Rings
-  const drawSilverRing = (radius, width) => {
+  const drawSilverRing = (radius, width, opacity = 1) => {
     ctx.beginPath();
     ctx.arc(center, center, radius, 0, Math.PI * 2);
     ctx.lineWidth = width;
     const silverGrad = ctx.createLinearGradient(center - radius, center - radius, center + radius, center + radius);
-    silverGrad.addColorStop(0, '#ffffff');
-    silverGrad.addColorStop(0.25, '#e4e4e7');
-    silverGrad.addColorStop(0.5, '#a1a1aa');
-    silverGrad.addColorStop(0.75, '#f4f4f5');
-    silverGrad.addColorStop(1, '#ffffff');
+    silverGrad.addColorStop(0, `rgba(255, 255, 255, ${opacity})`);
+    silverGrad.addColorStop(0.3, `rgba(228, 228, 231, ${opacity * 0.9})`);
+    silverGrad.addColorStop(0.6, `rgba(161, 161, 170, ${opacity * 0.8})`);
+    silverGrad.addColorStop(1, `rgba(255, 255, 255, ${opacity})`);
     ctx.strokeStyle = silverGrad;
     ctx.stroke();
   };
 
-  drawSilverRing(labelRadius - 4, 8);
-  drawSilverRing(labelRadius - 20, 3);
-  drawSilverRing(labelRadius - 32, 1.5);
+  drawSilverRing(labelRadius - 4, 6, 0.9);
+  drawSilverRing(labelRadius - 18, 2.5, 0.75);
+  drawSilverRing(labelRadius - 28, 1.2, 0.5);
 
-  // Decorative Luxury Music & Adventure Logo (Top Center)
+  // Decorative Crest / Logo Icon (Top Center of Label)
   ctx.save();
-  ctx.translate(center, center - 120);
+  ctx.translate(center, center - 110);
 
-  // Silver Crest Frame
+  // Silver Circle Frame
   ctx.beginPath();
-  ctx.arc(0, 0, 70, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+  ctx.arc(0, 0, 65, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
   ctx.fill();
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 2.5;
   ctx.strokeStyle = '#ffffff';
   ctx.stroke();
 
-  // Waveform / Mountain Adventure Icon
+  // Mountain / Waveform Symbol
   ctx.beginPath();
-  ctx.moveTo(-35, 15);
-  ctx.lineTo(-15, -25);
+  ctx.moveTo(-32, 14);
+  ctx.lineTo(-14, -22);
   ctx.lineTo(0, 0);
-  ctx.lineTo(15, -35);
-  ctx.lineTo(35, 15);
-  ctx.lineWidth = 4;
+  ctx.lineTo(14, -32);
+  ctx.lineTo(32, 14);
+  ctx.lineWidth = 3.5;
   ctx.strokeStyle = '#ffffff';
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
@@ -101,20 +111,20 @@ export function createVinylTextures() {
   ctx.restore();
 
   // ----------------------------------------------------
-  // CENTER BRAND TEXT: ADVENTURE RECORDS (PURE WHITE COLOR)
+  // CENTER BRAND TEXT: ADVENTURE RECORDS (PURE WHITE)
   // ----------------------------------------------------
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  // 1. Curved White Text around Top Arch: "ADVENTURE RECORDS"
+  // 1. Curved White Arch Text: "ADVENTURE RECORDS"
   const drawCurvedText = (text, radius, startAngle) => {
     ctx.save();
-    ctx.font = '900 38px "Orbitron", "Outfit", sans-serif';
+    ctx.font = '900 36px "Outfit", "Inter", sans-serif';
     ctx.fillStyle = '#ffffff';
-    ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
-    ctx.shadowBlur = 12;
+    ctx.shadowColor = 'rgba(255, 255, 255, 0.6)';
+    ctx.shadowBlur = 10;
     
-    const anglePerChar = 0.12;
+    const anglePerChar = 0.115;
     const initialAngle = startAngle - (text.length * anglePerChar) / 2;
 
     for (let i = 0; i < text.length; i++) {
@@ -130,55 +140,49 @@ export function createVinylTextures() {
     ctx.restore();
   };
 
-  drawCurvedText('ADVENTURE RECORDS', labelRadius - 65, -Math.PI / 2);
+  drawCurvedText('ADVENTURE RECORDS', labelRadius - 60, -Math.PI / 2);
 
-  // 2. MAIN CENTERED BOLD BRANDING: "ADVENTURE RECORDS" IN PURE WHITE
+  // 2. MAIN CENTERED BOLD BRANDING: "ADVENTURE RECORDS"
   ctx.save();
+  ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+  ctx.shadowBlur = 20;
 
-  // Text Shadow Glow in White
-  ctx.shadowColor = 'rgba(255, 255, 255, 0.9)';
-  ctx.shadowBlur = 28;
-
-  // Main centered line: ADVENTURE RECORDS (PURE WHITE)
   ctx.fillStyle = '#ffffff';
-  ctx.font = '900 62px "Orbitron", "Outfit", sans-serif';
-  ctx.letterSpacing = '10px';
-  ctx.fillText('ADVENTURE RECORDS', center, center + 40);
+  ctx.font = '900 58px "Outfit", "Inter", sans-serif';
+  ctx.fillText('ADVENTURE RECORDS', center, center + 38);
 
   ctx.restore();
 
-  // Sub-tagline: YOUR MUSIC. EVERYWHERE.
+  // Sub-tagline
   ctx.fillStyle = '#e4e4e7';
-  ctx.font = '700 22px "Outfit", sans-serif';
-  ctx.letterSpacing = '8px';
-  ctx.fillText('YOUR MUSIC. EVERYWHERE.', center, center + 125);
-
-  // Format / Speed badge: 33 ⅓ RPM • STEREO
-  ctx.fillStyle = '#ffffff';
   ctx.font = '700 20px "Outfit", sans-serif';
-  ctx.letterSpacing = '4px';
-  ctx.fillText('★ 33 ⅓ RPM  •  HIGH FIDELITY STEREO ★', center, center + 175);
+  ctx.fillText('MUSIC DISTRIBUTION', center, center + 115);
 
-  // Center Spindle Hole Ring & Cutout
+  // Speed Badge: 33 ⅓ RPM • STEREO
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '700 18px "Outfit", sans-serif';
+  ctx.fillText('★ 33 ⅓ RPM  •  HIGH FIDELITY STEREO ★', center, center + 160);
+
+  // Center Spindle Hole Metallic Ring
   const holeRadius = size * 0.032;
   ctx.beginPath();
-  ctx.arc(center, center, holeRadius + 10, 0, Math.PI * 2);
-  ctx.lineWidth = 4;
+  ctx.arc(center, center, holeRadius + 8, 0, Math.PI * 2);
+  ctx.lineWidth = 3.5;
   ctx.strokeStyle = '#ffffff';
   ctx.stroke();
 
+  // Center Hole Cutout
   ctx.beginPath();
   ctx.arc(center, center, holeRadius, 0, Math.PI * 2);
-  ctx.fillStyle = '#000000';
+  ctx.fillStyle = '#050505';
   ctx.fill();
 
-  // Convert label canvas to Three.js Texture
   const labelTexture = new THREE.CanvasTexture(labelCanvas);
   labelTexture.anisotropy = 16;
   labelTexture.needsUpdate = true;
 
   // ----------------------------------------------------
-  // 2. REALISTIC GROOVES BUMP MAP TEXTURE
+  // 2. GROOVES BUMP MAP TEXTURE
   // ----------------------------------------------------
   const bumpCanvas = document.createElement('canvas');
   bumpCanvas.width = size;
@@ -188,15 +192,15 @@ export function createVinylTextures() {
   bCtx.fillStyle = '#808080';
   bCtx.fillRect(0, 0, size, size);
 
-  const minGrooveR = size * 0.33;
-  const maxGrooveR = size * 0.488;
+  const minGrooveR = size * 0.305;
+  const maxGrooveR = size * 0.49;
 
-  for (let r = minGrooveR; r < maxGrooveR; r += 2.2) {
-    const intensity = Math.sin(r * 0.5) * 50 + Math.random() * 25;
+  for (let r = minGrooveR; r < maxGrooveR; r += 2.0) {
+    const intensity = Math.sin(r * 0.4) * 60 + Math.random() * 30;
     bCtx.beginPath();
     bCtx.arc(center, center, r, 0, Math.PI * 2);
     bCtx.strokeStyle = `rgb(${128 + intensity}, ${128 + intensity}, ${128 + intensity})`;
-    bCtx.lineWidth = 1.2;
+    bCtx.lineWidth = 1.3;
     bCtx.stroke();
   }
 
@@ -219,12 +223,12 @@ export function createVinylTextures() {
   roughCanvas.height = size;
   const rCtx = roughCanvas.getContext('2d');
 
-  rCtx.fillStyle = '#1c1c1c'; // Highly reflective vinyl grooves
+  rCtx.fillStyle = '#141414'; // Glossy highly-reflective disc surface
   rCtx.fillRect(0, 0, size, size);
 
   rCtx.beginPath();
   rCtx.arc(center, center, labelRadius, 0, Math.PI * 2);
-  rCtx.fillStyle = '#3a3a3a'; // Matte paper label
+  rCtx.fillStyle = '#383838'; // Matte paper label
   rCtx.fill();
 
   const roughnessTexture = new THREE.CanvasTexture(roughCanvas);

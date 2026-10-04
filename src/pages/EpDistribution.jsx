@@ -82,8 +82,8 @@ const EpDistribution = () => {
         </div>
 
         {/* Pricing Box */}
-        <div className="minimal-card p-8 bg-[#09090d] border border-amber-500/30 text-center space-y-4">
-          <div className="inline-flex items-center justify-center p-4 rounded-full bg-amber-500/10 text-amber-400 mb-2">
+        <div className="minimal-card p-8 bg-[#09090d] border border-[#585589]/40 text-center space-y-4">
+          <div className="inline-flex items-center justify-center p-4 rounded-full bg-[#585589]/20 text-[#DEDCFF] mb-2">
             <Disc2 className="w-10 h-10" />
           </div>
           <h2 className="font-heading font-bold text-2xl text-white">EP Distribution Plan</h2>
@@ -103,27 +103,27 @@ const EpDistribution = () => {
           <h2 className="font-heading font-bold text-xl text-white border-b border-white/10 pb-3">What's Included in EP Distribution</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm text-zinc-300">
             <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
-              <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-[#DEDCFF] shrink-0" />
               <span>2 to 6 Audio Tracks (WAV / FLAC)</span>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
-              <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-[#DEDCFF] shrink-0" />
               <span>150+ Worldwide Streaming Services</span>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
-              <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-[#DEDCFF] shrink-0" />
               <span>Free ISRCs for every track + UPC Barcode</span>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
-              <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-[#DEDCFF] shrink-0" />
               <span>100% Streaming Royalty Rights</span>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
-              <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-[#DEDCFF] shrink-0" />
               <span>Fast 24-48 Hour Store Delivery</span>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
-              <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-[#DEDCFF] shrink-0" />
               <span>Zero Annual Recurring Fees</span>
             </div>
           </div>

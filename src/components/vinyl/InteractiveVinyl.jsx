@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Disc, Sparkles, Keyboard, MousePointer, Pause, Play } from 'lucide-react';
+import { Sparkles, Keyboard, MousePointer, Pause, Play } from 'lucide-react';
 import VinylScene from './VinylScene';
 
 const InteractiveVinyl = () => {
@@ -26,27 +26,29 @@ const InteractiveVinyl = () => {
   }, []);
 
   return (
-    <div className="relative w-full max-w-xl mx-auto flex flex-col items-center select-none font-outfit">
+    <div className="vinyl-container relative w-full max-w-xl mx-auto flex flex-col items-center select-none font-outfit">
       
-      {/* Glow Ambient Accent behind Vinyl */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] h-[340px] sm:w-[440px] sm:h-[440px] bg-amber-500/10 rounded-full blur-[100px] pointer-events-none" />
+      {/* 6. Subtle Studio Lighting (Soft White/Grey Radial Glow behind Vinyl) */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[360px] h-[360px] sm:w-[460px] sm:h-[460px] bg-white/[0.04] rounded-full blur-[120px] pointer-events-none" />
 
-      {/* 3D VINYL CANVAS SCENE CONTAINER */}
-      <div className="relative w-full rounded-3xl bg-[#09090d]/80 border border-white/10 shadow-2xl backdrop-blur-xl overflow-hidden group">
+      {/* 1. PLAYER CONTAINER: Sophisticated Charcoal #18181B, Rounded 3xl, Border rgba(255,255,255,0.12), Soft Shadow */}
+      <div className="vinyl-container relative w-full rounded-3xl bg-[#18181B] border border-white/12 shadow-[0_25px_60px_rgba(0,0,0,0.45)] backdrop-blur-xl overflow-hidden group">
         
-        {/* Top Status Bar */}
+        {/* 4. TOP CONTROL PILLS */}
         <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-auto">
-          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-zinc-300 text-xs font-semibold backdrop-blur-md">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Interactive 3D Vinyl</span>
+          {/* Badge: Interactive 3D Vinyl */}
+          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black border border-white/15 text-white text-xs font-semibold shadow-md">
+            <Sparkles className="w-3.5 h-3.5 text-white" />
+            <span className="text-white">Interactive 3D Vinyl</span>
           </div>
 
+          {/* Button: Pause/Resume Spin */}
           <button
             type="button"
             onClick={() => setIsPaused(prev => !prev)}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs font-semibold backdrop-blur-md transition-all cursor-pointer"
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black hover:bg-zinc-900 border border-white/15 text-white text-xs font-semibold shadow-md transition-all cursor-pointer"
           >
-            {isPaused ? <Play className="w-3.5 h-3.5 text-amber-400" /> : <Pause className="w-3.5 h-3.5 text-zinc-300" />}
+            {isPaused ? <Play className="w-3.5 h-3.5 text-white" /> : <Pause className="w-3.5 h-3.5 text-white" />}
             <span>{isPaused ? 'Resume Spin' : 'Pause Spin'}</span>
           </button>
         </div>
@@ -54,13 +56,13 @@ const InteractiveVinyl = () => {
         {/* 3D Scene Component */}
         <VinylScene isPaused={isPaused} />
 
-        {/* Bottom Bar: Interactive Hints (Mouse, Touch, Keyboard) */}
-        <div className="absolute bottom-4 left-4 right-4 z-20 flex items-center justify-between text-[11px] text-zinc-400 px-3.5 py-2 rounded-xl bg-black/60 border border-white/10 backdrop-blur-md">
-          <span className="flex items-center gap-1.5 text-zinc-300">
-            <MousePointer className="w-3.5 h-3.5 text-amber-400" /> Drag to Rotate & Tilt 3D Disc
+        {/* 5. BOTTOM CONTROL BAR: Background #050505, Text #FFFFFF, Icons #FFFFFF, Border rgba(255,255,255,0.12) */}
+        <div className="absolute bottom-4 left-4 right-4 z-20 flex items-center justify-between text-[11px] text-white px-4 py-2.5 rounded-xl bg-[#050505] border border-white/12 shadow-lg">
+          <span className="flex items-center gap-2 text-white font-medium">
+            <MousePointer className="w-3.5 h-3.5 text-white shrink-0" /> Drag to Rotate & Tilt 3D Disc
           </span>
-          <span className="hidden sm:flex items-center gap-1.5 text-zinc-400">
-            <Keyboard className="w-3.5 h-3.5 text-amber-400" /> Space to Pause/Play
+          <span className="hidden sm:flex items-center gap-2 text-white/90 font-medium">
+            <Keyboard className="w-3.5 h-3.5 text-white shrink-0" /> Space to Pause/Play
           </span>
         </div>
 

@@ -82,8 +82,8 @@ const AlbumDistribution = () => {
         </div>
 
         {/* Pricing Box */}
-        <div className="minimal-card p-8 bg-[#09090d] border border-amber-500/30 text-center space-y-4">
-          <div className="inline-flex items-center justify-center p-4 rounded-full bg-amber-500/10 text-amber-400 mb-2">
+        <div className="minimal-card p-8 bg-[#0d0d12] border border-[#585589]/40 text-center space-y-4 shadow-[0_0_30px_rgba(88,85,137,0.15)]">
+          <div className="inline-flex items-center justify-center p-4 rounded-full bg-[#585589]/20 text-[#DEDCFF] mb-2">
             <Layers className="w-10 h-10" />
           </div>
           <h2 className="font-heading font-bold text-2xl text-white">Album Distribution Plan</h2>
@@ -99,31 +99,31 @@ const AlbumDistribution = () => {
         </div>
 
         {/* What's Included */}
-        <div className="minimal-card p-8 bg-[#09090d] space-y-6">
+        <div className="minimal-card p-8 bg-[#0d0d12] space-y-6">
           <h2 className="font-heading font-bold text-xl text-white border-b border-white/10 pb-3">What's Included in Album Distribution</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm text-zinc-300">
             <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
-              <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-[#DEDCFF] shrink-0" />
               <span>7 or More Audio Tracks (WAV / FLAC)</span>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
-              <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-[#DEDCFF] shrink-0" />
               <span>150+ Worldwide Streaming Services</span>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
-              <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-[#DEDCFF] shrink-0" />
               <span>Free ISRCs for all tracks + Main Album UPC</span>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
-              <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-[#DEDCFF] shrink-0" />
               <span>100% Streaming Royalty Rights</span>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
-              <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-[#DEDCFF] shrink-0" />
               <span>Priority 24-48 Hour Store Delivery</span>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
-              <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-[#DEDCFF] shrink-0" />
               <span>Zero Annual Recurring Fees</span>
             </div>
           </div>

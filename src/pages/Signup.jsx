@@ -1,10 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, AlertCircle, RefreshCw, Eye, EyeOff, Disc, CheckCircle2 } from 'lucide-react';
+import { Mail, Lock, User, AlertCircle, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo';
-import { isConfigured, auth } from '../firebase';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { sendOtpToEmail } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -18,7 +16,14 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  const { signup, isAuthenticated, user, authLoading, mapFirebaseAuthError } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated && user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, authLoading, user, navigate]);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
@@ -44,7 +49,7 @@ const Signup = () => {
       case 2:
         return { score: 1, label: 'Weak', color: 'bg-red-500', width: 'w-1/4' };
       case 3:
-        return { score: 2, label: 'Fair', color: 'bg-amber-500', width: 'w-2/4' };
+        return { score: 2, label: 'Fair', color: 'bg-[#585589]', width: 'w-2/4' };
       case 4:
         return { score: 3, label: 'Strong', color: 'bg-blue-500', width: 'w-3/4' };
       case 5:
@@ -83,37 +88,12 @@ const Signup = () => {
       let registeredEmail = formData.email.toLowerCase().trim();
       let displayName = formData.name.trim();
 
-      if (isConfigured && auth) {
-        const userCredential = await createUserWithEmailAndPassword(auth, registeredEmail, formData.password);
-        if (userCredential.user) {
-          await updateProfile(userCredential.user, { displayName: displayName });
-        }
-      }
+      await signup(registeredEmail, formData.password, displayName);
 
-      // Store session user profile directly with verified status
-      const userProfile = {
-        uid: 'user_' + Date.now(),
-        email: registeredEmail,
-        artistName: displayName,
-        role: 'Artist',
-        otpVerified: true
-      };
-
-      localStorage.setItem('user', JSON.stringify(userProfile));
-      localStorage.setItem('token', 'token_' + Date.now());
-      window.dispatchEvent(new Event('auth-change'));
-
-      // Direct seamless navigation to dashboard
       navigate('/dashboard');
     } catch (err) {
       console.error("Signup Error:", err);
-      let errorMsg = err.message || "Failed to create account.";
-      if (err.code === 'auth/email-already-in-use') {
-        errorMsg = "An account with this email address already exists. Please sign in.";
-      } else if (err.code === 'auth/weak-password') {
-        errorMsg = "Password is too weak. Please use at least 8 characters with numbers and symbols.";
-      }
-      setError(errorMsg);
+      setError(mapFirebaseAuthError(err));
     } finally {
       setLoading(false);
     }
@@ -161,7 +141,7 @@ const Signup = () => {
                 value={formData.name}
                 onChange={handleInputChange}
                 placeholder="John Doe"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 pl-11 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/40 transition-all"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 pl-11 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#585589] transition-all"
               />
               <User className="w-4 h-4 text-zinc-500 absolute left-4 top-1/2 -translate-y-1/2" />
             </div>
@@ -178,7 +158,7 @@ const Signup = () => {
                 value={formData.email}
                 onChange={handleInputChange}
                 placeholder="name@domain.com"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 pl-11 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/40 transition-all"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 pl-11 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#585589] transition-all"
               />
               <Mail className="w-4 h-4 text-zinc-500 absolute left-4 top-1/2 -translate-y-1/2" />
             </div>
@@ -195,7 +175,7 @@ const Signup = () => {
                 value={formData.password}
                 onChange={handleInputChange}
                 placeholder="Minimum 8 characters"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 pl-11 pr-11 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/40 transition-all"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 pl-11 pr-11 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#585589] transition-all"
               />
               <Lock className="w-4 h-4 text-zinc-500 absolute left-4 top-1/2 -translate-y-1/2" />
               <button
@@ -232,7 +212,7 @@ const Signup = () => {
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
                 placeholder="Re-enter password"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 pl-11 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/40 transition-all"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 pl-11 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#585589] transition-all"
               />
               <Lock className="w-4 h-4 text-zinc-500 absolute left-4 top-1/2 -translate-y-1/2" />
             </div>

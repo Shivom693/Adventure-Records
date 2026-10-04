@@ -85,22 +85,22 @@ const IndiaDistributionGuide = () => {
 
         {/* Highlight Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="minimal-card p-6 bg-[#09090d] space-y-3">
-            <Radio className="w-8 h-8 text-amber-400" />
+          <div className="minimal-card p-6 bg-[#0d0d12] space-y-3">
+            <Radio className="w-8 h-8 text-[#DEDCFF]" />
             <h2 className="font-bold text-white text-lg">Top Indian DSPs</h2>
             <p className="text-zinc-400 text-xs leading-relaxed">
               Full coverage across JioSaavn, Wynk Music, Gaana, Spotify India, Amazon Music India, and YouTube Music.
             </p>
           </div>
-          <div className="minimal-card p-6 bg-[#09090d] space-y-3">
-            <CreditCard className="w-8 h-8 text-amber-400" />
+          <div className="minimal-card p-6 bg-[#0d0d12] space-y-3">
+            <CreditCard className="w-8 h-8 text-[#DEDCFF]" />
             <h2 className="font-bold text-white text-lg">UPI Payment Support</h2>
             <p className="text-zinc-400 text-xs leading-relaxed">
               Pay conveniently in INR via GPay, PhonePe, Paytm, or BHIM UPI directly to our official merchant address.
             </p>
           </div>
-          <div className="minimal-card p-6 bg-[#09090d] space-y-3">
-            <MapPin className="w-8 h-8 text-amber-400" />
+          <div className="minimal-card p-6 bg-[#0d0d12] space-y-3">
+            <MapPin className="w-8 h-8 text-[#DEDCFF]" />
             <h2 className="font-bold text-white text-lg">Regional Language Focus</h2>
             <p className="text-zinc-400 text-xs leading-relaxed">
               Dedicated support for Hindi, Punjabi, Haryanvi, Tamil, Telugu, Malayalam, Marathi, Bengali, and all Indian regional tracks.
@@ -109,23 +109,23 @@ const IndiaDistributionGuide = () => {
         </div>
 
         {/* INR Pricing Detail */}
-        <div className="minimal-card p-8 bg-[#09090d] space-y-6">
+        <div className="minimal-card p-8 bg-[#0d0d12] space-y-6">
           <h2 className="font-heading font-bold text-xl text-white border-b border-white/10 pb-3">
             Simple INR Pricing for Indian Artists
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
             <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-2">
-              <p className="text-xs font-semibold text-amber-400 uppercase tracking-wider">Single Track</p>
+              <p className="text-xs font-semibold text-[#DEDCFF] uppercase tracking-wider">Single Track</p>
               <p className="font-heading font-black text-3xl text-white">₹100</p>
               <p className="text-zinc-400 text-xs">One-time release fee • Keep 100% royalties</p>
             </div>
-            <div className="p-6 rounded-2xl bg-white/5 border border-amber-500/30 bg-amber-500/5 space-y-2">
-              <p className="text-xs font-semibold text-amber-400 uppercase tracking-wider">EP (2–6 Tracks)</p>
+            <div className="p-6 rounded-2xl bg-[#585589]/10 border border-[#585589]/40 space-y-2 shadow-[0_0_20px_rgba(88,85,137,0.15)]">
+              <p className="text-xs font-semibold text-[#DEDCFF] uppercase tracking-wider">EP (2–6 Tracks)</p>
               <p className="font-heading font-black text-3xl text-white">₹500</p>
               <p className="text-zinc-400 text-xs">One-time release fee • Free ISRC & UPC</p>
             </div>
             <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-2">
-              <p className="text-xs font-semibold text-amber-400 uppercase tracking-wider">Full Album (7+ Tracks)</p>
+              <p className="text-xs font-semibold text-[#DEDCFF] uppercase tracking-wider">Full Album (7+ Tracks)</p>
               <p className="font-heading font-black text-3xl text-white">₹1,000</p>
               <p className="text-zinc-400 text-xs">One-time release fee • Priority verification</p>
             </div>

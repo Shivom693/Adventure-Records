@@ -16,8 +16,8 @@ const ThemeToggle = ({ className = '' }) => {
       onClick={handleToggle}
       className={`relative group p-2.5 rounded-xl border transition-all duration-300 focus:outline-none ${
         isDark
-          ? 'border-white/10 hover:border-amber-400/40 hover:bg-amber-400/10 text-zinc-400 hover:text-amber-400'
-          : 'border-zinc-300 hover:border-amber-500/60 hover:bg-amber-50 text-zinc-500 hover:text-amber-600'
+          ? 'border-white/10 hover:border-[#585589]/50 hover:bg-[#585589]/10 text-zinc-400 hover:text-[#DEDCFF]'
+          : 'border-[#53527D]/20 hover:border-[#585589]/50 hover:bg-[#DEDCFF]/30 text-[#53527D] hover:text-[#585589]'
       } ${className}`}
       title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
       aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}

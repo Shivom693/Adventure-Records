@@ -214,16 +214,14 @@ router.post('/login', async (req, res) => {
     // Clear IP failure counts
     clearLoginFailures(ip);
 
-    // Track active login sessions (IP and Device metadata)
+    // Data Minimization: Store only minimal security session log (Max 3 entries)
     const loginLogs = [...(user.loginHistory || [])];
     loginLogs.unshift({
-      ip,
-      userAgent: userAgent.split(') ')[0].replace('Mozilla/5.0 (', '') || 'Web Client Session',
+      userAgent: userAgent.split(') ')[0].replace('Mozilla/5.0 (', '') || 'Web Session',
       timestamp: new Date().toISOString()
     });
     
-    // Limit log size to 10 entries
-    const updatedLogs = loginLogs.slice(0, 10);
+    const updatedLogs = loginLogs.slice(0, 3);
     await db.users.findByIdAndUpdate(user._id || user.id, { loginHistory: updatedLogs });
 
     // Generate JWT
@@ -235,6 +233,10 @@ router.post('/login', async (req, res) => {
 
     const userResponse = { ...user, loginHistory: updatedLogs };
     delete userResponse.password;
+    delete userResponse.otpCode;
+    delete userResponse.resetOtpCode;
+    delete userResponse.resetOtpExpires;
+
 
     res.status(200).json({
       message: 'Login successful!',

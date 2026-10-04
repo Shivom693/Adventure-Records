@@ -227,18 +227,43 @@ const privacySections = [
   },
   {
     id: 'privacy-12',
-    title: '12. Your Privacy Rights',
+    title: '12. Digital Personal Data Protection Act, 2023 (DPDP Act, India) Rights & Compliance',
     content: (
       <>
-        <p className="text-gray-300 leading-relaxed mb-3">
-          Depending on your jurisdiction, you may have rights to access, correct, delete, restrict, object to, or transfer your personal data, or withdraw consent.
-        </p>
-        <p className="text-gray-400 text-xs italic">
-          Some rights may be limited by legal, financial, security, or fraud-prevention obligations.
-        </p>
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-950/40 to-purple-950/40 border border-blue-500/30 space-y-3 mb-4">
+          <p className="text-blue-300 font-heading font-bold text-sm flex items-center gap-2">
+            <Shield className="w-4 h-4 text-blue-400" /> Digital Personal Data Protection Act, 2023 (DPDP Act, India)
+          </p>
+          <p className="text-gray-300 text-xs leading-relaxed">
+            Adventure Records is fully compliant with India's <strong>Digital Personal Data Protection Act, 2023 (DPDP Act)</strong>. As a Data Principal, you have statutory rights under the Act regarding your personal data processed by Adventure Records (acting as Data Fiduciary):
+          </p>
+          <ul className="space-y-2 text-xs text-gray-300 pl-2">
+            <li className="flex items-start gap-2">
+              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <span><strong>Itemized Notice & Consent (Section 5):</strong> Clear, plain-language notice before collecting personal data for specified music distribution, identity verification, and royalty processing purposes.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <span><strong>Right to Withdraw Consent (Section 6):</strong> You may withdraw your consent for non-essential data processing at any time via your Security Settings console.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <span><strong>Right to Access & Summary (Section 11):</strong> You have the right to obtain a summary of your personal data being processed and the identities of all data processors handling your records.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <span><strong>Right to Correction & Erasure (Section 12):</strong> You may request the correction of inaccurate data or complete erasure of your personal records and account deletion.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <span><strong>Right to Grievance Redressal (Section 13):</strong> Access to our designated Data Protection & Grievance Officer with guaranteed SLA responses within 72 hours.</span>
+            </li>
+          </ul>
+        </div>
       </>
     )
   },
+
   {
     id: 'privacy-13',
     title: '13. Requesting Deletion of Your Account or Data',
@@ -481,7 +506,7 @@ const Privacy = () => {
                 <p className="text-gray-400 text-sm">No policy section matches "{searchTerm}".</p>
                 <button
                   onClick={() => setSearchTerm('')}
-                  className="px-4 py-2 rounded-xl bg-purple-600 text-white text-xs font-semibold"
+                  className="px-4 py-2 rounded-xl bg-[#585589] hover:bg-[#53527D] text-white text-xs font-semibold"
                 >
                   Clear Search Filter
                 </button>

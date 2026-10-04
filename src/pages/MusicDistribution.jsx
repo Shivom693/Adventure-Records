@@ -89,22 +89,22 @@ const MusicDistribution = () => {
 
         {/* Feature Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="minimal-card p-6 bg-[#09090d] space-y-3">
-            <Globe className="w-8 h-8 text-amber-400" />
+          <div className="minimal-card p-6 bg-[#0d0d12] space-y-3">
+            <Globe className="w-8 h-8 text-[#DEDCFF]" />
             <h2 className="font-bold text-white text-lg">150+ Digital Stores</h2>
             <p className="text-zinc-400 text-xs leading-relaxed">
               Reach listeners globally across Spotify, Apple Music, Amazon Music, YouTube Music, JioSaavn, Wynk, and international platforms.
             </p>
           </div>
-          <div className="minimal-card p-6 bg-[#09090d] space-y-3">
-            <Zap className="w-8 h-8 text-amber-400" />
+          <div className="minimal-card p-6 bg-[#0d0d12] space-y-3">
+            <Zap className="w-8 h-8 text-[#DEDCFF]" />
             <h2 className="font-bold text-white text-lg">24-48 Hours Delivery</h2>
             <p className="text-zinc-400 text-xs leading-relaxed">
               Fast metadata verification and release processing ensures your music goes live quickly on digital service providers.
             </p>
           </div>
-          <div className="minimal-card p-6 bg-[#09090d] space-y-3">
-            <ShieldCheck className="w-8 h-8 text-amber-400" />
+          <div className="minimal-card p-6 bg-[#0d0d12] space-y-3">
+            <ShieldCheck className="w-8 h-8 text-[#DEDCFF]" />
             <h2 className="font-bold text-white text-lg">100% Royalties Kept</h2>
             <p className="text-zinc-400 text-xs leading-relaxed">
               Zero commission splits. You keep 100% of stream royalties and keep all rights to your original master recordings.
@@ -113,28 +113,28 @@ const MusicDistribution = () => {
         </div>
 
         {/* Workflow Section */}
-        <div className="minimal-card p-8 bg-[#09090d] space-y-6">
+        <div className="minimal-card p-8 bg-[#0d0d12] space-y-6">
           <h2 className="font-heading font-bold text-xl text-white border-b border-white/10 pb-3">
             How Music Distribution Works
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
             <div className="space-y-2 p-4 rounded-xl bg-white/5 border border-white/10">
-              <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-400 font-bold flex items-center justify-center mx-auto text-sm">1</span>
+              <span className="w-8 h-8 rounded-full bg-[#585589]/20 text-[#DEDCFF] font-bold flex items-center justify-center mx-auto text-sm">1</span>
               <h3 className="font-bold text-white text-sm">Prepare Master</h3>
               <p className="text-zinc-400 text-xs">High quality WAV file (16/24 bit) and 3000x3000px JPG artwork.</p>
             </div>
             <div className="space-y-2 p-4 rounded-xl bg-white/5 border border-white/10">
-              <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-400 font-bold flex items-center justify-center mx-auto text-sm">2</span>
+              <span className="w-8 h-8 rounded-full bg-[#585589]/20 text-[#DEDCFF] font-bold flex items-center justify-center mx-auto text-sm">2</span>
               <h3 className="font-bold text-white text-sm">Submit Metadata</h3>
               <p className="text-zinc-400 text-xs">Fill in track title, main artists, featured artists, genre & release date.</p>
             </div>
             <div className="space-y-2 p-4 rounded-xl bg-white/5 border border-white/10">
-              <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-400 font-bold flex items-center justify-center mx-auto text-sm">3</span>
+              <span className="w-8 h-8 rounded-full bg-[#585589]/20 text-[#DEDCFF] font-bold flex items-center justify-center mx-auto text-sm">3</span>
               <h3 className="font-bold text-white text-sm">Pay One-Time Fee</h3>
               <p className="text-zinc-400 text-xs">Pay single, EP, or album fee via UPI merchant gateway.</p>
             </div>
             <div className="space-y-2 p-4 rounded-xl bg-white/5 border border-white/10">
-              <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-400 font-bold flex items-center justify-center mx-auto text-sm">4</span>
+              <span className="w-8 h-8 rounded-full bg-[#585589]/20 text-[#DEDCFF] font-bold flex items-center justify-center mx-auto text-sm">4</span>
               <h3 className="font-bold text-white text-sm">Go Live Globally</h3>
               <p className="text-zinc-400 text-xs">Get official ISRC & UPC codes as your release goes live across stores.</p>
             </div>
@@ -142,7 +142,7 @@ const MusicDistribution = () => {
         </div>
 
         {/* Pricing Banner */}
-        <div className="minimal-card p-8 bg-gradient-to-r from-amber-500/10 via-transparent to-amber-500/5 border-amber-500/20 space-y-6">
+        <div className="minimal-card p-8 bg-gradient-to-r from-[#585589]/20 via-[#585589]/10 to-transparent border-[#585589]/30 space-y-6 shadow-[0_0_30px_rgba(88,85,137,0.1)]">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h2 className="font-heading font-bold text-xl text-white">Transparent Release Pricing</h2>

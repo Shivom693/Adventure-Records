@@ -9,14 +9,17 @@ export default {
     extend: {
       colors: {
         brand: {
-          dark: '#09090b',
-          darker: '#040406',
-          card: '#121215',
-          accent: '#7c3aed', // Single subtle accent color (Refined Violet)
-          purple: '#8b5cf6',
-          blue: '#a1a1aa', // Muted off-white
-          cyan: '#a1a1aa', // Muted off-white
-          pink: '#8b5cf6',
+          dark: '#0c0b1a',
+          darker: '#080714',
+          card: '#13112a',
+          accent: '#585589',
+          purple: '#585589',
+          blue: '#a09dbd',
+          cyan: '#a09dbd',
+          pink: '#6e6ba0',
+          primary: '#585589',
+          secondary: '#DEDCFF',
+          text: '#050315',
         }
       },
       fontFamily: {

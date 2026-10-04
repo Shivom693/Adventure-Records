@@ -11,27 +11,33 @@ import shivomImg from '../assets/shivom-tripathi.jpg';
 import misfitImg from '../assets/misfit-arya.jpg';
 
 const trustPlatforms = [
-  'Spotify', 'Apple Music', 'YouTube Music', 'Amazon Music', 'Instagram', 'TikTok', '150+ Digital Platforms'
+  { name: 'Spotify', color: 'bg-emerald-500' },
+  { name: 'Apple Music', color: 'bg-pink-500' },
+  { name: 'YouTube Music', color: 'bg-red-500' },
+  { name: 'Amazon Music', color: 'bg-cyan-500' },
+  { name: 'Instagram', color: 'bg-purple-500' },
+  { name: 'TikTok', color: 'bg-indigo-400' },
+  { name: '150+ Digital Platforms', color: 'bg-amber-400' }
 ];
 
 const coreValues = [
   {
-    icon: <Globe className="w-6 h-6 text-white" />,
+    icon: <Globe className="w-6 h-6 text-black" />,
     title: "Global Distribution",
     description: "Reach major streaming and digital music platforms worldwide with direct API pipeline ingestion."
   },
   {
-    icon: <ShieldCheck className="w-6 h-6 text-white" />,
+    icon: <ShieldCheck className="w-6 h-6 text-black" />,
     title: "Keep Your Rights",
     description: "Maintain 100% ownership and control of your master recordings, compositions, and catalog."
   },
   {
-    icon: <BarChart3 className="w-6 h-6 text-white" />,
+    icon: <BarChart3 className="w-6 h-6 text-black" />,
     title: "Royalty Management",
     description: "Track your stream performance and manage transparent music revenue payouts directly to your bank account."
   },
   {
-    icon: <Layers className="w-6 h-6 text-white" />,
+    icon: <Layers className="w-6 h-6 text-black" />,
     title: "Release Management",
     description: "Manage metadata, artwork, ISRCs, UPCs and release scheduling in one centralized creator dashboard."
   }
@@ -125,14 +131,9 @@ const testimonials = [
     author: "Misfit Arya",
     role: "Afro & Electronic Producer",
     image: misfitImg
-  },
-  {
-    quote: "The metadata management and automated ISRC generation saved our record label hundreds of hours of manual work.",
-    author: "AEONE",
-    role: "Independent Artist & Imprint Founder",
-    image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=600&auto=format&fit=crop&q=80"
   }
 ];
+
 
 const resourcesList = [
   { title: "How Music Distribution Works", desc: "A complete guide to digital ingestion, store delivery, and streaming stores.", link: "/resources" },
@@ -193,7 +194,7 @@ const Home = () => {
   };
 
   return (
-    <div className="relative pt-12 overflow-x-hidden min-h-screen bg-[#070709] text-zinc-100 font-outfit">
+    <div className="relative pt-12 overflow-x-hidden min-h-screen bg-white text-[#050315] font-outfit">
       
       <SeoHead
         title="Adventure Records | Music Distribution for Artists"
@@ -202,9 +203,6 @@ const Home = () => {
         structuredData={[orgSchema, websiteSchema, faqSchema]}
       />
 
-      {/* Glow Ambient Lights */}
-      <div className="absolute top-16 left-1/2 -translate-x-1/2 w-[900px] h-[400px] bg-white/[0.03] blur-[180px] rounded-full pointer-events-none" />
-
       {/* 1. HERO SECTION */}
       <section className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-24 md:pt-20 md:pb-32">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
@@ -212,20 +210,20 @@ const Home = () => {
           {/* Left Content */}
           <div className="lg:col-span-7 space-y-8 text-center lg:text-left z-10">
             <div className="space-y-3">
-              <p className="text-xs sm:text-sm uppercase tracking-[0.3em] font-extrabold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-4 py-1.5 rounded-full w-fit mx-auto lg:mx-0 shadow-sm flex items-center gap-2">
-                <Disc className="w-4 h-4 animate-spin-slow text-amber-400" />
+              <p className="text-xs sm:text-sm uppercase tracking-[0.3em] font-extrabold text-[#050315] bg-black/5 border border-black/15 px-4 py-1.5 rounded-full w-fit mx-auto lg:mx-0 shadow-sm flex items-center gap-2">
+                <Disc className="w-4 h-4 animate-spin-slow text-black" />
                 ADVENTURE RECORDS
               </p>
               <div className="minimal-badge">
-                <Sparkles className="w-3.5 h-3.5 text-white" /> Professional Music Distribution
+                <Sparkles className="w-3.5 h-3.5 text-[#050315]" /> Professional Music Distribution
               </div>
             </div>
 
-            <h1 className="font-heading font-black text-5xl sm:text-7xl lg:text-8xl tracking-tight leading-[1.04] text-white">
+            <h1 className="font-heading font-black text-5xl sm:text-7xl lg:text-8xl tracking-tight leading-[1.04] text-[#050315]">
               Adventure Records
             </h1>
 
-            <p className="text-zinc-400 text-base sm:text-xl max-w-xl leading-relaxed mx-auto lg:mx-0 font-normal">
+            <p className="text-[#050315]/80 text-base sm:text-xl max-w-xl leading-relaxed mx-auto lg:mx-0 font-normal">
               Music distribution and release management for independent artists.
             </p>
 
@@ -254,19 +252,21 @@ const Home = () => {
       </section>
 
       {/* 2. TRUST BAR */}
-      <section className="border-y border-white/10 bg-[#0a0a0e]/60 py-10">
+      <section className="border-y border-black/10 dark:border-white/10 bg-slate-100/80 dark:bg-[#110f24] py-10 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
-          <p className="text-xs uppercase tracking-widest text-zinc-400 font-semibold">
+          <p className="text-xs sm:text-sm uppercase tracking-[0.25em] font-extrabold text-[#050315] dark:text-zinc-300 flex items-center justify-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             Built for independent artists, producers and labels.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6">
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-5">
             {trustPlatforms.map((plat, idx) => (
-              <span 
+              <div 
                 key={idx}
-                className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-zinc-300 font-medium hover:border-white/20 transition-all"
+                className="px-4 py-2.5 rounded-xl bg-white dark:bg-white/5 border border-black/15 dark:border-white/15 text-xs text-[#050315] dark:text-white font-bold shadow-sm hover:shadow-md hover:border-black/30 dark:hover:border-white/30 hover:-translate-y-0.5 transition-all flex items-center gap-2 cursor-default"
               >
-                {plat}
-              </span>
+                <span className={`w-2 h-2 rounded-full ${plat.color} shrink-0`} />
+                <span>{plat.name}</span>
+              </div>
             ))}
           </div>
         </div>
@@ -288,7 +288,7 @@ const Home = () => {
               className="minimal-card minimal-card-hover p-8 flex flex-col justify-between space-y-6"
             >
               <div className="space-y-4">
-                <div className="p-3 bg-white/5 rounded-xl w-fit border border-white/10">
+                <div className="p-3 bg-[#585589]/10 rounded-xl w-fit border border-[#585589]/20">
                   {val.icon}
                 </div>
                 <h3 className="font-heading font-bold text-lg text-white">
@@ -304,7 +304,7 @@ const Home = () => {
       </section>
 
       {/* 4. HOW IT WORKS */}
-      <section id="how-it-works" className="border-t border-white/10 bg-[#09090d] py-28">
+      <section id="how-it-works" className="border-t border-white/10 bg-[#110f24] py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-20 space-y-3">
             <div className="minimal-badge">Streamlined Workflow</div>
@@ -316,7 +316,7 @@ const Home = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative">
             {processSteps.map((st, idx) => (
               <div key={idx} className="space-y-4 relative">
-                <span className="font-heading font-black text-4xl text-zinc-600 block">
+                <span className="font-heading font-black text-4xl text-[#53527D]/50 block">
                   {st.step}
                 </span>
                 <h3 className="font-heading font-bold text-xl text-white">
@@ -336,37 +336,37 @@ const Home = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           
           {/* Left Abstract Visual */}
-          <div className="lg:col-span-6 rounded-3xl bg-[#0b0b10] border border-white/10 p-8 sm:p-12 relative overflow-hidden flex flex-col justify-center min-h-[380px]">
-            <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent pointer-events-none" />
+          <div className="lg:col-span-6 rounded-3xl bg-black/5 dark:bg-[#13112a] border border-black/10 dark:border-white/10 p-8 sm:p-12 relative overflow-hidden flex flex-col justify-center min-h-[380px]">
+            <div className="absolute inset-0 bg-gradient-to-tr from-[#585589]/10 to-transparent pointer-events-none" />
             <div className="space-y-6 z-10">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                <span className="text-xs font-semibold text-white uppercase tracking-wider">Audio Processing Engine</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-ping" />
+                <span className="text-xs font-semibold text-[#050315] dark:text-white uppercase tracking-wider">Audio Processing Engine</span>
               </div>
-              <div className="h-20 flex items-center justify-between gap-1 border-y border-white/10 py-4">
+              <div className="h-20 flex items-center justify-between gap-1 border-y border-black/15 dark:border-white/10 py-4">
                 {[40, 70, 30, 85, 50, 95, 60, 45, 80, 100, 75, 55, 90, 65, 35, 80].map((h, i) => (
                   <div 
                     key={i} 
-                    className="w-1.5 bg-white/70 rounded-full animate-pulse" 
+                    className="w-1.5 bg-[#050315] dark:bg-[#DEDCFF] rounded-full animate-pulse" 
                     style={{ height: `${h}%`, animationDelay: `${i * 0.1}s` }} 
                   />
                 ))}
               </div>
-              <p className="text-xs text-zinc-400">Official GS1-Compliant ISRC & UPC Validation • 24-Bit 44.1kHz WAV Ingestion</p>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">Standard ISRC & UPC Code Assignment • 24-Bit 44.1kHz WAV Ingestion</p>
             </div>
           </div>
 
           {/* Right Content */}
           <div className="lg:col-span-6 space-y-6 text-left">
             <div className="minimal-badge">Modern Infrastructure</div>
-            <h2 className="font-heading font-bold text-3xl sm:text-4xl text-white">
+            <h2 className="font-heading font-bold text-3xl sm:text-4xl text-[#050315] dark:text-white">
               Built around your music.
             </h2>
-            <p className="text-zinc-400 text-sm leading-relaxed">
+            <p className="text-zinc-600 dark:text-zinc-400 text-sm leading-relaxed">
               Adventure Records gives independent artists the tools to distribute music professionally without unnecessary complexity.
             </p>
 
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs text-zinc-300 font-medium">
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs text-[#050315] dark:text-zinc-300 font-medium">
               {[
                 "Worldwide digital distribution",
                 "ISRC & UPC support",
@@ -375,9 +375,9 @@ const Home = () => {
                 "Artist and label tools",
                 "Catalog management"
               ].map((feat, fIdx) => (
-                <li key={fIdx} className="flex items-center gap-2.5 p-3 rounded-xl bg-white/5 border border-white/5">
-                  <Check className="w-4 h-4 text-white shrink-0" />
-                  <span>{feat}</span>
+                <li key={fIdx} className="flex items-center gap-2.5 p-3 rounded-xl bg-black/5 dark:bg-[#585589]/15 border border-black/15 dark:border-[#585589]/25 text-[#050315] dark:text-white shadow-sm">
+                  <Check className="w-4 h-4 text-[#050315] dark:text-[#DEDCFF] shrink-0 font-bold" />
+                  <span className="font-semibold text-[#050315] dark:text-white">{feat}</span>
                 </li>
               ))}
             </ul>
@@ -393,7 +393,7 @@ const Home = () => {
       </section>
 
       {/* 6. ARTIST-FIRST SECTION */}
-      <section className="border-t border-white/10 bg-[#09090e] py-28">
+      <section className="border-t border-white/10 bg-[#0e0d20] py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
           <div className="text-center max-w-3xl mx-auto space-y-4">
             <div className="minimal-badge">Artist Ownership</div>
@@ -442,11 +442,11 @@ const Home = () => {
             <div
               key={idx}
               className={`minimal-card p-8 flex flex-col justify-between relative transition-all duration-300 ${
-                plan.popular ? 'border-white/40 shadow-2xl bg-[#0d0d14]' : ''
+                plan.popular ? 'border-[#585589]/50 shadow-[0_0_40px_rgba(88,85,137,0.15)] bg-[#1a1835]' : ''
               }`}
             >
               {plan.popular && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-white text-black font-bold text-[10px] uppercase tracking-widest">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-[#585589] text-white font-bold text-[10px] uppercase tracking-widest">
                   Most Popular
                 </span>
               )}
@@ -465,7 +465,7 @@ const Home = () => {
                 <ul className="space-y-3 text-xs text-zinc-300">
                   {plan.features.map((feat, fIdx) => (
                     <li key={fIdx} className="flex items-center gap-2.5">
-                      <Check className="w-4 h-4 text-white shrink-0" />
+                      <Check className="w-4 h-4 text-[#585589] shrink-0" />
                       <span>{feat}</span>
                     </li>
                   ))}
@@ -498,22 +498,22 @@ const Home = () => {
           </h2>
         </div>
 
-        <div className="max-w-4xl mx-auto minimal-card p-10 bg-[#09090e] border-white/15 text-center space-y-8">
+        <div className="max-w-4xl mx-auto minimal-card p-10 bg-[#0e0d20] border-[#585589]/20 text-center space-y-8">
           <div className="flex flex-wrap items-center justify-center gap-4">
             {['Streaming', 'Social Platforms', 'Download Stores', 'Content ID Fingerprinting', 'Digital Outlets'].map((cat, idx) => (
-              <span key={idx} className="px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-zinc-200">
+              <span key={idx} className="px-5 py-2.5 rounded-full bg-[#585589]/10 border border-[#585589]/20 text-xs font-semibold text-zinc-200">
                 {cat}
               </span>
             ))}
           </div>
           <p className="text-zinc-400 text-xs max-w-xl mx-auto leading-relaxed">
-            Direct ingestion API pipelines deliver your metadata and audio files into major digital infrastructure hubs automatically.
+            Digital distribution system delivers your metadata and audio files to major streaming stores and digital platforms.
           </p>
         </div>
       </section>
 
       {/* 10. ISRC / UPC SECTION */}
-      <section className="border-t border-white/10 bg-[#09090d] py-28">
+      <section className="border-t border-white/10 bg-[#110f24] py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
           <div className="text-center max-w-2xl mx-auto space-y-3">
             <div className="minimal-badge">Metadata Infrastructure</div>
@@ -526,7 +526,7 @@ const Home = () => {
             <div className="minimal-card p-8 space-y-3">
               <h3 className="font-heading font-bold text-xl text-white">ISRC</h3>
               <p className="text-zinc-400 text-xs leading-relaxed">
-                Identify individual sound recordings with GS1-compliant codes to track plays and collect mechanical royalties.
+                Identify individual sound recordings with standard ISRC codes to track plays and collect royalties.
               </p>
             </div>
             <div className="minimal-card p-8 space-y-3">
@@ -571,7 +571,7 @@ const Home = () => {
                   <img 
                     src={t.image} 
                     alt={t.author} 
-                    className="w-10 h-10 rounded-full object-cover object-top border border-white/20 shrink-0" 
+                    className="w-10 h-10 rounded-full object-cover object-top border border-[#585589]/30 shrink-0" 
                     onError={(e) => {
                       e.target.onerror = null;
                       e.target.src = '/shivom-tripathi.jpg';
@@ -589,7 +589,7 @@ const Home = () => {
       </section>
 
       {/* 12. RESOURCES SECTION */}
-      <section className="border-t border-white/10 bg-[#09090d] py-28">
+      <section className="border-t border-white/10 bg-[#110f24] py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
@@ -606,9 +606,9 @@ const Home = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {resourcesList.slice(0, 3).map((res, idx) => (
               <Link key={idx} to={res.link} className="minimal-card minimal-card-hover p-8 space-y-4 block group">
-                <h3 className="font-heading font-bold text-lg text-white group-hover:text-zinc-300 transition-colors flex items-center justify-between">
+                <h3 className="font-heading font-bold text-lg text-white group-hover:text-[#DEDCFF] transition-colors flex items-center justify-between">
                   <span>{res.title}</span>
-                  <ArrowUpRight className="w-4 h-4 text-zinc-500 group-hover:text-white transition-colors" />
+                  <ArrowUpRight className="w-4 h-4 text-zinc-500 group-hover:text-[#585589] transition-colors" />
                 </h3>
                 <p className="text-zinc-400 text-xs leading-relaxed">{res.desc}</p>
               </Link>
@@ -634,10 +634,10 @@ const Home = () => {
             >
               <button
                 onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
-                className="w-full p-6 text-left font-semibold text-white text-sm sm:text-base flex justify-between items-center gap-4 hover:text-zinc-300 transition-colors"
+                className="w-full p-6 text-left font-semibold text-white text-sm sm:text-base flex justify-between items-center gap-4 hover:text-[#DEDCFF] transition-colors"
               >
                 <span>{faq.q}</span>
-                <ChevronDown className={`w-4 h-4 shrink-0 transition-transform duration-300 ${openFaq === idx ? 'rotate-180 text-white' : 'text-zinc-500'}`} />
+                <ChevronDown className={`w-4 h-4 shrink-0 transition-transform duration-300 ${openFaq === idx ? 'rotate-180 text-[#585589]' : 'text-zinc-500'}`} />
               </button>
               {openFaq === idx && (
                 <div className="px-6 pb-6 text-xs sm:text-sm text-zinc-400 leading-relaxed border-t border-white/5 pt-4">
@@ -651,7 +651,7 @@ const Home = () => {
 
       {/* 14. FINAL CTA */}
       <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-32">
-        <div className="minimal-card p-12 sm:p-16 text-center space-y-6 relative overflow-hidden bg-[#0d0d14] border-white/20">
+        <div className="minimal-card p-12 sm:p-16 text-center space-y-6 relative overflow-hidden bg-[#1a1835] border-[#585589]/30">
           <h2 className="font-heading font-bold text-3xl sm:text-5xl text-white">
             Ready to release your next record?
           </h2>

@@ -5,17 +5,17 @@ import SeoHead from '../components/SeoHead';
 
 const pillars = [
   {
-    icon: <ShieldCheck className="w-6 h-6 text-brand-purple" />,
+    icon: <ShieldCheck className="w-6 h-6 text-[#585589]" />,
     title: "Artist Autonomy First",
     description: "We believe creators should keep their rights and master tapes. We claim 0% of publishing or copyrights."
   },
   {
-    icon: <Cpu className="w-6 h-6 text-brand-blue" />,
+    icon: <Cpu className="w-6 h-6 text-[#585589]" />,
     title: "Ingestion Automation Engine",
     description: "We build APIs directly hooking into platforms, bypassing old industry middleware databases for fast updates."
   },
   {
-    icon: <TrendingUp className="w-6 h-6 text-brand-cyan" />,
+    icon: <TrendingUp className="w-6 h-6 text-[#585589]" />,
     title: "Data-Driven Catalog Scale",
     description: "Access deep statistics regarding where tracks are streamed. Make distribution decisions backed by real figures."
   }
@@ -65,7 +65,7 @@ const About = () => {
         <div className="minimal-badge mx-auto">About Our Platform</div>
         <h1 className="font-heading font-extrabold text-4xl sm:text-6xl text-white tracking-tight">
           Empowering Independent <br />
-          <span className="text-zinc-400">Music Creators & Labels</span>
+          <span className="text-[#DEDCFF]/70">Music Creators & Labels</span>
         </h1>
         <p className="text-zinc-400 text-sm max-w-2xl mx-auto leading-relaxed">
           Founded in Mumbai, Adventure Records provides a transparent, high-performance music distribution bridge between artists and global streaming services.
@@ -85,9 +85,9 @@ const About = () => {
             </p>
           </div>
           <div className="lg:col-span-5 flex justify-center">
-            <div className="w-44 h-44 rounded-2xl bg-[#18181b] border border-white/10 flex items-center justify-center p-4 text-center">
+            <div className="w-44 h-44 rounded-2xl bg-[#13112a] border border-[#585589]/30 flex items-center justify-center p-4 text-center">
               <div>
-                <Compass className="w-10 h-10 text-purple-400 mx-auto mb-3" />
+                <Compass className="w-10 h-10 text-[#DEDCFF] mx-auto mb-3" />
                 <span className="font-heading font-bold text-sm text-white tracking-wider block">ADVENTURE RECORDS</span>
                 <span className="text-[10px] text-zinc-500 tracking-widest uppercase">ESTD. 2025</span>
               </div>
@@ -99,16 +99,16 @@ const About = () => {
       {/* Three Pillars */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <h2 className="font-orbitron font-bold text-2xl text-white">Three Pillars of Our Product</h2>
+          <h2 className="font-heading font-bold text-2xl text-white">Three Pillars of Our Product</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {pillars.map((p, idx) => (
-            <div key={idx} className="glass-panel rounded-2xl p-8 border-white/5 space-y-4">
-              <div className="p-3 bg-white/5 rounded-xl w-fit text-brand-purple">
+            <div key={idx} className="glass-panel rounded-2xl p-8 border-[#585589]/20 space-y-4">
+              <div className="p-3 bg-[#585589]/20 rounded-xl w-fit text-[#DEDCFF]">
                 {p.icon}
               </div>
-              <h3 className="font-orbitron font-bold text-lg text-white">{p.title}</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">{p.description}</p>
+              <h3 className="font-heading font-bold text-lg text-white">{p.title}</h3>
+              <p className="text-zinc-400 text-sm leading-relaxed">{p.description}</p>
             </div>
           ))}
         </div>
@@ -117,27 +117,27 @@ const About = () => {
       {/* Roadmap Timeline */}
       <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 mb-24">
         <div className="text-center mb-16">
-          <h2 className="font-orbitron font-bold text-2xl text-white">The Product Journey Roadmap</h2>
-          <p className="text-zinc-500 text-sm mt-2">Our milestone path and upcoming technology features</p>
+          <h2 className="font-heading font-bold text-2xl text-white">The Product Journey Roadmap</h2>
+          <p className="text-zinc-400 text-sm mt-2">Our milestone path and upcoming technology features</p>
         </div>
 
-        <div className="relative border-l border-purple-500/25 ml-4 sm:ml-6 space-y-12">
+        <div className="relative border-l border-[#585589]/30 ml-4 sm:ml-6 space-y-12">
           {roadmapMilestones.map((m, idx) => (
             <div key={idx} className="relative pl-8 sm:pl-10">
               
               {/* Timeline Indicator Node */}
-              <div className="absolute left-[-9px] top-1.5 w-4.5 h-4.5 rounded-full bg-[#030303] border-2 border-brand-purple flex items-center justify-center">
-                <div className="w-1.5 h-1.5 rounded-full bg-brand-cyan" />
+              <div className="absolute left-[-9px] top-1.5 w-4.5 h-4.5 rounded-full bg-[#0c0b1a] border-2 border-[#585589] flex items-center justify-center">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#DEDCFF]" />
               </div>
 
               <div className="space-y-2">
-                <span className="font-orbitron font-extrabold text-xs text-brand-purple uppercase tracking-widest">
+                <span className="font-heading font-extrabold text-xs text-[#DEDCFF] uppercase tracking-widest">
                   {m.year}
                 </span>
-                <h3 className="font-orbitron font-bold text-lg text-white">
+                <h3 className="font-heading font-bold text-lg text-white">
                   {m.title}
                 </h3>
-                <p className="text-gray-400 text-sm leading-relaxed">
+                <p className="text-zinc-400 text-sm leading-relaxed">
                   {m.desc}
                 </p>
               </div>
