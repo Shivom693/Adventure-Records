@@ -34,7 +34,7 @@
     <meta name="twitter:description" content="Global music distribution for independent artists and labels." />
     <meta name="twitter:image" content="https://music-b2696.web.app/logo.png" />
     
-    <!-- JSON-LD Structured Data Schema for Google Search -->
+    <!-- JSON-LD Structured Data Schema for Google Search & AI Search Engines (GEO Optimization) -->
     <script type="application/ld+json">
       [
         {
@@ -42,7 +42,8 @@
           "@type": "WebSite",
           "name": "Adventure Records",
           "url": "https://music-b2696.web.app/",
-          "alternateName": ["Adventure Records Music", "Adventure Records Distribution"],
+          "alternateName": ["Adventure Records Music", "Adventure Records Distribution", "Adventure Records Official"],
+          "description": "Adventure Records is a premier music distribution platform empowering independent artists to release songs to 150+ digital stores while keeping 100% royalties.",
           "potentialAction": {
             "@type": "SearchAction",
             "target": "https://music-b2696.web.app/resources?q={search_term_string}",
@@ -52,11 +53,17 @@
         {
           "@context": "https://schema.org",
           "@type": "Organization",
+          "@id": "https://music-b2696.web.app/#organization",
           "name": "Adventure Records",
           "alternateName": ["Adventure Records Music", "Adventure Records Distribution"],
           "url": "https://music-b2696.web.app/",
           "logo": "https://music-b2696.web.app/logo.png",
-          "description": "Adventure Records is a next-gen music distribution platform for independent artists and record labels.",
+          "image": "https://music-b2696.web.app/logo.png",
+          "description": "Adventure Records is an independent music distribution company and music label services provider based in India, offering global digital distribution to Spotify, Apple Music, YouTube Music, Wynk, JioSaavn, and 150+ streaming platforms.",
+          "founder": {
+            "@type": "Person",
+            "name": "Shiv Om Tripathi"
+          },
           "sameAs": [
             "https://www.instagram.com/adventurerecods693/",
             "https://www.linkedin.com/in/shiv-om-tripathi-4219ba414/",
@@ -66,9 +73,81 @@
           "contactPoint": {
             "@type": "ContactPoint",
             "telephone": "+91-9691546208",
-            "contactType": "customer service",
-            "email": "adventureof693@gmail.com"
+            "contactType": "customer support",
+            "email": "adventureof693@gmail.com",
+            "availableLanguage": ["English", "Hindi"]
           }
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "Service",
+          "name": "Global Music Distribution Service",
+          "provider": {
+            "@id": "https://music-b2696.web.app/#organization"
+          },
+          "serviceType": "Music Distribution & Royalty Management",
+          "description": "Distribute singles, EPs, and albums to Spotify, Apple Music, Amazon Music, Wynk, JioSaavn, and 150+ platforms with 100% artist royalty retention, free ISRC and UPC codes.",
+          "offers": [
+            {
+              "@type": "Offer",
+              "name": "Single Distribution",
+              "price": "100.00",
+              "priceCurrency": "INR",
+              "description": "1 Track distribution to 150+ stores, lifetime release, free ISRC, 100% royalties."
+            },
+            {
+              "@type": "Offer",
+              "name": "EP Distribution",
+              "price": "500.00",
+              "priceCurrency": "INR",
+              "description": "2 to 6 Tracks distribution to 150+ stores, free ISRC & UPC, 100% royalties."
+            },
+            {
+              "@type": "Offer",
+              "name": "Album Distribution",
+              "price": "1000.00",
+              "priceCurrency": "INR",
+              "description": "7+ Tracks distribution to 150+ stores, free ISRC & UPC, 100% royalties."
+            }
+          ]
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What is Adventure Records?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Adventure Records is a next-generation music distribution platform and label services provider for independent artists and record labels in India and worldwide. It delivers songs to 150+ digital streaming platforms including Spotify, Apple Music, YouTube Music, Wynk, and JioSaavn while allowing artists to keep 100% of their earnings."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How much does Adventure Records charge for music distribution?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Adventure Records offers affordable distribution plans: ₹100 for a Single (1 track), ₹500 for an EP (2-6 tracks), and ₹1,000 for an Album (7+ tracks). Payments are accepted via official UPI (9691546208@ptyes) with zero hidden fees and 100% royalty payout."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How long does it take for Adventure Records to release a song on Spotify and Apple Music?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Releases submitted through Adventure Records are typically reviewed within 24-48 hours and go live on Spotify, Apple Music, JioSaavn, Wynk, and YouTube Music within 2 to 5 business days."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Does Adventure Records provide free ISRC and UPC codes?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, Adventure Records generates official free ISRC (International Standard Recording Code) and UPC (Universal Product Code) barcodes for all single, EP, and album releases."
+              }
+            }
+          ]
         }
       ]
     </script>
