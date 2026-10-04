@@ -12,6 +12,12 @@
 
     <title>Adventure Records - Official Music Distribution Platform</title>
     
+    <!-- Explicit Site Name Signals for Google Search Snippet Header -->
+    <meta name="site_name" content="Adventure Records" />
+    <meta name="application-name" content="Adventure Records" />
+    <meta name="apple-mobile-web-app-title" content="Adventure Records" />
+    <meta property="og:site_name" content="Adventure Records" />
+    
     <!-- SEO Optimization for Brand Search "Adventure Records" -->
     <meta name="google-site-verification" content="1YieXpBZ-wrsTfCycRLeE-JL1hUOHTGu-XuTdLjoB5w" />
     <meta name="description" content="Adventure Records is a global music distribution platform helping independent artists and labels release songs to Spotify, Apple Music, YouTube Music, JioSaavn & 150+ stores while keeping 100% royalties." />
@@ -22,7 +28,6 @@
     
     <!-- Open Graph (Facebook / LinkedIn) -->
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Adventure Records" />
     <meta property="og:title" content="Adventure Records - Official Music Distribution Platform" />
     <meta property="og:description" content="Distribute your music globally with Adventure Records. Keep 100% royalties, get ISRC & UPC codes, and reach listeners worldwide." />
     <meta property="og:url" content="https://music-b2696.web.app/" />
@@ -40,10 +45,14 @@
         {
           "@context": "https://schema.org",
           "@type": "WebSite",
+          "@id": "https://music-b2696.web.app/#website",
           "name": "Adventure Records",
           "url": "https://music-b2696.web.app/",
           "alternateName": ["Adventure Records Music", "Adventure Records Distribution", "Adventure Records Official"],
           "description": "Adventure Records is a premier music distribution platform empowering independent artists to release songs to 150+ digital stores while keeping 100% royalties.",
+          "publisher": {
+            "@id": "https://music-b2696.web.app/#organization"
+          },
           "potentialAction": {
             "@type": "SearchAction",
             "target": "https://music-b2696.web.app/resources?q={search_term_string}",
