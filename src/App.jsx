@@ -57,6 +57,17 @@ const PageLoader = () => (
 );
 
 function App() {
+  useEffect(() => {
+    const handleContextMenu = (event) => {
+      event.preventDefault();
+    };
+
+    document.addEventListener('contextmenu', handleContextMenu);
+    return () => {
+      document.removeEventListener('contextmenu', handleContextMenu);
+    };
+  }, []);
+
   return (
     <ThemeProvider>
     <AuthProvider>

@@ -299,16 +299,6 @@ const UploadRelease = () => {
                   <QrCode className="w-4 h-4" />
                   {paymentPending ? 'View Payment' : `Pay ₹${currentPrice}`}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPaymentVerified(true);
-                    setPaymentPending(false);
-                  }}
-                  className="px-4 py-3 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition-all"
-                >
-                  ⚡ Instant Unlock
-                </button>
               </div>
             </div>
           </div>
