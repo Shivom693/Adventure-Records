@@ -422,44 +422,26 @@ canvas {
 
 /* ═══════════════════════════════════════════
    3D VINYL PLAYER CONTAINER OVERRIDES
-   Must ALWAYS remain dark charcoal container with crisp WHITE control text & icons
-   in BOTH Bright (Light) Mode and Dark Mode!
+   Must ALWAYS remain pure WHITE container in BOTH Light Mode and Dark Mode!
    ═══════════════════════════════════════════ */
-.vinyl-container,
-.vinyl-container *,
-.light .vinyl-container,
-.light .vinyl-container *,
-.dark .vinyl-container,
-.dark .vinyl-container * {
+.vinyl-player-card,
+.light .vinyl-player-card,
+.dark .vinyl-player-card {
+  background-color: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Ensure control pills remain crisp dark badges over white background in both light & dark mode */
+.vinyl-player-card .vinyl-badge-dark,
+.light .vinyl-player-card .vinyl-badge-dark,
+.dark .vinyl-player-card .vinyl-badge-dark {
+  background-color: #050315 !important;
   color: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
 }
 
-.vinyl-container .bg-\[\#18181B\],
-.light .vinyl-container .bg-\[\#18181B\],
-.dark .vinyl-container .bg-\[\#18181B\] {
-  background-color: #18181B !important;
-}
-
-.vinyl-container .bg-black,
-.light .vinyl-container .bg-black,
-.dark .vinyl-container .bg-black {
-  background-color: #000000 !important;
-}
-
-.vinyl-container .bg-\[\#050505\],
-.light .vinyl-container .bg-\[\#050505\],
-.dark .vinyl-container .bg-\[\#050505\] {
-  background-color: #050505 !important;
-}
-
-.vinyl-container .border-white\/12,
-.light .vinyl-container .border-white\/12,
-.dark .vinyl-container .border-white\/12 {
-  border-color: rgba(255, 255, 255, 0.12) !important;
-}
-
-.vinyl-container .border-white\/15,
-.light .vinyl-container .border-white\/15,
-.dark .vinyl-container .border-white\/15 {
-  border-color: rgba(255, 255, 255, 0.15) !important;
+.vinyl-player-card .vinyl-badge-dark *,
+.light .vinyl-player-card .vinyl-badge-dark *,
+.dark .vinyl-player-card .vinyl-badge-dark * {
+  color: #ffffff !important;
 }

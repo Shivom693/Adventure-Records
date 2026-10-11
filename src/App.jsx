@@ -1,11 +1,13 @@
 import React, { useEffect, lazy, Suspense } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
+import { CookieConsentProvider } from './context/CookieConsentContext';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Waveform from './components/Waveform';
 import Chatbot from './components/Chatbot';
+import CookieConsentBanner from './components/CookieConsentBanner';
 import ProtectedRoute from './components/ProtectedRoute';
 import ScrollToTop from './components/ScrollToTop';
 
@@ -71,6 +73,7 @@ function App() {
   return (
     <ThemeProvider>
     <AuthProvider>
+    <CookieConsentProvider>
     <Router>
       <ScrollToTop />
       <div className="flex flex-col min-h-screen relative bg-[#070709] font-outfit" style={{ backgroundColor: 'var(--bg-primary)' }}>
@@ -169,15 +172,18 @@ function App() {
           </Suspense>
         </main>
 
-
         {/* Global Floating AI Assistant */}
         <Chatbot />
 
         {/* Global Footer */}
         <Footer />
 
+        {/* Global Cookie Consent System */}
+        <CookieConsentBanner />
+
       </div>
     </Router>
+    </CookieConsentProvider>
     </AuthProvider>
     </ThemeProvider>
   );

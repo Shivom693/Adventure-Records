@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Disc, Share2, Globe, Video, Radio, Music, ShieldCheck } from 'lucide-react';
+import { Disc, Share2, Globe, Video, Radio, Music, ShieldCheck, Cookie, Settings } from 'lucide-react';
 import BrandLogo from './BrandLogo';
+import { triggerCookieSettingsModal } from '../context/CookieConsentContext';
 
 const Footer = () => {
 
@@ -84,6 +85,15 @@ const Footer = () => {
             <ul className="space-y-2.5 text-xs">
               <li><Link to="/terms-of-use" onClick={scrollToTop} className="text-[#050315]/80 hover:text-black transition-colors">Terms of Use</Link></li>
               <li><Link to="/privacy-policy" onClick={scrollToTop} className="text-[#050315]/80 hover:text-black transition-colors">Privacy Policy</Link></li>
+              <li>
+                <button 
+                  type="button" 
+                  onClick={triggerCookieSettingsModal} 
+                  className="text-[#050315]/80 hover:text-black transition-colors text-left flex items-center gap-1 font-medium"
+                >
+                  <Cookie className="w-3.5 h-3.5 text-black shrink-0" /> Cookie Settings
+                </button>
+              </li>
               <li><Link to="/copyright-policy" onClick={scrollToTop} className="text-[#050315]/80 hover:text-black transition-colors">Copyright Policy</Link></li>
               <li><Link to="/refund-policy" onClick={scrollToTop} className="text-[#050315]/80 hover:text-black transition-colors">Refund Policy</Link></li>
               <li><Link to="/content-policy" onClick={scrollToTop} className="text-[#050315]/80 hover:text-black transition-colors">Content Policy</Link></li>
@@ -110,7 +120,14 @@ const Footer = () => {
                 Adventure Records strictly complies with India's DPDP Act, 2023. You have full rights as a Data Principal to access, correct, erase your data, or revoke consent at any time. For privacy queries or Data Protection Officer contact: <a href="mailto:adventureof693@gmail.com" className="text-[#050315] hover:underline font-bold">adventureof693@gmail.com</a>.
               </p>
             </div>
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
+              <button 
+                type="button"
+                onClick={triggerCookieSettingsModal}
+                className="px-4 py-2 text-xs font-semibold text-black bg-white hover:bg-black/5 border border-black/20 rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+              >
+                <Settings className="w-3.5 h-3.5" /> Cookie Settings
+              </button>
               <Link 
                 to="/privacy-policy" 
                 onClick={scrollToTop} 
