@@ -5,6 +5,14 @@ import { authenticateToken } from './auth.js';
 
 const router = express.Router();
 
+// HTML escape helper — prevents email HTML injection from user-supplied content
+const escHtml = (str) => String(str || '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#x27;');
+
 // Configure Transporter securely from Environment Variables
 const createEmailTransporter = () => {
   const emailUser = process.env.EMAIL_USER;
@@ -24,7 +32,7 @@ const createEmailTransporter = () => {
 
 // Helper: Send email notification to platform admin
 const sendAdminNotificationEmail = async (ticketData) => {
-  const adminEmail = 'adventureof693@gmail.com';
+  const adminEmail = process.env.ADMIN_EMAIL || 'adventureof693@gmail.com';
   const transporter = createEmailTransporter();
 
   const emailSubject = `[Support Ticket] New Ticket: ${ticketData.subject || 'Inquiry'}`;
@@ -34,18 +42,18 @@ const sendAdminNotificationEmail = async (ticketData) => {
       <hr style="border: 0; border-top: 1px solid #27272a; margin: 16px 0;" />
       
       <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #d4d4d8;">
-        <tr><td style="padding: 8px 0; font-weight: bold; width: 140px; color: #a1a1aa;">Ticket ID:</td><td style="color: #ffffff;">${ticketData.id || ticketData._id || 'AR-' + Date.now()}</td></tr>
-        <tr><td style="padding: 8px 0; font-weight: bold; color: #a1a1aa;">User Name:</td><td style="color: #ffffff;">${ticketData.name || 'Artist'}</td></tr>
-        <tr><td style="padding: 8px 0; font-weight: bold; color: #a1a1aa;">User Email:</td><td style="color: #ffffff;"><a href="mailto:${ticketData.email}" style="color: #38bdf8;">${ticketData.email}</a></td></tr>
-        <tr><td style="padding: 8px 0; font-weight: bold; color: #a1a1aa;">Category:</td><td style="color: #ffffff;">${ticketData.category || 'General Support'}</td></tr>
-        <tr><td style="padding: 8px 0; font-weight: bold; color: #a1a1aa;">Subject:</td><td style="color: #ffffff;">${ticketData.subject}</td></tr>
-        ${ticketData.releaseId ? `<tr><td style="padding: 8px 0; font-weight: bold; color: #a1a1aa;">Release ID:</td><td style="color: #ffffff;">${ticketData.releaseId}</td></tr>` : ''}
+        <tr><td style="padding: 8px 0; font-weight: bold; width: 140px; color: #a1a1aa;">Ticket ID:</td><td style="color: #ffffff;">${escHtml(ticketData.id || ticketData._id || 'AR-' + Date.now())}</td></tr>
+        <tr><td style="padding: 8px 0; font-weight: bold; color: #a1a1aa;">User Name:</td><td style="color: #ffffff;">${escHtml(ticketData.name || 'Artist')}</td></tr>
+        <tr><td style="padding: 8px 0; font-weight: bold; color: #a1a1aa;">User Email:</td><td style="color: #ffffff;"><a href="mailto:${escHtml(ticketData.email)}" style="color: #38bdf8;">${escHtml(ticketData.email)}</a></td></tr>
+        <tr><td style="padding: 8px 0; font-weight: bold; color: #a1a1aa;">Category:</td><td style="color: #ffffff;">${escHtml(ticketData.category || 'General Support')}</td></tr>
+        <tr><td style="padding: 8px 0; font-weight: bold; color: #a1a1aa;">Subject:</td><td style="color: #ffffff;">${escHtml(ticketData.subject)}</td></tr>
+        ${ticketData.releaseId ? `<tr><td style="padding: 8px 0; font-weight: bold; color: #a1a1aa;">Release ID:</td><td style="color: #ffffff;">${escHtml(ticketData.releaseId)}</td></tr>` : ''}
         <tr><td style="padding: 8px 0; font-weight: bold; color: #a1a1aa;">Submitted At:</td><td style="color: #ffffff;">${new Date().toLocaleString()}</td></tr>
       </table>
 
       <div style="margin-top: 20px; padding: 16px; background-color: #18181b; border-radius: 8px; border-left: 4px solid #eab308;">
         <h4 style="margin: 0 0 8px 0; color: #eab308; font-size: 13px; text-transform: uppercase;">Message Content:</h4>
-        <p style="margin: 0; font-size: 14px; line-height: 1.6; white-space: pre-wrap; color: #f4f4f5;">${ticketData.message}</p>
+        <p style="margin: 0; font-size: 14px; line-height: 1.6; white-space: pre-wrap; color: #f4f4f5;">${escHtml(ticketData.message)}</p>
       </div>
 
       <div style="margin-top: 24px; font-size: 11px; color: #71717a; text-align: center;">

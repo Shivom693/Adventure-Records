@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 import nodemailer from 'nodemailer';
 import { fileURLToPath } from 'url';
 import { connectDB } from './db/dbFallback.js';
-import authRoutes from './routes/auth.js';
+import authRoutes, { authenticateToken } from './routes/auth.js';
 import musicRoutes from './routes/music.js';
 import analyticsRoutes from './routes/analytics.js';
 import chatbotRoutes from './routes/chatbot.js';
@@ -46,8 +46,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // High-Traffic & Production Security Headers
 app.use((req, res, next) => {
@@ -134,7 +134,7 @@ setInterval(() => {
 }, 10 * 60 * 1000);
 
 app.use((req, res, next) => {
-  const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown_client';
+  const ip = req.ip || req.socket.remoteAddress || 'unknown_client';
   const now = Date.now();
 
   let timestamps = ipRequestCounts.get(ip) || [];
@@ -157,7 +157,7 @@ const AUTH_RATE_LIMIT_WINDOW = 15 * 60 * 1000;
 const AUTH_RATE_LIMIT_MAX = 15;
 
 const authRateLimiter = (req, res, next) => {
-  const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown_client';
+  const ip = req.ip || req.socket.remoteAddress || 'unknown_client';
   const now = Date.now();
   let attempts = authRateLimitMap.get(ip) || [];
   attempts = attempts.filter(ts => now - ts < AUTH_RATE_LIMIT_WINDOW);
@@ -189,16 +189,30 @@ app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/tickets', ticketRoutes);
 
 // Direct OTP Endpoint (High Reliability with Real SMTP Email Dispatch)
-app.post('/api/send-otp', async (req, res) => {
-  const { email, otp } = req.body;
-  if (!email || !otp) {
-    return res.status(400).json({ message: 'Email and OTP code are required.' });
+// Requires authentication — the OTP is read from the user's record, never from the request body
+app.post('/api/send-otp', authenticateToken, async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ message: 'Email is required.' });
+  }
+
+  // Validate the requester can only send OTP for their own email
+  if (req.user.email !== email) {
+    return res.status(403).json({ message: 'Forbidden. You may only request OTP for your own account.' });
   }
 
   const isDevMode = process.env.NODE_ENV !== 'production';
   if (isDevMode) {
-    console.log(`📬 [SERVER OTP DISPATCH] Verification code generated for ${email}`);
+    console.log(`📬 [SERVER OTP DISPATCH] Verification code requested for ${email}`);
   }
+
+  // Look up the OTP from DB — never trust the client to supply it
+  const { db } = await import('./db/dbFallback.js');
+  const user = await db.users.findOne({ email });
+  if (!user || !user.otpCode) {
+    return res.status(400).json({ message: 'No pending OTP found for this account.' });
+  }
+  const otp = user.otpCode;
 
   const emailUser = process.env.EMAIL_USER;
   const emailPass = process.env.EMAIL_PASS;
@@ -237,10 +251,15 @@ app.post('/api/send-otp', async (req, res) => {
   res.status(200).json({ success: true, message: 'OTP dispatched successfully.' });
 });
 
-// New Song Uploaded Email Notification Endpoint
-app.post('/api/notify-upload', async (req, res) => {
+// New Song Uploaded Email Notification Endpoint (requires authentication)
+app.post('/api/notify-upload', authenticateToken, async (req, res) => {
   const { releaseTitle, primaryArtist, featuringArtists, releaseType, genre, language, releaseDate, artworkUrl, tracks, userEmail } = req.body;
-  const adminEmail = 'adventureof693@gmail.com';
+  const adminEmail = process.env.ADMIN_EMAIL || 'adventureof693@gmail.com';
+
+  // Validate the notified email matches the authenticated user
+  if (userEmail && req.user.email !== userEmail) {
+    return res.status(403).json({ message: 'Forbidden. Email mismatch.' });
+  }
 
   console.log(`\n=================================================`);
   console.log(`🎵 [NEW SONG UPLOADED] ${releaseTitle} by ${primaryArtist}`);
@@ -292,7 +311,7 @@ app.post('/api/notify-upload', async (req, res) => {
             </div>
 
             <div style="text-align: center; margin-top: 24px;">
-              <a href="http://localhost:5173/admin" style="display: inline-block; background-color: #eab308; color: #000000; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 13px;">Review Release in Admin Panel →</a>
+              <a href="${process.env.ADMIN_PANEL_URL || 'http://localhost:5173'}/admin" style="display: inline-block; background-color: #eab308; color: #000000; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 13px;">Review Release in Admin Panel →</a>
             </div>
 
             <div style="margin-top: 24px; font-size: 11px; color: #71717a; text-align: center;">
@@ -310,10 +329,15 @@ app.post('/api/notify-upload', async (req, res) => {
   res.status(200).json({ success: true, message: 'Upload notification email sent.' });
 });
 
-// 1. New Payment Verification Submitted Notification (To adventureof693@gmail.com)
-app.post('/api/notify-payment-submitted', async (req, res) => {
+// 1. New Payment Verification Submitted Notification (To admin — requires authentication)
+app.post('/api/notify-payment-submitted', authenticateToken, async (req, res) => {
   const { paymentType, targetTitle, amount, utr, upiApp, userEmail, merchantUpiId } = req.body;
-  const adminEmail = 'adventureof693@gmail.com';
+  const adminEmail = process.env.ADMIN_EMAIL || 'adventureof693@gmail.com';
+
+  // Validate the notified email matches the authenticated user
+  if (userEmail && req.user.email !== userEmail) {
+    return res.status(403).json({ message: 'Forbidden. Email mismatch.' });
+  }
 
   console.log(`\n=================================================`);
   console.log(`💳 [NEW UPI PAYMENT SUBMITTED] UTR: ${utr} | Amount: ₹${amount}`);
@@ -348,7 +372,7 @@ app.post('/api/notify-payment-submitted', async (req, res) => {
               <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Submitted At:</td><td style="color: #ffffff;">${new Date().toLocaleString()}</td></tr>
             </table>
             <div style="text-align: center; margin-top: 24px;">
-              <a href="http://localhost:5173/admin" style="display: inline-block; background-color: #38bdf8; color: #000000; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 13px;">Review & Verify in Admin Panel →</a>
+              <a href="${process.env.ADMIN_PANEL_URL || 'http://localhost:5173'}/admin" style="display: inline-block; background-color: #38bdf8; color: #000000; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 13px;">Review & Verify in Admin Panel →</a>
             </div>
           </div>
         `
