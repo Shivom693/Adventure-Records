@@ -6,14 +6,20 @@ import { db } from '../db/dbFallback.js';
 
 const router = express.Router();
 
-// Use environment JWT_SECRET; if missing, generate a random one (will invalidate on restart, which is safe)
-const JWT_SECRET = process.env.JWT_SECRET && process.env.JWT_SECRET !== 'adventure_records_secret_key'
-  ? process.env.JWT_SECRET
-  : (() => {
-      const generated = crypto.randomBytes(64).toString('hex');
-      console.warn('⚠️  JWT_SECRET not set or using default — generated ephemeral secret. Set a strong JWT_SECRET in .env for production.');
-      return generated;
-    })();
+// Use environment JWT_SECRET lazily to ensure dotenv has loaded before evaluation.
+// ES Module imports are hoisted, so process.env may not be populated at module parse time.
+let _jwtSecret = null;
+const getJwtSecret = () => {
+  if (_jwtSecret) return _jwtSecret;
+  const envSecret = process.env.JWT_SECRET;
+  if (envSecret && envSecret !== 'adventure_records_secret_key') {
+    _jwtSecret = envSecret;
+  } else {
+    _jwtSecret = crypto.randomBytes(64).toString('hex');
+    console.warn('⚠️  JWT_SECRET not set or using default — generated ephemeral secret. Set a strong JWT_SECRET in .env for production.');
+  }
+  return _jwtSecret;
+};
 
 const IS_DEV = process.env.NODE_ENV !== 'production';
 
@@ -69,7 +75,7 @@ export const authenticateToken = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, getJwtSecret());
     const user = await db.users.findById(decoded.id || decoded._id);
     if (!user) {
       return res.status(404).json({ message: 'User not found.' });
@@ -227,7 +233,7 @@ router.post('/login', async (req, res) => {
     // Generate JWT
     const token = jwt.sign(
       { id: user._id || user.id, email: user.email, role: user.role }, 
-      JWT_SECRET, 
+      getJwtSecret(), 
       { expiresIn: '12h' }
     );
 
@@ -296,7 +302,7 @@ router.post('/firebase-sync', async (req, res) => {
 
     const token = jwt.sign(
       { id: user._id || user.id, email: user.email, role: user.role }, 
-      JWT_SECRET, 
+      getJwtSecret(), 
       { expiresIn: '12h' }
     );
 
