@@ -551,6 +551,78 @@ export async function updateReleaseStatusAdmin(releaseId, newStatus, reasonNotes
 // ----------------------------------------------------
 
 /**
+ * Fake UTR Detection Engine
+ * Returns { isFake: boolean, reason: string }
+ * Checks multiple heuristic patterns used in fake/random UTR submissions.
+ */
+export function detectFakeUtr(utr, upiApp = '') {
+  const u = (utr || '').trim();
+
+  // Must be exactly 12 digits
+  if (!/^[0-9]{12}$/.test(u)) {
+    return { isFake: true, reason: 'UTR must be exactly 12 numeric digits.' };
+  }
+
+  // 1. All same digits: 000000000000, 111111111111 ... 999999999999
+  if (/^(\d)\1{11}$/.test(u)) {
+    return { isFake: true, reason: 'UTR looks fake — all identical digits detected.' };
+  }
+
+  // 2. Sequential patterns: 123456789012, 234567890123, 012345678901 etc.
+  const seqAsc = '0123456789012345678901234567890';
+  const seqDesc = '9876543210987654321098765432109';
+  if (seqAsc.includes(u) || seqDesc.includes(u)) {
+    return { isFake: true, reason: 'UTR looks fake — sequential number pattern detected.' };
+  }
+
+  // 3. Common keyboard mashing patterns
+  const keyboardPatterns = [
+    '123123123123', '121212121212', '112233445566',
+    '111222333444', '000111222333', '999888777666',
+    '123456654321', '112121212121', '100000000000',
+    '999999999999', '111111111112', '000000000001',
+  ];
+  if (keyboardPatterns.includes(u)) {
+    return { isFake: true, reason: 'UTR looks fake — commonly used test/dummy number detected.' };
+  }
+
+  // 4. Repeating pairs or triplets: 121212121212, 123123123123, 456456456456
+  if (/^(\d{2})\1{5}$/.test(u) || /^(\d{3})\1{3}(\d{3})$/.test(u) || /^(\d{4})\1{2}(\d{4})$/.test(u)) {
+    return { isFake: true, reason: 'UTR looks fake — repeating digit pattern detected.' };
+  }
+
+  // 5. App-specific format checks
+  //    Google Pay UTRs: typically start with specific bank prefix digits (not all zeros/ones)
+  //    PhonePe UTRs: typically 12 digit numeric
+  //    Paytm UTRs: numeric, typically starts with non-zero
+  const firstDigit = parseInt(u[0], 10);
+  if (firstDigit === 0) {
+    return { isFake: true, reason: 'UTR cannot start with 0. Please verify from your UPI app transaction history.' };
+  }
+
+  // 6. Too many repeated digits (>= 9 of same digit across the UTR)
+  for (let d = 0; d <= 9; d++) {
+    const count = u.split('').filter(c => c === String(d)).length;
+    if (count >= 9) {
+      return { isFake: true, reason: `UTR looks fake — digit "${d}" appears ${count} times. Please enter the real UTR from your UPI app.` };
+    }
+  }
+
+  // 7. Very low entropy check: all digits within narrow range e.g. only 0-2 used
+  const uniqueDigits = new Set(u.split('')).size;
+  if (uniqueDigits <= 2) {
+    return { isFake: true, reason: 'UTR looks fake — too few unique digits. Real UTRs have higher randomness.' };
+  }
+
+  // 8. Timestamp-based obvious fakes: UTR starting with 000 or ending with 000000
+  if (u.startsWith('000') || u.endsWith('000000')) {
+    return { isFake: true, reason: 'UTR pattern is invalid. Please copy the exact UTR from your UPI transaction history.' };
+  }
+
+  return { isFake: false, reason: '' };
+}
+
+/**
  * Submit UTR Payment Verification Proof
  */
 export async function submitUpiPaymentVerification(paymentData) {
@@ -572,8 +644,19 @@ export async function submitUpiPaymentVerification(paymentData) {
   }
 
   const cleanUtr = utr.trim();
-  if (cleanUtr.length < 6) {
-    return { success: false, error: 'Please enter a valid UTR / UPI Transaction Reference Number.' };
+
+  // ── Fake UTR Detection ──
+  const fakeCheck = detectFakeUtr(cleanUtr, upiApp);
+  if (fakeCheck.isFake) {
+    return { 
+      success: false, 
+      error: `⚠️ Fake UTR Detected: ${fakeCheck.reason} Submitting false UTR is a violation of our terms and may result in account suspension.`,
+      isFakeUtr: true
+    };
+  }
+
+  if (cleanUtr.length < 12) {
+    return { success: false, error: 'Please enter a valid 12-digit UTR / UPI Transaction Reference Number.' };
   }
 
   // 1. Check Duplicate UTR Protection

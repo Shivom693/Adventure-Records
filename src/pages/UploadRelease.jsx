@@ -240,9 +240,11 @@ const UploadRelease = () => {
     }
   };
 
-  const handlePaymentModalSuccess = () => {
-    setPaymentPending(false);
-    setPaymentVerified(true);
+  const handlePaymentModalSuccess = (payment) => {
+    // UTR submitted → set PENDING only. Admin must verify before unlock.
+    setPaymentPending(true);
+    setPaymentVerified(false);
+    if (payment?.utr) setPaymentUtr(payment.utr);
   };
 
   return (

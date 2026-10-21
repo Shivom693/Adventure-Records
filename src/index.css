@@ -202,6 +202,32 @@
   animation: spinSlow 20s linear infinite;
 }
 
+/* ═══════════════════════════════════════════
+   NAVBAR ENHANCEMENTS
+   ═══════════════════════════════════════════ */
+
+/* Smooth height/shadow transition for scroll-shrink */
+nav.sticky {
+  will-change: height, box-shadow;
+}
+
+/* Mobile drawer nav link hover in dark mode */
+.dark .drawer-link-hover:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Active nav link indicator animation */
+@keyframes navUnderlineIn {
+  from { transform: scaleX(0); opacity: 0; }
+  to   { transform: scaleX(1); opacity: 1; }
+}
+
+/* Mobile drawer entrance */
+@keyframes drawerSlideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
 /* Canvas confetti container */
 .canvas-confetti-holder {
   position: fixed;
