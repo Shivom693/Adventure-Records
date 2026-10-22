@@ -254,7 +254,93 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// 5. SOCIAL / GOOGLE SYNC ROUTE
+// 5. ADMIN-ONLY LOGIN ROUTE (Dedicated gate — only Admin role users may authenticate)
+router.post('/admin-login', async (req, res) => {
+  const { email, password } = req.body;
+  const ip = req.ip || req.socket.remoteAddress;
+  const userAgent = req.headers['user-agent'] || 'Unknown Device';
+
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email and password are required.' });
+  }
+
+  // Check login rate limit (shared with regular login limiter)
+  const limitCheck = checkLoginAttempts(ip);
+  if (limitCheck.blocked) {
+    return res.status(429).json({ 
+      message: `Too many failed attempts. Access locked for this IP. Try again in ${limitCheck.minutesLeft} minutes.` 
+    });
+  }
+
+  try {
+    const user = await db.users.findOne({ email });
+
+    // Always record failure for invalid email to prevent enumeration
+    if (!user) {
+      recordLoginFailure(ip);
+      return res.status(401).json({ message: 'Invalid admin credentials. Access denied.' });
+    }
+
+    // ⛔ Block non-Admin users immediately — even before checking password
+    if (user.role !== 'Admin') {
+      recordLoginFailure(ip);
+      return res.status(403).json({ message: 'Unauthorized. Access restricted to authorized platform administrators.' });
+    }
+
+    if (user.isActive === false) {
+      return res.status(401).json({ message: 'Admin account is inactive. Contact system administrator.' });
+    }
+
+    if (!user.password) {
+      return res.status(400).json({ message: 'Password not configured for this admin account.' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      recordLoginFailure(ip);
+      return res.status(401).json({ message: 'Invalid admin credentials. Access denied.' });
+    }
+
+    // Clear IP failure counts on success
+    clearLoginFailures(ip);
+
+    // Log admin access
+    const loginLogs = [...(user.loginHistory || [])];
+    loginLogs.unshift({
+      userAgent: userAgent.split(') ')[0].replace('Mozilla/5.0 (', '') || 'Admin Web Session',
+      timestamp: new Date().toISOString()
+    });
+    const updatedLogs = loginLogs.slice(0, 5);
+    await db.users.findByIdAndUpdate(user._id || user.id, { loginHistory: updatedLogs });
+
+    if (IS_DEV) {
+      console.log(`🔐 [ADMIN LOGIN] Authenticated: ${email}`);
+    }
+
+    // Generate JWT
+    const token = jwt.sign(
+      { id: user._id || user.id, email: user.email, role: user.role },
+      getJwtSecret(),
+      { expiresIn: '8h' }
+    );
+
+    const userResponse = { ...user, loginHistory: updatedLogs };
+    delete userResponse.password;
+    delete userResponse.otpCode;
+    delete userResponse.resetOtpCode;
+    delete userResponse.resetOtpExpires;
+
+    res.status(200).json({
+      message: 'Admin authentication successful.',
+      token,
+      user: userResponse
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error during admin authentication.', error: error.message });
+  }
+});
+
+// 6. SOCIAL / GOOGLE SYNC ROUTE
 router.post('/firebase-sync', async (req, res) => {
   const { email, name, artistName, role, phone, firebaseUid } = req.body;
   const ip = req.ip || req.socket.remoteAddress;

@@ -173,7 +173,7 @@ const authRateLimiter = (req, res, next) => {
   next();
 };
 
-app.use(['/api/auth/login', '/api/auth/signup', '/api/send-otp', '/api/auth/forgot-password', '/api/auth/reset-password'], authRateLimiter);
+app.use(['/api/auth/login', '/api/auth/admin-login', '/api/auth/signup', '/api/send-otp', '/api/auth/forgot-password', '/api/auth/reset-password'], authRateLimiter);
 
 // Serve static uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {

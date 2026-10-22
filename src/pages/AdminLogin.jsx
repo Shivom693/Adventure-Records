@@ -1,7 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, Mail, Lock, AlertCircle, RefreshCw, Key, Eye, EyeOff, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { ShieldCheck, Mail, Lock, AlertCircle, RefreshCw, Key, Eye, EyeOff, CheckCircle2, Wifi } from 'lucide-react';
 import { API_URL } from '../config';
+
+// Fetch with a custom timeout (ms)
+const fetchWithTimeout = (url, options, timeoutMs = 70000) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal })
+    .finally(() => clearTimeout(timer));
+};
+
+// Ping the health endpoint to wake Render from sleep (silent, best-effort)
+const wakeServer = async (backendUrl) => {
+  try {
+    await fetchWithTimeout(`${backendUrl}/api/health`, { method: 'GET' }, 65000);
+  } catch (_) {
+    // ignore — we'll surface the error in the login attempt itself
+  }
+};
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
@@ -11,8 +28,9 @@ const AdminLogin = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState('Authenticating...');
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const navigate = useNavigate();
 
   // Generate a random 6 character text Captcha code
@@ -38,7 +56,7 @@ const AdminLogin = () => {
     }
   }, [navigate]);
 
-  // Admin Login: Authenticate via backend server only
+  // Admin Login — with Render cold-start retry logic
   const handleAdminCredentialsSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -52,25 +70,44 @@ const AdminLogin = () => {
       return;
     }
 
-    // 2. Basic client-side validation only (no credential checking in frontend)
+    // 2. Basic client-side validation
     if (!email.trim() || !password.trim()) {
       setError('Email and password are required.');
       return;
     }
 
     setLoading(true);
+    setLoadingMsg('Connecting to server...');
+
+    const backendUrl = API_URL || 'https://adventure-music-backend.onrender.com';
+
+    // 3. Wake up the Render server first (it sleeps after 15min of inactivity)
+    //    This ping ensures the server is awake before we send credentials.
+    const wakePromise = wakeServer(backendUrl);
+
+    // Show user-friendly message after 3s if server hasn't responded yet
+    const msgTimer = setTimeout(() => {
+      setLoadingMsg('Server is waking up, please wait (~30s)...');
+    }, 3000);
+
+    await wakePromise;
+    clearTimeout(msgTimer);
+    setLoadingMsg('Authenticating...');
 
     try {
-      // 3. Send credentials to backend for server-side validation
-      const backendUrl = API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const response = await fetch(`${backendUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email: email.trim().toLowerCase(), 
-          password: password.trim() 
-        })
-      });
+      // 4. Send credentials to the backend (70s timeout for slow Render cold starts)
+      const response = await fetchWithTimeout(
+        `${backendUrl}/api/auth/login`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: email.trim().toLowerCase(),
+            password: password.trim()
+          })
+        },
+        70000
+      );
 
       const data = await response.json();
 
@@ -81,13 +118,15 @@ const AdminLogin = () => {
         return;
       }
 
-      // 4. Verify the user has Admin role (server-side validated)
+      // 5. Enforce Admin role on client (server returns user with role field)
       if (!data.user || data.user.role !== 'Admin') {
-        setError('Unauthorized. Access restricted to authorized platform administrators.');
+        setError('Unauthorized. Access restricted to authorized platform administrators only.');
+        generateCaptcha();
+        setCaptchaInput('');
         return;
       }
 
-      // 5. Store the real server-issued JWT token
+      // 6. Store JWT token and user info
       const userResponse = { ...data.user };
       delete userResponse.password;
       delete userResponse.otpCode;
@@ -97,13 +136,20 @@ const AdminLogin = () => {
       localStorage.setItem('user', JSON.stringify(userResponse));
       window.dispatchEvent(new Event('auth-change'));
 
-      navigate('/admin');
+      setSuccess('Access granted! Redirecting to admin panel...');
+      setTimeout(() => navigate('/admin'), 800);
+
     } catch (err) {
-      setError('Unable to connect to authentication server. Please try again.');
+      if (err.name === 'AbortError') {
+        setError('Server took too long to respond. The backend may be starting up — please try again in 30 seconds.');
+      } else {
+        setError('Unable to reach authentication server. Please check your connection and try again.');
+      }
       generateCaptcha();
       setCaptchaInput('');
     } finally {
       setLoading(false);
+      setLoadingMsg('Authenticating...');
     }
   };
 
@@ -143,6 +189,14 @@ const AdminLogin = () => {
             <div className="p-4 mb-6 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-start gap-3">
               <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{success}</span>
+            </div>
+          )}
+
+          {/* Server waking up indicator */}
+          {loading && loadingMsg.includes('waking') && (
+            <div className="p-3 mb-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs flex items-center gap-3">
+              <Wifi className="w-4 h-4 shrink-0 animate-pulse" />
+              <span>Backend server is starting up — this may take up to 30 seconds on first login.</span>
             </div>
           )}
 
@@ -232,15 +286,16 @@ const AdminLogin = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 rounded-xl bg-[#585589] hover:bg-[#53527D] text-white font-bold text-sm tracking-wide shadow-[0_0_20px_rgba(88,85,137,0.3)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              className="w-full py-4 rounded-xl bg-[#585589] hover:bg-[#53527D] text-white font-bold text-sm tracking-wide shadow-[0_0_20px_rgba(88,85,137,0.3)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
             >
               {loading ? (
                 <>
-                  <RefreshCw className="w-4 h-4 animate-spin" /> Authenticating...
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>{loadingMsg}</span>
                 </>
               ) : (
                 <>
-                  <Key className="w-4 h-4" /> Authenticate & Access
+                  <Key className="w-4 h-4" /> Authenticate &amp; Access
                 </>
               )}
             </button>
