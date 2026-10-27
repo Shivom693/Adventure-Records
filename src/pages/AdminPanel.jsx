@@ -4,7 +4,7 @@ import {
   ShieldAlert, Settings, BadgeAlert, CheckCircle, RefreshCw, 
   User as UserIcon, ListMusic, CreditCard, ChevronRight, XCircle,
   Sparkles, Bot, FileText, Check, AlertTriangle, Eye, ShieldCheck,
-  UserCheck, AlertCircle, MessageSquare, ExternalLink, Paperclip
+  UserCheck, AlertCircle, MessageSquare, ExternalLink, Paperclip, Zap
 } from 'lucide-react';
 import { auth, db } from '../firebase';
 import { API_URL } from '../config';
@@ -55,7 +55,23 @@ const AdminPanel = () => {
     }
   };
 
-  const navigate = useNavigate();
+  const [autoVerifyingAll, setAutoVerifyingAll] = useState(false);
+
+  const handleAutoVerifyAllPending = async () => {
+    const pendingList = payments.filter(p => p.status === 'pending_verification');
+    if (pendingList.length === 0) return;
+    setAutoVerifyingAll(true);
+    setError('');
+    setSuccess('');
+    let verifiedCount = 0;
+    for (const pay of pendingList) {
+      const res = await verifyPaymentAdmin(pay.id, 'verified', 'Auto-verified via instant admin batch check.');
+      if (res.success) verifiedCount++;
+    }
+    setAutoVerifyingAll(false);
+    setSuccess(`Successfully auto-verified ${verifiedCount} payment(s)!`);
+    await loadAdminData();
+  };
 
   const loadAdminData = async () => {
     const storedUserStr = localStorage.getItem('user');
@@ -256,11 +272,23 @@ const AdminPanel = () => {
         {/* TAB 1: REAL UPI PAYMENTS VERIFICATION QUEUE */}
         {activeTab === 'payments' && (
           <div className="minimal-card p-8 bg-[#09090d] border-white/10 space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <h3 className="font-heading font-bold text-lg text-white flex items-center gap-2">
                 <CreditCard className="w-5 h-5 text-emerald-400" /> UPI Payment Verification Queue (Merchant: 9691546208-3@ybl)
               </h3>
-              <span className="text-xs text-zinc-400 font-mono">Total Submissions: {payments.length}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-zinc-400 font-mono">Total Submissions: {payments.length}</span>
+                {payments.some(p => p.status === 'pending_verification') && (
+                  <button
+                    onClick={handleAutoVerifyAllPending}
+                    disabled={autoVerifyingAll}
+                    className="px-3.5 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-xs font-bold flex items-center gap-1.5 hover:bg-emerald-500/30 transition-all shadow-sm disabled:opacity-50"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    {autoVerifyingAll ? 'Auto-Verifying...' : '⚡ Auto-Verify All Pending'}
+                  </button>
+                )}
+              </div>
             </div>
 
             {payments.length === 0 ? (

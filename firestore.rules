@@ -39,7 +39,7 @@ service cloud.firestore {
         isAdmin() || 
         (
           resource.data.userId == request.auth.uid && 
-          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'paymentStatus', 'uploadUnlocked', 'rejectionReason', 'changesRequired'])
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'rejectionReason', 'changesRequired'])
         )
       );
       allow delete: if isAdmin();
@@ -85,12 +85,21 @@ service cloud.firestore {
     // Payments & Verification
     match /payments/{paymentId} {
       allow read: if isAuthenticated() && (
-        resource.data.userId == request.auth.uid || isAdmin()
+        resource.data.userId == request.auth.uid || 
+        resource.data.userEmail == request.auth.token.email ||
+        isAdmin()
       );
       allow create: if isAuthenticated() 
-        && request.resource.data.userId == request.auth.uid
-        && (request.resource.data.status == 'pending_verification' || request.resource.data.status == 'pending');
-      allow update, delete: if isAdmin();
+        && (request.resource.data.userId == request.auth.uid || request.resource.data.userEmail == request.auth.token.email)
+        && (request.resource.data.status == 'pending_verification' || request.resource.data.status == 'pending' || request.resource.data.status == 'verified');
+      allow update: if isAuthenticated() && (
+        isAdmin() || 
+        (
+          (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email) && 
+          request.resource.data.status == 'verified'
+        )
+      );
+      allow delete: if isAdmin();
     }
 
     // Subscriptions

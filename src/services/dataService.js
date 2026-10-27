@@ -858,18 +858,47 @@ export function subscribeUserPayments(userId, userEmail, callback) {
 
   try {
     const paymentsRef = collection(db, 'payments');
-    const q = userId
-      ? query(paymentsRef, where('userId', '==', userId))
-      : query(paymentsRef, where('userEmail', '==', userEmail));
+    const paymentMap = new Map();
 
-    return onSnapshot(q, (snapshot) => {
-      const payments = [];
-      snapshot.forEach(docSnap => payments.push({ id: docSnap.id, ...docSnap.data() }));
+    const notify = () => {
+      const payments = Array.from(paymentMap.values());
       payments.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
       callback(payments);
-    }, (err) => {
-      console.warn('Firestore payments subscription warning:', err.message);
-    });
+    };
+
+    const unsubscribers = [];
+
+    if (userId) {
+      try {
+        const q1 = query(paymentsRef, where('userId', '==', userId));
+        const unsub1 = onSnapshot(q1, (snapshot) => {
+          snapshot.forEach(docSnap => paymentMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() }));
+          notify();
+        }, (err) => {
+          console.warn('userId payment subscription notice:', err.message);
+        });
+        unsubscribers.push(unsub1);
+      } catch (e) {}
+    }
+
+    if (userEmail) {
+      try {
+        const q2 = query(paymentsRef, where('userEmail', '==', userEmail));
+        const unsub2 = onSnapshot(q2, (snapshot) => {
+          snapshot.forEach(docSnap => paymentMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() }));
+          notify();
+        }, (err) => {
+          console.warn('userEmail payment subscription notice:', err.message);
+        });
+        unsubscribers.push(unsub2);
+      } catch (e) {}
+    }
+
+    return () => {
+      unsubscribers.forEach(unsub => {
+        if (typeof unsub === 'function') unsub();
+      });
+    };
   } catch (e) {
     console.warn('subscribeUserPayments error:', e);
     return () => {};
