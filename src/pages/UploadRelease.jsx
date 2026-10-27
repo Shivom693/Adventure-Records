@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Music, Image, CheckCircle2, AlertCircle, ArrowRight, Disc, RefreshCw, Lock, ShieldCheck, QrCode, Link2, ExternalLink } from 'lucide-react';
+import { Music, Image, CheckCircle2, AlertCircle, ArrowRight, Disc, RefreshCw, Lock, ShieldCheck, QrCode, Link2, ExternalLink, Zap, Sparkles } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
-import { createFirestoreRelease, uploadArtworkToStorage, uploadAudioToStorage, fetchUserPayments } from '../services/dataService';
+import { createFirestoreRelease, uploadArtworkToStorage, uploadAudioToStorage, fetchUserPayments, subscribeUserPayments, autoCheckAndVerifyPayment } from '../services/dataService';
 import UpiPaymentModal from '../components/UpiPaymentModal';
 
 const UploadRelease = () => {
@@ -40,6 +40,8 @@ const UploadRelease = () => {
   const [paymentVerified, setPaymentVerified] = useState(false);
   const [paymentPending, setPaymentPending] = useState(false);
   const [paymentUtr, setPaymentUtr] = useState('');
+  const [isAutoChecking, setIsAutoChecking] = useState(false);
+  const [activePendingPayment, setActivePendingPayment] = useState(null);
 
   const navigate = useNavigate();
 
@@ -51,49 +53,80 @@ const UploadRelease = () => {
 
   const currentPrice = getReleasePrice(formData.releaseType);
 
-  // Check user payments for verification status
-  useEffect(() => {
-    const checkPaymentStatus = async () => {
-      const authUser = auth?.currentUser;
-      const storedUserStr = localStorage.getItem('user');
-      let userId = authUser?.uid;
-      let userEmail = authUser?.email;
-      if (storedUserStr) {
-        try {
-          const parsed = JSON.parse(storedUserStr);
-          userId = userId || parsed.uid || parsed.id || parsed._id;
-          userEmail = userEmail || parsed.email;
-        } catch (e) {}
-      }
-
-      // Bypass payment lock completely for tripathihariom573@gmail.com
-      if (userEmail && userEmail.toLowerCase().trim() === 'tripathihariom573@gmail.com') {
+  // Manual or Automated Verification Trigger
+  const handleManualAutoCheck = async (paymentToVerify = null) => {
+    const pay = paymentToVerify || activePendingPayment;
+    if (!pay) return;
+    setIsAutoChecking(true);
+    try {
+      const res = await autoCheckAndVerifyPayment(pay.id, pay);
+      if (res.verified) {
         setPaymentVerified(true);
         setPaymentPending(false);
-        return;
       }
+    } catch (e) {
+      console.warn('Auto-check error:', e);
+    } finally {
+      setIsAutoChecking(false);
+    }
+  };
 
-      if (userId) {
-        const payments = await fetchUserPayments(userId);
-        setUserPayments(payments);
-        const verifiedPay = payments.find(p => p.status === 'verified' && p.amount >= currentPrice);
-        const pendingPay = payments.find(p => p.status === 'pending_verification' && p.amount >= currentPrice);
-        
-        if (verifiedPay) {
-          setPaymentVerified(true);
-          setPaymentPending(false);
-        } else if (pendingPay) {
-          setPaymentVerified(false);
-          setPaymentPending(true);
-          setPaymentUtr(pendingPay.utr);
-        } else {
-          setPaymentVerified(false);
-          setPaymentPending(false);
-        }
+  // Real-time live synchronization with Firebase payments (onSnapshot & auto-check)
+  useEffect(() => {
+    const authUser = auth?.currentUser;
+    const storedUserStr = localStorage.getItem('user');
+    let userId = authUser?.uid;
+    let userEmail = authUser?.email;
+    if (storedUserStr) {
+      try {
+        const parsed = JSON.parse(storedUserStr);
+        userId = userId || parsed.uid || parsed.id || parsed._id;
+        userEmail = userEmail || parsed.email;
+      } catch (e) {}
+    }
+
+    // Bypass payment lock completely for tripathihariom573@gmail.com
+    if (userEmail && userEmail.toLowerCase().trim() === 'tripathihariom573@gmail.com') {
+      setPaymentVerified(true);
+      setPaymentPending(false);
+      return;
+    }
+
+    const processPayments = (payments) => {
+      setUserPayments(payments);
+      const verifiedPay = payments.find(p => p.status === 'verified' && p.amount >= currentPrice);
+      const pendingPay = payments.find(p => p.status === 'pending_verification' && p.amount >= currentPrice);
+
+      if (verifiedPay) {
+        setPaymentVerified(true);
+        setPaymentPending(false);
+        setActivePendingPayment(null);
+      } else if (pendingPay) {
+        setPaymentVerified(false);
+        setPaymentPending(true);
+        setPaymentUtr(pendingPay.utr);
+        setActivePendingPayment(pendingPay);
+
+        // Auto-check pending payment automatically after 1.5 seconds
+        setTimeout(() => {
+          handleManualAutoCheck(pendingPay);
+        }, 1500);
+      } else {
+        setPaymentVerified(false);
+        setPaymentPending(false);
+        setActivePendingPayment(null);
       }
     };
-    checkPaymentStatus();
-  }, [formData.releaseType]);
+
+    // 1. Initial Fetch
+    fetchUserPayments(userId, userEmail).then(processPayments);
+
+    // 2. Real-Time Live Firestore Listener (onSnapshot)
+    const unsubscribe = subscribeUserPayments(userId, userEmail, processPayments);
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, [formData.releaseType, currentPrice]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
