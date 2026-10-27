@@ -274,10 +274,20 @@ const UploadRelease = () => {
   };
 
   const handlePaymentModalSuccess = (payment) => {
-    // UTR submitted → set PENDING only. Admin must verify before unlock.
-    setPaymentPending(true);
-    setPaymentVerified(false);
-    if (payment?.utr) setPaymentUtr(payment.utr);
+    if (payment?.status === 'verified') {
+      setPaymentVerified(true);
+      setPaymentPending(false);
+      setActivePendingPayment(null);
+      if (payment?.utr) setPaymentUtr(payment.utr);
+    } else {
+      setPaymentPending(true);
+      setPaymentVerified(false);
+      if (payment?.utr) setPaymentUtr(payment.utr);
+      if (payment?.id) {
+        setActivePendingPayment(payment);
+        handleManualAutoCheck(payment);
+      }
+    }
   };
 
   return (
@@ -308,8 +318,8 @@ const UploadRelease = () => {
                 <div className="flex items-center gap-2 font-bold text-sm text-white">
                   {paymentPending ? (
                     <>
-                      <RefreshCw className="w-5 h-5 text-[#DEDCFF] animate-spin" />
-                      <span>Payment Submitted — Verification Pending</span>
+                      <RefreshCw className="w-5 h-5 text-amber-400 animate-spin" />
+                      <span>Payment Submitted — Automatic Verification Active</span>
                     </>
                   ) : (
                     <>
@@ -320,12 +330,32 @@ const UploadRelease = () => {
                 </div>
                 <p className="text-xs text-zinc-400">
                   {paymentPending 
-                    ? `UTR UTR:${paymentUtr} is currently being verified by the Adventure Records billing desk.`
+                    ? `UTR: ${String(paymentUtr || '').replace(/^UTR:?\s*/i, '')} is being checked with the UPI network automatically.`
                     : `Please pay ₹${currentPrice} for ${formData.releaseType} release to merchant 9691546208-3@ybl via UPI and submit UTR to unlock upload fields.`}
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                {paymentPending && (
+                  <button
+                    type="button"
+                    onClick={() => handleManualAutoCheck()}
+                    disabled={isAutoChecking}
+                    className="px-4 py-3 rounded-xl text-xs font-bold bg-amber-400 hover:bg-amber-300 text-black flex items-center gap-1.5 shadow-md transition-all disabled:opacity-50"
+                  >
+                    {isAutoChecking ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin text-black" />
+                        <span>Verifying...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4 text-black" />
+                        <span>⚡ Check & Auto-Verify</span>
+                      </>
+                    )}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setIsPaymentModalOpen(true)}

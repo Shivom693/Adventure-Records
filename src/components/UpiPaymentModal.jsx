@@ -229,19 +229,19 @@ const UpiPaymentModal = ({ isOpen, onClose, paymentType = 'release', targetId, t
             <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
               <Check className="w-6 h-6" />
             </div>
-            <h3 className="font-heading font-bold text-lg text-white">Payment Submitted for Verification</h3>
+            <h3 className="font-heading font-bold text-lg text-white">Payment Verified Successfully ✓</h3>
             <p className="text-zinc-300 text-xs leading-relaxed">
-              Your transaction UTR <span className="font-mono font-bold text-[#DEDCFF]">{utr}</span> (₹{amount}) has been recorded. Our billing team will verify it shortly.
+              Your transaction UTR <span className="font-mono font-bold text-[#DEDCFF]">{utr}</span> (₹{amount}) has been checked and verified automatically.
             </p>
-            <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/30 text-orange-300 text-[11px] flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>Upload access will be unlocked <strong>only after admin manually verifies</strong> your payment. This may take up to 24 hours.</span>
+            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[11px] flex items-start gap-2">
+              <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
+              <span>Automated verification complete. Your audio & artwork upload features are now <strong>unlocked</strong>!</span>
             </div>
             <button
               onClick={onClose}
               className="btn-primary w-full py-3 rounded-xl text-xs font-semibold"
             >
-              Done
+              Continue to Release Upload →
             </button>
           </div>
         ) : (
