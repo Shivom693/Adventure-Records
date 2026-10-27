@@ -4,12 +4,13 @@ import {
   ShieldAlert, Settings, BadgeAlert, CheckCircle, RefreshCw, 
   User as UserIcon, ListMusic, CreditCard, ChevronRight, XCircle,
   Sparkles, Bot, FileText, Check, AlertTriangle, Eye, ShieldCheck,
-  UserCheck, AlertCircle, MessageSquare, ExternalLink
+  UserCheck, AlertCircle, MessageSquare, ExternalLink, Paperclip
 } from 'lucide-react';
 import { auth, db } from '../firebase';
+import { API_URL } from '../config';
 import { 
   fetchAllReleasesAdmin, fetchAllTicketsAdmin, fetchAllPaymentsAdmin,
-  updateReleaseStatusAdmin, verifyPaymentAdmin 
+  updateReleaseStatusAdmin, verifyPaymentAdmin, retryTicketEmailAdmin 
 } from '../services/dataService';
 
 const AdminPanel = () => {
@@ -33,6 +34,26 @@ const AdminPanel = () => {
   const [paymentAction, setPaymentAction] = useState(''); // 'verified' | 'rejected'
   const [paymentReason, setPaymentReason] = useState('');
   const [submittingPaymentAction, setSubmittingPaymentAction] = useState(false);
+  const [retryingTicketId, setRetryingTicketId] = useState(null);
+
+  const handleRetryEmail = async (ticket) => {
+    const tId = ticket.ticketId || ticket.id;
+    setRetryingTicketId(tId);
+    try {
+      const res = await retryTicketEmailAdmin(tId);
+      if (res.success || res.emailDelivery?.adminSent) {
+        setSuccess(`Notification email re-dispatched for ticket ${tId}`);
+        const allTickets = await fetchAllTicketsAdmin();
+        setTickets(allTickets);
+      } else {
+        setError(res.error || 'Failed to retry notification email.');
+      }
+    } catch (err) {
+      setError(err.message || 'Error retrying email.');
+    } finally {
+      setRetryingTicketId(null);
+    }
+  };
 
   const navigate = useNavigate();
 
@@ -237,7 +258,7 @@ const AdminPanel = () => {
           <div className="minimal-card p-8 bg-[#09090d] border-white/10 space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="font-heading font-bold text-lg text-white flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-emerald-400" /> UPI Payment Verification Queue (Merchant: 9691546208@ptyes)
+                <CreditCard className="w-5 h-5 text-emerald-400" /> UPI Payment Verification Queue (Merchant: 9691546208-3@ybl)
               </h3>
               <span className="text-xs text-zinc-400 font-mono">Total Submissions: {payments.length}</span>
             </div>
@@ -275,7 +296,7 @@ const AdminPanel = () => {
                           UTR / Trans ID: {pay.utr} • App: {pay.upiApp}
                         </p>
                         <p className="text-[10px] text-zinc-500">
-                          Submitted: {new Date(pay.createdAt || Date.now()).toLocaleString()} • Receiver: {pay.merchantUpiId || '9691546208@ptyes'}
+                          Submitted: {new Date(pay.createdAt || Date.now()).toLocaleString()} • Receiver: {pay.merchantUpiId || '9691546208-3@ybl'}
                         </p>
                       </div>
 
@@ -402,25 +423,79 @@ const AdminPanel = () => {
                   <div key={idx} className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-mono text-amber-400 font-bold text-xs bg-amber-400/10 border border-amber-400/30 px-2 py-0.5 rounded">
+                            {tic.ticketId || tic.id}
+                          </span>
+                          {tic.releaseId && (
+                            <span className="font-mono text-zinc-400 text-[11px] bg-white/5 border border-white/10 px-2 py-0.5 rounded">
+                              Release: {tic.releaseId}
+                            </span>
+                          )}
+                        </div>
                         <h4 className="font-heading font-bold text-sm text-white">{tic.subject}</h4>
                         <p className="text-zinc-400 text-xs">From: {tic.name} ({tic.email})</p>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
-                        tic.status === 'Open' ? 'bg-[#585589]/20 text-[#DEDCFF] border border-[#585589]/40' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                      }`}>
-                        {tic.status}
-                      </span>
+                      <div className="text-right space-y-1">
+                        <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
+                          tic.status === 'Open' ? 'bg-[#585589]/20 text-[#DEDCFF] border border-[#585589]/40' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                        }`}>
+                          {tic.status}
+                        </span>
+                        {tic.emailDelivery && (
+                          <div className="text-[10px] text-zinc-500 flex items-center justify-end gap-1">
+                            <span className={tic.emailDelivery.adminSent ? 'text-emerald-400' : 'text-amber-400'}>
+                              {tic.emailDelivery.adminSent ? '● Email Sent' : '○ Email Local'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div className="p-3.5 rounded-xl bg-black/40 border border-white/5 text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap">
                       {tic.message}
                     </div>
 
-                    <div className="flex justify-between items-center text-[10px] text-zinc-500 pt-1">
+                    {/* Attachments Section */}
+                    {tic.attachments && tic.attachments.length > 0 && (
+                      <div className="p-3 rounded-xl bg-white/3 border border-white/10 space-y-1.5">
+                        <span className="text-[10px] text-zinc-400 uppercase font-semibold block">Attached Documents ({tic.attachments.length}):</span>
+                        <div className="flex flex-wrap gap-2">
+                          {tic.attachments.map((att, aIdx) => {
+                            const downloadHref = att.url || `${API_URL}/api/tickets/attachments/${tic.ticketId || tic.id}/${att.fileId}?token=${att.downloadToken}`;
+                            return (
+                              <a
+                                key={aIdx}
+                                href={downloadHref}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-sky-400 text-xs font-medium transition-all"
+                              >
+                                <Paperclip className="w-3.5 h-3.5" />
+                                <span>{att.name || att.originalName || `Document ${aIdx + 1}`}</span>
+                                <ExternalLink className="w-3 h-3 text-sky-400/70" />
+                              </a>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap justify-between items-center text-[10px] text-zinc-500 pt-1 gap-2">
                       <span>Category: {tic.category} • Submitted: {tic.createdAt?.split('T')[0]}</span>
-                      <a href={`mailto:${tic.email}?subject=RE: ${encodeURIComponent(tic.subject)}`} className="text-sky-400 font-semibold hover:underline">
-                        Reply via Email →
-                      </a>
+                      <div className="flex items-center gap-4">
+                        <button
+                          type="button"
+                          onClick={() => handleRetryEmail(tic)}
+                          disabled={retryingTicketId === (tic.ticketId || tic.id)}
+                          className="text-amber-400 hover:text-amber-300 font-semibold cursor-pointer disabled:opacity-50"
+                        >
+                          {retryingTicketId === (tic.ticketId || tic.id) ? 'Retrying Email...' : 'Retry Email Notice'}
+                        </button>
+                        <a href={`mailto:${tic.email}?subject=RE: [${tic.ticketId || tic.id}] ${encodeURIComponent(tic.subject)}`} className="text-sky-400 font-semibold hover:underline">
+                          Reply via Email →
+                        </a>
+                      </div>
                     </div>
                   </div>
                 ))}

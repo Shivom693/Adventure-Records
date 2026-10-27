@@ -9,7 +9,7 @@ const router = express.Router();
 // Use environment JWT_SECRET lazily to ensure dotenv has loaded before evaluation.
 // ES Module imports are hoisted, so process.env may not be populated at module parse time.
 let _jwtSecret = null;
-const getJwtSecret = () => {
+export const getJwtSecret = () => {
   if (_jwtSecret) return _jwtSecret;
   const envSecret = process.env.JWT_SECRET;
   if (envSecret && envSecret !== 'adventure_records_secret_key') {

@@ -33,7 +33,7 @@ function getKnowledgeResponse(promptText, authUser, userReleases = [], userTicke
 
   // Payment & Merchant UPI
   if (query.includes('payment') || query.includes('upi') || query.includes('pay') || query.includes('merchant')) {
-    return "We accept instant payments via UPI. Our official Merchant UPI ID is 9691546208@ptyes. Enter the UTR/Reference number after completing payment to activate your release.";
+    return "We accept instant payments via UPI. Our official Merchant UPI ID is 9691546208-3@ybl. Enter the UTR/Reference number after completing payment to activate your release.";
   }
 
   // User Releases & Status
@@ -169,7 +169,7 @@ Official Pricing & Features:
 - Single Release: ₹100 (one-time payment per release)
 - EP Release: ₹500 (one-time payment per release)
 - Album Release: ₹1,000 (one-time payment per release)
-- Official Merchant UPI: 9691546208@ptyes
+- Official Merchant UPI: 9691546208-3@ybl
 - Artists keep 100% of their royalties. No recurring annual subscription fees.
 
 Help users with:

@@ -10,7 +10,7 @@ const faqs = [
   },
   {
     question: "Can I pay for distribution using Indian UPI?",
-    answer: "Yes! Adventure Records supports direct UPI payment (GPay, PhonePe, Paytm, BHIM) at the official merchant ID 9691546208@ptyes. Rates are in INR (Single ₹100, EP ₹500, Album ₹1,000)."
+    answer: "Yes! Adventure Records supports direct UPI payment (GPay, PhonePe, Paytm, BHIM) at the official merchant ID 9691546208-3@ybl. Rates are in INR (Single ₹100, EP ₹500, Album ₹1,000)."
   },
   {
     question: "Does Adventure Records support regional language songs in India?",

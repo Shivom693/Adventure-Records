@@ -24,6 +24,8 @@ dist-ssr
 users.json
 releases.json
 server/data/*.json
+server/secure_uploads/
+server/uploads/
 
 # Node binary folder & local automation scripts
 node/

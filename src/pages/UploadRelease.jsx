@@ -259,7 +259,7 @@ const UploadRelease = () => {
             Create New Release
           </h1>
           <p className="text-zinc-400 text-sm">
-            Select release format, pay via official UPI (<span className="text-[#DEDCFF] font-mono">9691546208@ptyes</span>), and submit UTR proof for Admin verification.
+            Select release format, pay via official UPI (<span className="text-[#DEDCFF] font-mono">9691546208-3@ybl</span>), and submit UTR proof for Admin verification.
           </p>
         </div>
 
@@ -288,7 +288,7 @@ const UploadRelease = () => {
                 <p className="text-xs text-zinc-400">
                   {paymentPending 
                     ? `UTR UTR:${paymentUtr} is currently being verified by the Adventure Records billing desk.`
-                    : `Please pay ₹${currentPrice} for ${formData.releaseType} release to merchant 9691546208@ptyes via UPI and submit UTR to unlock upload fields.`}
+                    : `Please pay ₹${currentPrice} for ${formData.releaseType} release to merchant 9691546208-3@ybl via UPI and submit UTR to unlock upload fields.`}
                 </p>
               </div>
 

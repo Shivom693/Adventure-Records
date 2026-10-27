@@ -4,7 +4,7 @@ import { submitUpiPaymentVerification, detectFakeUtr } from '../services/dataSer
 import { auth } from '../firebase';
 
 const UpiPaymentModal = ({ isOpen, onClose, paymentType = 'release', targetId, title, amount, onSuccess }) => {
-  const merchantUpi = '9691546208@ptyes';
+  const merchantUpi = '9691546208-3@ybl';
   const merchantName = 'Adventure Records';
 
   const [copied, setCopied] = useState(false);

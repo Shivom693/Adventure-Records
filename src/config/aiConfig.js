@@ -20,7 +20,7 @@ export const AI_CONFIG = {
       ALBUM: 'An Album release (7+ tracks) costs ₹1,000 (one-time fee) with 100% royalty retention and zero recurring annual fees.',
       OVERVIEW: 'Adventure Records Pricing:\n• Single (1 Track): ₹100\n• EP (2–6 Tracks): ₹500\n• Album (7+ Tracks): ₹1,000\nAll plans include 100% royalty retention, free standard ISRC/UPC barcodes, and global store distribution.'
     },
-    PAYMENT: 'We accept payments via instant UPI. Payment UPI ID: 9691546208@ptyes. Submit your payment UTR proof after completing payment to activate your release.',
+    PAYMENT: 'We accept payments via instant UPI. Payment UPI ID: 9691546208-3@ybl. Submit your payment UTR proof after completing payment to activate your release.',
     ISRC_UPC: 'ISRC (International Standard Recording Code) identifies individual audio tracks, while UPC (Universal Product Code) identifies full releases (Singles, EPs, Albums). Adventure Records assigns standard ISRCs and UPCs for all your releases.',
     TECHNICAL_SPECS: 'Audio Specs: Uncompressed WAV or FLAC, 44.1 kHz, 16-bit or 24-bit stereo.\nArtwork Specs: Perfect square JPG or PNG, 3000 x 3000 pixels minimum, RGB color mode.',
     ROYALTIES: 'You retain 100% of your earned streaming royalties and master rights. Adventure Records takes 0% commission.',

@@ -10,6 +10,7 @@ import musicRoutes from './routes/music.js';
 import analyticsRoutes from './routes/analytics.js';
 import chatbotRoutes from './routes/chatbot.js';
 import ticketRoutes from './routes/tickets.js';
+import paymentRoutes from './routes/payments.js';
 
 dotenv.config();
 
@@ -173,7 +174,7 @@ const authRateLimiter = (req, res, next) => {
   next();
 };
 
-app.use(['/api/auth/login', '/api/auth/admin-login', '/api/auth/signup', '/api/send-otp', '/api/auth/forgot-password', '/api/auth/reset-password'], authRateLimiter);
+app.use(['/api/auth/login', '/api/auth/admin-login', '/api/auth/signup', '/api/send-otp', '/api/auth/forgot-password', '/api/auth/reset-password', '/api/payments/submit', '/api/notify-payment-submitted'], authRateLimiter);
 
 // Serve static uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
@@ -187,6 +188,7 @@ app.use('/api', musicRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/tickets', ticketRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Direct OTP Endpoint (High Reliability with Real SMTP Email Dispatch)
 // Requires authentication — the OTP is read from the user's record, never from the request body
@@ -367,7 +369,7 @@ app.post('/api/notify-payment-submitted', authenticateToken, async (req, res) =>
               <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Amount Paid:</td><td style="color: #4ade80; font-weight: bold; font-size: 16px;">₹${amount}</td></tr>
               <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">UTR / Trans ID:</td><td style="color: #facc15; font-family: monospace; font-size: 16px;">${utr}</td></tr>
               <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">UPI App Used:</td><td style="color: #ffffff;">${upiApp || 'UPI'}</td></tr>
-              <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Receiver UPI:</td><td style="color: #ffffff;">${merchantUpiId || '9691546208@ptyes'}</td></tr>
+              <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Receiver UPI:</td><td style="color: #ffffff;">${merchantUpiId || '9691546208-3@ybl'}</td></tr>
               <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Uploader Email:</td><td style="color: #ffffff;"><a href="mailto:${userEmail}" style="color: #38bdf8;">${userEmail}</a></td></tr>
               <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Submitted At:</td><td style="color: #ffffff;">${new Date().toLocaleString()}</td></tr>
             </table>
@@ -387,7 +389,11 @@ app.post('/api/notify-payment-submitted', authenticateToken, async (req, res) =>
 });
 
 // 2. Admin Verified/Rejected Payment Result Notification (To User)
-app.post('/api/notify-payment-result', async (req, res) => {
+app.post('/api/notify-payment-result', authenticateToken, async (req, res) => {
+  const adminEmail = process.env.ADMIN_EMAIL || 'adventureof693@gmail.com';
+  if (req.user.role !== 'Admin' && req.user.email !== adminEmail) {
+    return res.status(403).json({ message: 'Forbidden. Admin credentials required to send payment verification results.' });
+  }
   const { userEmail, status, amount, utr, paymentType, targetTitle, reason } = req.body;
 
   if (!userEmail) return res.status(400).json({ message: 'User email is required.' });

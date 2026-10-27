@@ -338,27 +338,55 @@ export async function uploadAudioToStorage(userId, releaseId, file, onProgress) 
  * Submit support ticket to Firestore & send email notification to adventureof693@gmail.com
  */
 export async function submitSupportTicket(ticketData) {
-  const { name, email, subject, category, message, userId, releaseId } = ticketData;
+  const { name, email, subject, category, message, userId, releaseId, attachments = [] } = ticketData;
 
   if (!name || !email || !subject || !message) {
     return { success: false, error: 'Name, email, subject, and message are required.' };
   }
 
+  const cleanEmail = email.trim();
+  const ticketId = 'AR-TICK-' + Math.floor(100000 + Math.random() * 900000);
+
+  // Upload attachments to Firebase Storage if available
+  const attachmentMeta = [];
+  if (storage && Array.isArray(attachments) && attachments.length > 0) {
+    for (const file of attachments) {
+      if (file instanceof File) {
+        try {
+          const safeName = `att_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+          const storageRef = ref(storage, `support_attachments/${ticketId}/${safeName}`);
+          const uploadTask = await uploadBytesResumable(storageRef, file);
+          const downloadUrl = await getDownloadURL(uploadTask.ref);
+          attachmentMeta.push({
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            url: downloadUrl,
+            storagePath: `support_attachments/${ticketId}/${safeName}`
+          });
+        } catch (storageErr) {
+          console.warn('Firebase Storage support attachment upload failed:', storageErr.message);
+        }
+      }
+    }
+  }
+
   const realTicket = {
-    ticketId: 'AR-TICK-' + Math.floor(100000 + Math.random() * 900000),
+    ticketId,
     userId: userId || null,
-    name,
-    email,
-    subject,
+    name: name.trim(),
+    email: cleanEmail,
+    subject: subject.trim(),
     category: category || 'General Support',
-    message,
+    message: message.trim(),
     releaseId: releaseId || null,
+    attachments: attachmentMeta,
     status: 'Open',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
 
-  // 1. Save to Firestore
+  // 1. Save to Cloud Firestore
   let savedId = null;
   if (db) {
     try {
@@ -369,22 +397,45 @@ export async function submitSupportTicket(ticketData) {
     }
   }
 
-  // 2. Dispatch Email Notification to adventureof693@gmail.com via Backend API
+  // 2. Dispatch Email Notification & Server-Side Storage via Backend API
+  let backendResult = null;
   try {
+    const formData = new FormData();
+    formData.append('ticketId', ticketId);
+    formData.append('name', name.trim());
+    formData.append('email', cleanEmail);
+    formData.append('subject', subject.trim());
+    formData.append('category', category || 'General Support');
+    formData.append('message', message.trim());
+    if (userId) formData.append('userId', userId);
+    if (releaseId) formData.append('releaseId', releaseId);
+
+    if (Array.isArray(attachments)) {
+      attachments.forEach((file) => {
+        if (file instanceof File) {
+          formData.append('attachments', file);
+        }
+      });
+    }
+
     const res = await fetch(`${API_URL}/api/tickets`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(realTicket)
+      body: formData
     });
-    const resData = await res.json();
-    if (res.ok) {
-      return { success: true, ticket: { id: savedId || resData.ticket?.id, ...realTicket } };
-    }
+    backendResult = await res.json();
   } catch (err) {
-    console.log('Backend notification email endpoint unreachable, ticket stored locally in Firestore.');
+    console.log('Backend notification email endpoint unreachable, ticket stored securely in Firestore.');
   }
 
-  return { success: true, ticket: { id: savedId || realTicket.ticketId, ...realTicket } };
+  return {
+    success: true,
+    ticketId: backendResult?.ticketId || ticketId,
+    ticket: {
+      id: savedId || backendResult?.ticket?.id || ticketId,
+      ...realTicket,
+      emailDelivery: backendResult?.emailDelivery || { adminSent: false, customerSent: false }
+    }
+  };
 }
 
 /**
@@ -687,7 +738,7 @@ export async function submitUpiPaymentVerification(paymentData) {
     planName: planName || '',
     amount: Number(amount),
     currency: 'INR',
-    merchantUpiId: '9691546208@ptyes',
+    merchantUpiId: '9691546208-3@ybl',
     merchantName: 'Adventure Records',
     utr: cleanUtr,
     upiApp: upiApp || 'UPI App',
@@ -725,7 +776,7 @@ export async function submitUpiPaymentVerification(paymentData) {
             plan: planName || 'Pro Subscription',
             amount: Number(amount),
             currency: 'INR',
-            merchantUpiId: '9691546208@ptyes',
+            merchantUpiId: '9691546208-3@ybl',
             utr: cleanUtr,
             subscriptionStatus: 'pending',
             createdAt: new Date().toISOString()
@@ -738,23 +789,36 @@ export async function submitUpiPaymentVerification(paymentData) {
     }
   }
 
-  // Dispatch email notification to admin (adventureof693@gmail.com)
+  // Dispatch to Secure Backend Payment API & Admin Notification
   try {
-    const apiHost = typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:5000' : '';
-    fetch(`${apiHost}/api/notify-payment-submitted`, {
+    const token = localStorage.getItem('token');
+    const payRes = await fetch(`${API_URL}/api/payments/submit`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
       body: JSON.stringify({
         paymentType,
-        targetTitle: releaseTitle || planName,
+        targetId,
+        releaseTitle: releaseTitle || planName,
+        planName,
         amount,
         utr: cleanUtr,
         upiApp,
-        userEmail: userEmail || 'Artist',
-        merchantUpiId: '9691546208@ptyes'
+        screenshotUrl
       })
-    }).catch(err => console.error('Payment notification dispatch failed:', err));
-  } catch (err) {}
+    });
+    const payData = await payRes.json();
+    if (!payRes.ok && (payRes.status === 409 || payRes.status === 400)) {
+      return {
+        success: false,
+        error: payData.message || 'Payment submission failed validation.'
+      };
+    }
+  } catch (err) {
+    console.warn('Backend payment submission sync notice:', err.message);
+  }
 
   return { 
     success: true, 
@@ -872,23 +936,24 @@ export async function verifyPaymentAdmin(paymentId, action, reasonNotes) {
         }
       }
 
-      // Dispatch Email result to user
+      // Dispatch Secure Backend Verification & Email result to user (Admin Authenticated)
       try {
-        const apiHost = typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:5000' : '';
-        fetch(`${apiHost}/api/notify-payment-result`, {
+        const token = localStorage.getItem('token');
+        await fetch(`${API_URL}/api/payments/verify-admin`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
           body: JSON.stringify({
-            userEmail: paymentData.userEmail,
-            status: newStatus,
-            amount: paymentData.amount,
-            utr: paymentData.utr,
-            paymentType: paymentData.paymentType,
-            targetTitle: paymentData.releaseTitle || paymentData.planName,
-            reason: reasonNotes || ''
+            paymentId: paymentData.paymentId || paymentId,
+            action,
+            reasonNotes: reasonNotes || ''
           })
-        }).catch(err => console.error('Payment result notification dispatch failed:', err));
-      } catch (e) {}
+        });
+      } catch (backendErr) {
+        console.warn('Backend payment verification sync warning:', backendErr.message);
+      }
 
       return { success: true };
     } catch (err) {
@@ -897,4 +962,24 @@ export async function verifyPaymentAdmin(paymentId, action, reasonNotes) {
   }
 
   return { success: true };
+}
+
+/**
+ * Admin Retry Support Ticket Email Notification Dispatch
+ */
+export async function retryTicketEmailAdmin(ticketId) {
+  if (!ticketId) return { success: false, error: 'Missing ticketId' };
+  try {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_URL}/api/tickets/${ticketId}/retry-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    });
+    return await res.json();
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
 }

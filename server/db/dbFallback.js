@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import '../models/User.js';
 import '../models/Release.js';
 import '../models/Ticket.js';
+import '../models/Payment.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -227,6 +228,33 @@ export const db = {
     deleteOne: async (query = {}) => {
       if (isMongoConnected) return await mongoose.model('Ticket').deleteOne(query);
       return localDB.deleteOne('tickets', query);
+    }
+  },
+
+  payments: {
+    find: async (query = {}) => {
+      if (isMongoConnected) return await mongoose.model('Payment').find(query);
+      return localDB.find('payments', query);
+    },
+    findOne: async (query = {}) => {
+      if (isMongoConnected) return await mongoose.model('Payment').findOne(query);
+      return localDB.findOne('payments', query);
+    },
+    findById: async (id) => {
+      if (isMongoConnected) return await mongoose.model('Payment').findById(id);
+      return localDB.findById('payments', id);
+    },
+    create: async (data) => {
+      if (isMongoConnected) return await mongoose.model('Payment').create(data);
+      return localDB.create('payments', data);
+    },
+    findByIdAndUpdate: async (id, updates) => {
+      if (isMongoConnected) return await mongoose.model('Payment').findByIdAndUpdate(id, updates, { new: true });
+      return localDB.findByIdAndUpdate('payments', id, updates);
+    },
+    deleteOne: async (query = {}) => {
+      if (isMongoConnected) return await mongoose.model('Payment').deleteOne(query);
+      return localDB.deleteOne('payments', query);
     }
   }
 };

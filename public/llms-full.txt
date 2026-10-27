@@ -6,7 +6,7 @@ Adventure Records (https://music-b2696.web.app/) is a modern digital music distr
 # Core Mission & Value Proposition
 - 100% Artist Royalty Retention: Artists keep all their royalty earnings without recurring commission cuts.
 - Transparent Transparent Pricing: ₹100 for Single, ₹500 for EP, ₹1,000 for Album.
-- Official Payment Integration: Payments verified via UPI ID `9691546208@ptyes`.
+- Official Payment Integration: Payments verified via UPI ID `9691546208-3@ybl`.
 - Free Metadata Barcoding: Automated generation of official ISRC (International Standard Recording Code) and UPC (Universal Product Code) identifiers.
 - Fast Turnaround: Store submission completed within 24-48 hours.
 

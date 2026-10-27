@@ -36,6 +36,25 @@ service firebase.storage {
       allow delete: if isOwner(userId) || isAdmin();
     }
 
+    // Support Ticket Document Attachments (max 5 MB per file, JPG/PNG/PDF only)
+    match /support_attachments/{ticketId}/{allPaths=**} {
+      allow create: if request.resource.size < 5 * 1024 * 1024
+        && (request.resource.contentType.matches('image/(jpeg|png|jpg)') 
+            || request.resource.contentType == 'application/pdf');
+      allow read: if isAdmin();
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // Payment Verification Screenshot Proofs (max 5 MB per file, images only)
+    match /payment_proofs/{userId}/{allPaths=**} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId)
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
     // Deny all other paths by default
     match /{allPaths=**} {
       allow read, write: if false;
