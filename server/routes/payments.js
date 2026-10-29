@@ -332,7 +332,25 @@ router.post('/auto-verify', async (req, res) => {
   const cleanUtr = String(utr).trim();
   const fakeCheck = detectFakeUtr(cleanUtr);
   if (fakeCheck.isFake) {
-    return res.status(400).json({ message: `Cannot auto-verify: ${fakeCheck.reason}` });
+    try {
+      let p = await db.payments.findOne({ utr: cleanUtr });
+      if (!p && paymentId) p = await db.payments.findById(paymentId);
+      if (p) {
+        await db.payments.findByIdAndUpdate(p._id || p.id, {
+          status: 'rejected',
+          rejectedReason: `Fake UTR detected: ${fakeCheck.reason}`,
+          verifiedAt: null,
+          verifiedBy: null,
+          updatedAt: new Date().toISOString()
+        });
+      }
+    } catch (e) {}
+    return res.status(400).json({ 
+      success: false, 
+      verified: false, 
+      isFake: true, 
+      message: `Cannot auto-verify: ${fakeCheck.reason}` 
+    });
   }
 
   try {

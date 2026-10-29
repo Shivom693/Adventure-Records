@@ -7,10 +7,12 @@ import {
   UserCheck, AlertCircle, MessageSquare, ExternalLink, Paperclip, Zap
 } from 'lucide-react';
 import { auth, db } from '../firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 import { API_URL } from '../config';
 import { 
   fetchAllReleasesAdmin, fetchAllTicketsAdmin, fetchAllPaymentsAdmin,
-  updateReleaseStatusAdmin, verifyPaymentAdmin, retryTicketEmailAdmin 
+  updateReleaseStatusAdmin, verifyPaymentAdmin, retryTicketEmailAdmin,
+  detectFakeUtr
 } from '../services/dataService';
 
 const AdminPanel = () => {
@@ -64,12 +66,19 @@ const AdminPanel = () => {
     setError('');
     setSuccess('');
     let verifiedCount = 0;
+    let rejectedCount = 0;
     for (const pay of pendingList) {
-      const res = await verifyPaymentAdmin(pay.id, 'verified', 'Auto-verified via instant admin batch check.');
-      if (res.success) verifiedCount++;
+      const fakeCheck = detectFakeUtr(pay.utr);
+      if (fakeCheck.isFake) {
+        await verifyPaymentAdmin(pay.id, 'rejected', `Fake UTR detected: ${fakeCheck.reason}`);
+        rejectedCount++;
+      } else {
+        const res = await verifyPaymentAdmin(pay.id, 'verified', 'Auto-verified via instant admin batch check.');
+        if (res.success) verifiedCount++;
+      }
     }
     setAutoVerifyingAll(false);
-    setSuccess(`Successfully auto-verified ${verifiedCount} payment(s)!`);
+    setSuccess(`Batch complete: ${verifiedCount} payment(s) verified, ${rejectedCount} fake UTR(s) rejected!`);
     await loadAdminData();
   };
 
@@ -105,6 +114,34 @@ const AdminPanel = () => {
 
     // 1. Fetch real payments from Firestore
     const allPayments = await fetchAllPaymentsAdmin();
+    // Scan and auto-reject any fake UTRs in Firestore
+    for (const pay of allPayments) {
+      if (pay.utr) {
+        const fakeCheck = detectFakeUtr(pay.utr);
+        if (fakeCheck.isFake && pay.status !== 'rejected') {
+          pay.status = 'rejected';
+          pay.rejectedReason = `Fake UTR detected: ${fakeCheck.reason}`;
+          if (db && pay.id) {
+            try {
+              await updateDoc(doc(db, 'payments', pay.id), {
+                status: 'rejected',
+                rejectedReason: `Fake UTR detected: ${fakeCheck.reason}`,
+                verifiedAt: null,
+                verifiedBy: null,
+                updatedAt: new Date().toISOString()
+              });
+              if (pay.paymentType === 'release' && pay.targetId) {
+                await updateDoc(doc(db, 'releases', pay.targetId), {
+                  paymentStatus: 'rejected',
+                  uploadUnlocked: false,
+                  updatedAt: new Date().toISOString()
+                });
+              }
+            } catch (e) {}
+          }
+        }
+      }
+    }
     setPayments(allPayments);
 
     // 2. Fetch real releases from Firestore
@@ -158,6 +195,14 @@ const AdminPanel = () => {
   const handlePaymentActionSubmit = async (e) => {
     e.preventDefault();
     if (!selectedPayment || !paymentAction) return;
+
+    if (paymentAction === 'verified') {
+      const fakeCheck = detectFakeUtr(selectedPayment.utr);
+      if (fakeCheck.isFake) {
+        setError(`⚠️ Cannot verify payment: UTR ${selectedPayment.utr} is fake (${fakeCheck.reason}). Please select "Reject" instead.`);
+        return;
+      }
+    }
 
     setSubmittingPaymentAction(true);
     setError('');
@@ -301,13 +346,19 @@ const AdminPanel = () => {
                   <div key={idx} className="p-5 rounded-2xl bg-white/5 border border-white/10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center gap-3">
-                        <span className={`text-[10px] font-bold uppercase px-3 py-1 rounded-full ${
-                          pay.status === 'verified' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' :
-                          pay.status === 'rejected' ? 'bg-red-500/10 text-red-400 border border-red-500/30' :
-                          'bg-[#585589]/20 text-[#DEDCFF] border border-[#585589]/40 animate-pulse'
-                        }`}>
-                          {pay.status === 'pending_verification' ? 'PENDING VERIFICATION' : pay.status?.toUpperCase()}
-                        </span>
+                        {detectFakeUtr(pay.utr).isFake ? (
+                          <span className="text-[10px] font-bold uppercase px-3 py-1 rounded-full bg-red-500/20 text-red-400 border border-red-500/40 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" /> FAKE UTR (REJECTED)
+                          </span>
+                        ) : (
+                          <span className={`text-[10px] font-bold uppercase px-3 py-1 rounded-full ${
+                            pay.status === 'verified' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' :
+                            pay.status === 'rejected' ? 'bg-red-500/10 text-red-400 border border-red-500/30' :
+                            'bg-[#585589]/20 text-[#DEDCFF] border border-[#585589]/40 animate-pulse'
+                          }`}>
+                            {pay.status === 'pending_verification' ? 'PENDING VERIFICATION' : pay.status?.toUpperCase()}
+                          </span>
+                        )}
                         <span className="text-xs text-zinc-400 font-semibold uppercase tracking-wider">
                           {pay.paymentType === 'release' ? '🎵 Release Payment' : '⭐ Subscription Payment'}
                         </span>
@@ -323,6 +374,12 @@ const AdminPanel = () => {
                         <p className="text-xs font-mono text-[#DEDCFF] font-bold">
                           UTR / Trans ID: {pay.utr} • App: {pay.upiApp}
                         </p>
+                        {detectFakeUtr(pay.utr).isFake && (
+                          <p className="text-xs text-red-400 font-semibold flex items-center gap-1.5 pt-0.5">
+                            <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0" />
+                            Fraud Alert: {detectFakeUtr(pay.utr).reason}
+                          </p>
+                        )}
                         <p className="text-[10px] text-zinc-500">
                           Submitted: {new Date(pay.createdAt || Date.now()).toLocaleString()} • Receiver: {pay.merchantUpiId || '9691546208-3@ybl'}
                         </p>

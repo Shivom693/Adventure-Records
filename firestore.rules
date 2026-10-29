@@ -91,12 +91,12 @@ service cloud.firestore {
       );
       allow create: if isAuthenticated() 
         && (request.resource.data.userId == request.auth.uid || request.resource.data.userEmail == request.auth.token.email)
-        && (request.resource.data.status == 'pending_verification' || request.resource.data.status == 'pending' || request.resource.data.status == 'verified');
+        && (request.resource.data.status == 'pending_verification' || request.resource.data.status == 'pending' || request.resource.data.status == 'verified' || request.resource.data.status == 'rejected');
       allow update: if isAuthenticated() && (
         isAdmin() || 
         (
           (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email) && 
-          request.resource.data.status == 'verified'
+          (request.resource.data.status == 'verified' || request.resource.data.status == 'rejected')
         )
       );
       allow delete: if isAdmin();

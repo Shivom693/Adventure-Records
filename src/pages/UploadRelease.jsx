@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Music, Image, CheckCircle2, AlertCircle, ArrowRight, Disc, RefreshCw, Lock, ShieldCheck, QrCode, Link2, ExternalLink, Zap, Sparkles } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { auth } from '../firebase';
-import { createFirestoreRelease, uploadArtworkToStorage, uploadAudioToStorage, fetchUserPayments, subscribeUserPayments, autoCheckAndVerifyPayment } from '../services/dataService';
+import { auth, db } from '../firebase';
+import { doc, updateDoc } from 'firebase/firestore';
+import { createFirestoreRelease, uploadArtworkToStorage, uploadAudioToStorage, fetchUserPayments, subscribeUserPayments, autoCheckAndVerifyPayment, detectFakeUtr } from '../services/dataService';
 import UpiPaymentModal from '../components/UpiPaymentModal';
 
 const UploadRelease = () => {
@@ -39,6 +40,8 @@ const UploadRelease = () => {
   const [userPayments, setUserPayments] = useState([]);
   const [paymentVerified, setPaymentVerified] = useState(false);
   const [paymentPending, setPaymentPending] = useState(false);
+  const [paymentRejected, setPaymentRejected] = useState(false);
+  const [rejectedReason, setRejectedReason] = useState('');
   const [paymentUtr, setPaymentUtr] = useState('');
   const [isAutoChecking, setIsAutoChecking] = useState(false);
   const [activePendingPayment, setActivePendingPayment] = useState(null);
@@ -63,6 +66,12 @@ const UploadRelease = () => {
       if (res.verified) {
         setPaymentVerified(true);
         setPaymentPending(false);
+        setPaymentRejected(false);
+      } else if (res.isFake || res.status === 'rejected') {
+        setPaymentVerified(false);
+        setPaymentPending(false);
+        setPaymentRejected(true);
+        setRejectedReason(res.error || 'Fake or invalid UTR reference detected.');
       }
     } catch (e) {
       console.warn('Auto-check error:', e);
@@ -89,21 +98,64 @@ const UploadRelease = () => {
     if (userEmail && userEmail.toLowerCase().trim() === 'tripathihariom573@gmail.com') {
       setPaymentVerified(true);
       setPaymentPending(false);
+      setPaymentRejected(false);
       return;
     }
 
     const processPayments = (payments) => {
+      // 1. Detect and auto-reject any payments with fake / dummy / sequential UTRs
+      payments.forEach(async (p) => {
+        if (p.utr) {
+          const fakeCheck = detectFakeUtr(p.utr);
+          if (fakeCheck.isFake) {
+            p.status = 'rejected';
+            p.rejectedReason = `Fake UTR detected: ${fakeCheck.reason}`;
+            if (db && p.id) {
+              try {
+                await updateDoc(doc(db, 'payments', p.id), {
+                  status: 'rejected',
+                  rejectedReason: `Fake UTR detected: ${fakeCheck.reason}`,
+                  verifiedAt: null,
+                  verifiedBy: null,
+                  updatedAt: new Date().toISOString()
+                });
+              } catch (e) {}
+            }
+          }
+        }
+      });
+
       setUserPayments(payments);
-      const verifiedPay = payments.find(p => p.status === 'verified' && p.amount >= currentPrice);
-      const pendingPay = payments.find(p => p.status === 'pending_verification' && p.amount >= currentPrice);
+
+      // A payment is only verified if status === 'verified' AND UTR is strictly NOT fake!
+      const verifiedPay = payments.find(p => 
+        p.status === 'verified' && 
+        !detectFakeUtr(p.utr || '').isFake && 
+        p.amount >= currentPrice
+      );
+
+      // Pending payment: status pending AND not fake
+      const pendingPay = payments.find(p => 
+        p.status === 'pending_verification' && 
+        !detectFakeUtr(p.utr || '').isFake && 
+        p.amount >= currentPrice
+      );
+
+      // Rejected or fake payment
+      const rejectedPay = payments.find(p => 
+        (p.status === 'rejected' || detectFakeUtr(p.utr || '').isFake) && 
+        p.amount >= currentPrice
+      );
 
       if (verifiedPay) {
         setPaymentVerified(true);
         setPaymentPending(false);
+        setPaymentRejected(false);
         setActivePendingPayment(null);
       } else if (pendingPay) {
         setPaymentVerified(false);
         setPaymentPending(true);
+        setPaymentRejected(false);
         setPaymentUtr(pendingPay.utr);
         setActivePendingPayment(pendingPay);
 
@@ -111,9 +163,17 @@ const UploadRelease = () => {
         setTimeout(() => {
           handleManualAutoCheck(pendingPay);
         }, 1500);
+      } else if (rejectedPay) {
+        setPaymentVerified(false);
+        setPaymentPending(false);
+        setPaymentRejected(true);
+        setPaymentUtr(rejectedPay.utr);
+        setRejectedReason(rejectedPay.rejectedReason || detectFakeUtr(rejectedPay.utr || '').reason || 'Fake or invalid UTR reference number.');
+        setActivePendingPayment(null);
       } else {
         setPaymentVerified(false);
         setPaymentPending(false);
+        setPaymentRejected(false);
         setActivePendingPayment(null);
       }
     };
@@ -306,8 +366,36 @@ const UploadRelease = () => {
           </p>
         </div>
 
+        {/* Payment Rejected Banner (Fake or Invalid UTR detected) */}
+        {paymentRejected && !paymentVerified && (
+          <div className="p-6 rounded-2xl bg-red-500/10 border border-red-500/40 text-red-300 space-y-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 font-bold text-sm text-red-400">
+                  <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                  <span>Payment Rejected — Fake / Invalid UTR ({String(paymentUtr || '').replace(/^UTR:?\s*/i, '')})</span>
+                </div>
+                <p className="text-xs text-zinc-300">
+                  {rejectedReason || 'The submitted UTR number failed security verification. Uploads cannot be unlocked with a fake or dummy UTR.'}
+                </p>
+                <p className="text-xs text-zinc-400">
+                  Please pay ₹{currentPrice} for {formData.releaseType} release to merchant <strong className="text-white font-mono">9691546208-3@ybl</strong> via UPI and submit the genuine 12-digit UTR from your UPI transaction history.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPaymentModalOpen(true)}
+                className="px-5 py-3 rounded-xl text-xs font-bold bg-red-500 hover:bg-red-400 text-black flex items-center gap-2 shrink-0 transition-all shadow-md"
+              >
+                <QrCode className="w-4 h-4" />
+                <span>Pay ₹{currentPrice} (Real UTR)</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Payment Lock Notification Banner */}
-        {!paymentVerified && (
+        {!paymentVerified && !paymentRejected && (
           <div className={`p-6 rounded-2xl border transition-all ${
             paymentPending 
               ? 'bg-[#585589]/20 border-[#585589]/40 text-[#DEDCFF]'

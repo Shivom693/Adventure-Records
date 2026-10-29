@@ -956,6 +956,38 @@ export async function autoCheckAndVerifyPayment(paymentId, paymentData = {}) {
         releaseTitle = releaseTitle || data.releaseTitle;
       }
 
+      // Strict fake / sequential UTR fraud check
+      const fakeCheck = detectFakeUtr(utr);
+      if (fakeCheck.isFake) {
+        // Must reject in Firestore!
+        await updateDoc(payRef, {
+          status: 'rejected',
+          rejectedReason: `Fake / invalid UTR detected: ${fakeCheck.reason}`,
+          verifiedAt: null,
+          verifiedBy: null,
+          verificationMethod: 'AUTO_FRAUD_CHECK',
+          updatedAt: new Date().toISOString()
+        });
+
+        if (paymentType === 'release' && targetId) {
+          try {
+            const relRef = doc(db, 'releases', targetId);
+            await updateDoc(relRef, {
+              paymentStatus: 'rejected',
+              uploadUnlocked: false,
+              updatedAt: new Date().toISOString()
+            });
+          } catch (e) {}
+        }
+
+        return {
+          success: false,
+          verified: false,
+          isFake: true,
+          error: `⚠️ Fake UTR Detected: ${fakeCheck.reason}`
+        };
+      }
+
       // Update Firestore Payment document to verified
       await updateDoc(payRef, {
         status: 'verified',
