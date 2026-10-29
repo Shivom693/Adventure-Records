@@ -619,55 +619,78 @@ export function detectFakeUtr(utr, upiApp = '') {
     return { isFake: true, reason: 'UTR looks fake — all identical digits detected.' };
   }
 
-  // 2. Sequential patterns: 123456789012, 234567890123, 012345678901 etc.
-  const seqAsc = '0123456789012345678901234567890';
-  const seqDesc = '9876543210987654321098765432109';
+  // 2. Strict sequential string match (simple sliding window on digit string)
+  const seqAsc  = '01234567890123456789012345678901234567890';
+  const seqDesc = '98765432109876543210987654321098765432109';
   if (seqAsc.includes(u) || seqDesc.includes(u)) {
     return { isFake: true, reason: 'UTR looks fake — sequential number pattern detected.' };
   }
 
-  // 3. Common keyboard mashing patterns
+  // 3. Long ascending or descending run anywhere in the UTR (≥ 7 consecutive digits in order)
+  const digits = u.split('').map(Number);
+  let ascRun = 1, descRun = 1;
+  for (let i = 1; i < digits.length; i++) {
+    ascRun  = digits[i] === digits[i - 1] + 1 ? ascRun + 1 : 1;
+    descRun = digits[i] === digits[i - 1] - 1 ? descRun + 1 : 1;
+    if (ascRun >= 7 || descRun >= 7) {
+      return { isFake: true, reason: 'UTR looks fake — long sequential run of digits detected. Please enter the real UTR from your UPI app transaction history.' };
+    }
+  }
+
+  // 4. Common keyboard mashing / dummy patterns
   const keyboardPatterns = [
+    '123456789987', '123456789876', '987654321012', // mirrored / reverse combos
     '123123123123', '121212121212', '112233445566',
     '111222333444', '000111222333', '999888777666',
     '123456654321', '112121212121', '100000000000',
     '999999999999', '111111111112', '000000000001',
+    '123456789000', '000123456789', '111222333000',
   ];
   if (keyboardPatterns.includes(u)) {
     return { isFake: true, reason: 'UTR looks fake — commonly used test/dummy number detected.' };
   }
 
-  // 4. Repeating pairs or triplets: 121212121212, 123123123123, 456456456456
-  if (/^(\d{2})\1{5}$/.test(u) || /^(\d{3})\1{3}(\d{3})$/.test(u) || /^(\d{4})\1{2}(\d{4})$/.test(u)) {
-    return { isFake: true, reason: 'UTR looks fake — repeating digit pattern detected.' };
+  // 5. Repeating pairs or triplets: 121212121212, 123123123123, 456456456456
+  if (
+    /^(\d{2})\1{5}$/.test(u) ||
+    /^(\d{3})\1{3}$/.test(u) ||
+    /^(\d{4})\1{2}\d{4}$/.test(u) ||
+    /^(\d{6})\1$/.test(u)
+  ) {
+    return { isFake: true, reason: 'UTR looks fake — repeating digit block pattern detected.' };
   }
 
-  // 5. App-specific format checks
-  //    Google Pay UTRs: typically start with specific bank prefix digits (not all zeros/ones)
-  //    PhonePe UTRs: typically 12 digit numeric
-  //    Paytm UTRs: numeric, typically starts with non-zero
-  const firstDigit = parseInt(u[0], 10);
-  if (firstDigit === 0) {
+  // 6. First digit cannot be 0
+  if (digits[0] === 0) {
     return { isFake: true, reason: 'UTR cannot start with 0. Please verify from your UPI app transaction history.' };
   }
 
-  // 6. Too many repeated digits (>= 9 of same digit across the UTR)
+  // 7. Too many repeated instances of one digit (>= 9 out of 12)
   for (let d = 0; d <= 9; d++) {
-    const count = u.split('').filter(c => c === String(d)).length;
+    const count = digits.filter(x => x === d).length;
     if (count >= 9) {
       return { isFake: true, reason: `UTR looks fake — digit "${d}" appears ${count} times. Please enter the real UTR from your UPI app.` };
     }
   }
 
-  // 7. Very low entropy check: all digits within narrow range e.g. only 0-2 used
-  const uniqueDigits = new Set(u.split('')).size;
+  // 8. Very low entropy: only ≤ 2 unique digits used across all 12
+  const uniqueDigits = new Set(digits).size;
   if (uniqueDigits <= 2) {
     return { isFake: true, reason: 'UTR looks fake — too few unique digits. Real UTRs have higher randomness.' };
   }
 
-  // 8. Timestamp-based obvious fakes: UTR starting with 000 or ending with 000000
+  // 9. Obviously invalid suffix patterns
   if (u.startsWith('000') || u.endsWith('000000')) {
     return { isFake: true, reason: 'UTR pattern is invalid. Please copy the exact UTR from your UPI transaction history.' };
+  }
+
+  // 10. High consecutive-difference score check (alternating patterns like 123456789987)
+  //     Real UTRs look random; purely ascending-then-descending / palindrome-like sequences are suspicious.
+  const reversed = u.split('').reverse().join('');
+  const palindromeOverlap = u.slice(0, 6) === reversed.slice(0, 6) ||
+                            u.slice(6)    === reversed.slice(6);
+  if (palindromeOverlap) {
+    return { isFake: true, reason: 'UTR looks fake — mirrored or palindrome-style digit pattern detected. Please enter the real UTR from your UPI app.' };
   }
 
   return { isFake: false, reason: '' };
