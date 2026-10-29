@@ -40,33 +40,76 @@ export const detectFakeUtr = (utr, upiApp = '') => {
     return { isFake: true, reason: 'UTR must be exactly 12 numeric digits.' };
   }
 
-  // Obvious repeating or sequential patterns
+  // 1. All same digits
   if (/^(\d)\1{11}$/.test(u)) {
     return { isFake: true, reason: 'All 12 digits are identical.' };
   }
-  if (['012345678901', '123456789012', '987654321098', '000000000000', '111111111111'].includes(u)) {
+
+  // 2. Exact sequential / known fake list
+  const seqAsc  = '01234567890123456789012345678901234567890';
+  const seqDesc = '98765432109876543210987654321098765432109';
+  if (seqAsc.includes(u) || seqDesc.includes(u)) {
     return { isFake: true, reason: 'Sequential or placeholder number pattern.' };
   }
-  if (/^(\d{2})\1{5}$/.test(u) || /^(\d{3})\1{3}(\d{3})$/.test(u)) {
+
+  // 3. Long ascending or descending run (≥ 7 consecutive digits in order)
+  const digits = u.split('').map(Number);
+  let ascRun = 1, descRun = 1;
+  for (let i = 1; i < digits.length; i++) {
+    ascRun  = digits[i] === digits[i - 1] + 1 ? ascRun + 1 : 1;
+    descRun = digits[i] === digits[i - 1] - 1 ? descRun + 1 : 1;
+    if (ascRun >= 7 || descRun >= 7) {
+      return { isFake: true, reason: 'Long sequential run of digits detected.' };
+    }
+  }
+
+  // 4. Repeating block patterns: 121212121212, 123123123123, 456456456456
+  if (
+    /^(\d{2})\1{5}$/.test(u) ||
+    /^(\d{3})\1{3}$/.test(u) ||
+    /^(\d{4})\1{2}\d{4}$/.test(u) ||
+    /^(\d{6})\1$/.test(u)
+  ) {
     return { isFake: true, reason: 'Repeating digit sequence pattern.' };
   }
 
-  // Real Indian bank UTRs cannot start with 0
-  if (u.startsWith('0')) {
+  // 5. Common dummy / keyboard-mash list
+  const keyboardPatterns = [
+    '123456789987', '123456789876', '987654321012', '987654321123',
+    '123123123123', '121212121212', '112233445566',
+    '111222333444', '000111222333', '999888777666',
+    '123456654321', '112121212121', '100000000000',
+    '999999999999', '111111111112', '000000000001',
+    '123456789000', '000123456789', '111222333000',
+  ];
+  if (keyboardPatterns.includes(u)) {
+    return { isFake: true, reason: 'Commonly used test/dummy number detected.' };
+  }
+
+  // 6. Real Indian bank UTRs cannot start with 0
+  if (digits[0] === 0) {
     return { isFake: true, reason: 'UTR cannot begin with digit 0.' };
   }
 
-  // Too many repeated single digits (>= 9 occurrences)
+  // 7. Too many repeated single digits (>= 9 occurrences of same digit)
   for (let d = 0; d <= 9; d++) {
-    const count = u.split('').filter(c => c === String(d)).length;
+    const count = digits.filter(x => x === d).length;
     if (count >= 9) {
       return { isFake: true, reason: `Digit "${d}" appears ${count} times; invalid entropy.` };
     }
   }
 
-  // Very low entropy check (< 3 unique digits)
-  if (new Set(u.split('')).size <= 2) {
+  // 8. Very low entropy check (≤ 2 unique digits)
+  if (new Set(digits).size <= 2) {
     return { isFake: true, reason: 'Too few unique digits.' };
+  }
+
+  // 9. Mirrored / palindrome-style: first 6 mirror last 6 reversed
+  const reversed = u.split('').reverse().join('');
+  const palindromeOverlap = u.slice(0, 6) === reversed.slice(0, 6) ||
+                            u.slice(6)    === reversed.slice(6);
+  if (palindromeOverlap) {
+    return { isFake: true, reason: 'Mirrored or palindrome-style digit pattern detected.' };
   }
 
   return { isFake: false, reason: '' };
