@@ -321,115 +321,23 @@ router.post('/submit', authenticateToken, async (req, res) => {
   }
 });
 
-// 1.5 AUTOMATIC PAYMENT VERIFICATION (Checks UTR & Auto-verifies)
-router.post('/auto-verify', async (req, res) => {
-  const { paymentId, utr, targetId, paymentType, userEmail, amount, releaseTitle } = req.body;
-
-  if (!utr) {
-    return res.status(400).json({ message: 'UTR is required for automatic payment verification.' });
-  }
-
-  const cleanUtr = String(utr).trim();
-  const fakeCheck = detectFakeUtr(cleanUtr);
-  if (fakeCheck.isFake) {
-    try {
-      let p = await db.payments.findOne({ utr: cleanUtr });
-      if (!p && paymentId) p = await db.payments.findById(paymentId);
-      if (p) {
-        await db.payments.findByIdAndUpdate(p._id || p.id, {
-          status: 'rejected',
-          rejectedReason: `Fake UTR detected: ${fakeCheck.reason}`,
-          verifiedAt: null,
-          verifiedBy: null,
-          updatedAt: new Date().toISOString()
-        });
-      }
-    } catch (e) {}
-    return res.status(400).json({ 
-      success: false, 
-      verified: false, 
-      isFake: true, 
-      message: `Cannot auto-verify: ${fakeCheck.reason}` 
-    });
-  }
-
+// 1.5 PAYMENT STATUS LOOKUP (Read-Only Status Check)
+router.get('/status/:paymentId', async (req, res) => {
+  const { paymentId } = req.params;
   try {
-    let payment = null;
-    if (paymentId) {
-      payment = await db.payments.findOne({ paymentId }) || await db.payments.findById(paymentId);
-    }
+    const payment = await db.payments.findOne({ paymentId }) || await db.payments.findById(paymentId);
     if (!payment) {
-      payment = await db.payments.findOne({ utr: cleanUtr });
+      return res.status(404).json({ message: 'Payment record not found.' });
     }
-
-    const auditEntry = {
-      action: 'auto_verified',
-      performedBy: 'AUTOMATIC_UPI_ENGINE',
-      timestamp: new Date().toISOString(),
-      ip: req.ip || '',
-      notes: 'Automated verification check completed successfully.'
-    };
-
-    if (payment) {
-      const currentAudit = Array.isArray(payment.auditLog) ? payment.auditLog : [];
-      payment = await db.payments.findByIdAndUpdate(payment._id || payment.id, {
-        status: 'verified',
-        verifiedAt: new Date().toISOString(),
-        verifiedBy: 'AUTOMATIC_UPI_ENGINE',
-        auditLog: [...currentAudit, auditEntry],
-        updatedAt: new Date().toISOString()
-      });
-    } else {
-      // Create verified record if it did not exist yet in backend
-      const newPayId = paymentId || ('pay_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex'));
-      payment = await db.payments.create({
-        paymentId: newPayId,
-        userId: req.body.userId || 'auto_user',
-        userEmail: userEmail || 'customer@adventurerecords.com',
-        paymentType: paymentType || 'release',
-        targetId: targetId || null,
-        releaseTitle: releaseTitle || 'Music Release',
-        planName: '',
-        amount: Number(amount) || 100,
-        currency: 'INR',
-        merchantUpiId: '9691546208-3@ybl',
-        merchantName: 'Adventure Records',
-        utr: cleanUtr,
-        upiApp: 'UPI App',
-        status: 'verified',
-        verifiedAt: new Date().toISOString(),
-        verifiedBy: 'AUTOMATIC_UPI_ENGINE',
-        auditLog: [auditEntry],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      });
-    }
-
-    // Unlock release in backend releases DB
-    if ((targetId || payment.targetId) && (paymentType === 'release' || payment.paymentType === 'release')) {
-      const relId = targetId || payment.targetId;
-      try {
-        await db.releases.findByIdAndUpdate(relId, {
-          paymentStatus: 'paid',
-          uploadUnlocked: true,
-          updatedAt: new Date().toISOString()
-        });
-      } catch (e) {}
-    }
-
-    // Dispatch confirmation email to customer
-    await sendCustomerPaymentResultEmail(payment, 'verified');
-
     res.status(200).json({
       success: true,
-      verified: true,
-      message: 'Payment verified automatically.',
-      payment
+      status: payment.status,
+      utr: payment.utr,
+      amount: payment.amount,
+      verifiedAt: payment.verifiedAt
     });
-
   } catch (err) {
-    console.error('Auto-verify error:', err);
-    res.status(500).json({ message: 'Error performing auto-verification.', error: err.message });
+    res.status(500).json({ message: 'Error checking payment status.', error: err.message });
   }
 });
 
