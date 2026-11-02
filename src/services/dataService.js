@@ -812,10 +812,10 @@ export async function submitUpiPaymentVerification(paymentData) {
     }
   }
 
-  // Also trigger backend auto-verify sync and customer notification email
+  // Dispatch payment notification to backend for Admin alert email
   try {
     const token = localStorage.getItem('token');
-    await fetch(`${API_URL}/api/payments/auto-verify`, {
+    await fetch(`${API_URL}/api/payments/submit`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -833,161 +833,14 @@ export async function submitUpiPaymentVerification(paymentData) {
       })
     });
   } catch (err) {
-    console.warn('Backend payment auto-verify sync notice:', err.message);
-  }
-
-  // Automatic instant verification for valid 12-digit UTR
-  try {
-    if (db && createdId) {
-      await updateDoc(doc(db, 'payments', createdId), {
-        status: 'verified',
-        verifiedAt: new Date().toISOString(),
-        verifiedBy: 'AUTOMATIC_UPI_VERIFIER',
-        verificationMethod: 'INSTANT_AUTO_CHECK'
-      });
-      if (paymentType === 'release' && targetId) {
-        try {
-          await updateDoc(doc(db, 'releases', targetId), {
-            paymentStatus: 'paid',
-            uploadUnlocked: true,
-            updatedAt: new Date().toISOString()
-          });
-        } catch (e) {}
-      }
-      paymentRecord.status = 'verified';
-      paymentRecord.verifiedAt = new Date().toISOString();
-      paymentRecord.verifiedBy = 'AUTOMATIC_UPI_VERIFIER';
-    }
-  } catch (autoErr) {
-    console.warn('Instant auto-verify notice:', autoErr.message);
+    console.warn('Backend payment notification sync notice:', err.message);
   }
 
   return { 
     success: true, 
-    verified: paymentRecord.status === 'verified',
-    message: paymentRecord.status === 'verified' 
-      ? 'Payment verified automatically ✓' 
-      : 'Payment submitted for verification.', 
+    verified: false,
+    message: 'Payment verification submitted successfully. Your submission is under admin review.', 
     payment: { id: createdId, ...paymentRecord } 
-  };
-}
-
-/**
- * Submit Instant QR Scan Payment Verification
- * Automatically registers the QR payment, updates Firestore & backend, and unlocks release upload immediately!
- * No manual UTR entry needed!
- */
-export async function submitQrPaymentVerification(paymentData) {
-  const {
-    userId,
-    userEmail,
-    paymentType = 'release',
-    targetId,
-    releaseTitle,
-    planName,
-    amount,
-    upiApp = 'UPI QR Scan'
-  } = paymentData;
-
-  if (!userId || !amount) {
-    return { success: false, error: 'User ID and Amount are required.' };
-  }
-
-  // Generate authentic transaction reference ID
-  const txnId = `AR-UPI-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-
-  const paymentRecord = {
-    userId,
-    userEmail: userEmail || 'artist@adventurerecords.com',
-    paymentType,
-    targetId: targetId || null,
-    releaseTitle: releaseTitle || planName || 'Music Distribution',
-    planName: planName || '',
-    amount: Number(amount),
-    currency: 'INR',
-    merchantUpiId: '9691546208-3@ybl',
-    merchantName: 'Adventure Records',
-    utr: txnId,
-    transactionId: txnId,
-    paymentMethod: 'UPI_QR_SCAN',
-    upiApp: upiApp || 'Google Pay / PhonePe / Paytm',
-    status: 'verified',
-    verifiedAt: new Date().toISOString(),
-    verifiedBy: 'AUTOMATIC_QR_SCAN_VERIFIER',
-    verificationMethod: 'INSTANT_QR_SCAN',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
-
-  let createdId = 'pay_' + Date.now();
-
-  if (db) {
-    try {
-      const docRef = await addDoc(collection(db, 'payments'), paymentRecord);
-      createdId = docRef.id;
-
-      // Unlock Release in Firestore immediately
-      if (paymentType === 'release' && targetId) {
-        try {
-          const relRef = doc(db, 'releases', targetId);
-          await updateDoc(relRef, {
-            paymentStatus: 'paid',
-            uploadUnlocked: true,
-            updatedAt: new Date().toISOString()
-          });
-        } catch (e) {}
-      }
-
-      // Unlock subscription if subscription payment
-      if (paymentType === 'subscription') {
-        try {
-          await addDoc(collection(db, 'subscriptions'), {
-            userId,
-            userEmail,
-            plan: planName || 'Pro Subscription',
-            amount: Number(amount),
-            currency: 'INR',
-            merchantUpiId: '9691546208-3@ybl',
-            transactionId: txnId,
-            subscriptionStatus: 'active',
-            createdAt: new Date().toISOString()
-          });
-        } catch (e) {}
-      }
-    } catch (err) {
-      console.error('Firestore QR payment creation notice:', err);
-    }
-  }
-
-  // Sync with backend auto-verify endpoint
-  try {
-    const token = localStorage.getItem('token');
-    await fetch(`${API_URL}/api/payments/auto-verify`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      },
-      body: JSON.stringify({
-        paymentId: createdId,
-        paymentType,
-        targetId,
-        releaseTitle: releaseTitle || planName,
-        planName,
-        amount,
-        utr: txnId,
-        upiApp: 'UPI QR Scan'
-      })
-    });
-  } catch (err) {
-    console.warn('Backend QR auto-verify notice:', err.message);
-  }
-
-  return {
-    success: true,
-    verified: true,
-    message: 'Payment verified successfully via QR Scan ✓',
-    payment: { id: createdId, ...paymentRecord }
   };
 }
 
@@ -1048,18 +901,12 @@ export function subscribeUserPayments(userId, userEmail, callback) {
 }
 
 /**
- * Automatic Payment Check & Instant Verification
- * Checks a pending payment and automatically verifies it across Firestore and backend.
+ * Check Payment Verification Status (Read-Only)
+ * Securely queries Firestore to check if the admin has verified the payment.
+ * NEVER marks payments as verified automatically!
  */
-export async function autoCheckAndVerifyPayment(paymentId, paymentData = {}) {
-  if (!paymentId) return { success: false, error: 'Missing paymentId' };
-
-  let targetId = paymentData.targetId;
-  let paymentType = paymentData.paymentType || 'release';
-  let utr = paymentData.utr;
-  let userEmail = paymentData.userEmail;
-  let amount = paymentData.amount;
-  let releaseTitle = paymentData.releaseTitle;
+export async function fetchPaymentVerificationStatus(paymentId) {
+  if (!paymentId) return { success: false, status: 'unknown' };
 
   if (db) {
     try {
@@ -1067,111 +914,21 @@ export async function autoCheckAndVerifyPayment(paymentId, paymentData = {}) {
       const paySnap = await getDoc(payRef);
       if (paySnap.exists()) {
         const data = paySnap.data();
-        targetId = targetId || data.targetId;
-        paymentType = paymentType || data.paymentType || 'release';
-        utr = utr || data.utr;
-        userEmail = userEmail || data.userEmail;
-        amount = amount || data.amount;
-        releaseTitle = releaseTitle || data.releaseTitle;
-      }
-
-      // Strict fake / sequential UTR fraud check
-      const fakeCheck = detectFakeUtr(utr);
-      if (fakeCheck.isFake) {
-        // Must reject in Firestore!
-        await updateDoc(payRef, {
-          status: 'rejected',
-          rejectedReason: `Fake / invalid UTR detected: ${fakeCheck.reason}`,
-          verifiedAt: null,
-          verifiedBy: null,
-          verificationMethod: 'AUTO_FRAUD_CHECK',
-          updatedAt: new Date().toISOString()
-        });
-
-        if (paymentType === 'release' && targetId) {
-          try {
-            const relRef = doc(db, 'releases', targetId);
-            await updateDoc(relRef, {
-              paymentStatus: 'rejected',
-              uploadUnlocked: false,
-              updatedAt: new Date().toISOString()
-            });
-          } catch (e) {}
-        }
-
         return {
-          success: false,
-          verified: false,
-          isFake: true,
-          error: `⚠️ Fake UTR Detected: ${fakeCheck.reason}`
+          success: true,
+          status: data.status,
+          verified: data.status === 'verified',
+          utr: data.utr,
+          amount: data.amount,
+          verifiedAt: data.verifiedAt
         };
       }
-
-      // Update Firestore Payment document to verified
-      await updateDoc(payRef, {
-        status: 'verified',
-        verifiedAt: new Date().toISOString(),
-        verifiedBy: 'AUTOMATIC_UPI_VERIFIER',
-        verificationMethod: 'AUTOMATIC_CHECK'
-      });
-
-      // Unlock Release in Firestore
-      if (paymentType === 'release' && targetId) {
-        try {
-          const relRef = doc(db, 'releases', targetId);
-          await updateDoc(relRef, {
-            paymentStatus: 'paid',
-            uploadUnlocked: true,
-            updatedAt: new Date().toISOString()
-          });
-        } catch (e) {}
-      }
-
-      // Update Subscription in Firestore
-      if (paymentType === 'subscription' && paymentData.userId) {
-        try {
-          const subQ = query(collection(db, 'subscriptions'), where('userId', '==', paymentData.userId));
-          const subSnaps = await getDocs(subQ);
-          const expiryDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
-          subSnaps.forEach(async (subDoc) => {
-            await updateDoc(doc(db, 'subscriptions', subDoc.id), {
-              subscriptionStatus: 'active',
-              verifiedAt: new Date().toISOString(),
-              verifiedBy: 'AUTOMATIC_UPI_VERIFIER',
-              expiryDate
-            });
-          });
-        } catch (e) {}
-      }
     } catch (err) {
-      console.warn('Firestore auto-verification error:', err.message);
+      console.warn('Firestore payment status check notice:', err.message);
     }
   }
 
-  // Trigger backend auto-verify synchronization and customer notification email
-  try {
-    const token = localStorage.getItem('token');
-    await fetch(`${API_URL}/api/payments/auto-verify`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      },
-      body: JSON.stringify({
-        paymentId,
-        utr,
-        targetId,
-        paymentType,
-        userEmail,
-        amount,
-        releaseTitle
-      })
-    });
-  } catch (err) {
-    console.warn('Backend auto-verify sync notice:', err.message);
-  }
-
-  return { success: true, verified: true };
+  return { success: false, status: 'pending_verification', verified: false };
 }
 
 /**

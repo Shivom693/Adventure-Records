@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Music, Image, CheckCircle2, AlertCircle, ArrowRight, Disc, RefreshCw, Lock, ShieldCheck, QrCode, Link2, ExternalLink, Zap, Sparkles } from 'lucide-react';
+import { Music, Image, CheckCircle2, AlertCircle, ArrowRight, Disc, RefreshCw, Lock, ShieldCheck, QrCode, Link2, ExternalLink, Zap, Sparkles, Hourglass } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
-import { createFirestoreRelease, uploadArtworkToStorage, uploadAudioToStorage, fetchUserPayments, subscribeUserPayments, autoCheckAndVerifyPayment, detectFakeUtr } from '../services/dataService';
+import { createFirestoreRelease, uploadArtworkToStorage, uploadAudioToStorage, fetchUserPayments, subscribeUserPayments, detectFakeUtr } from '../services/dataService';
 import UpiPaymentModal from '../components/UpiPaymentModal';
 
 const UploadRelease = () => {
@@ -39,6 +39,8 @@ const UploadRelease = () => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [userPayments, setUserPayments] = useState([]);
   const [paymentVerified, setPaymentVerified] = useState(false);
+  const [paymentPending, setPaymentPending] = useState(false);
+  const [pendingUtr, setPendingUtr] = useState('');
 
   const navigate = useNavigate();
 
@@ -67,20 +69,38 @@ const UploadRelease = () => {
     // Bypass payment lock completely for tripathihariom573@gmail.com
     if (userEmail && userEmail.toLowerCase().trim() === 'tripathihariom573@gmail.com') {
       setPaymentVerified(true);
+      setPaymentPending(false);
       return;
     }
 
     const processPayments = (payments) => {
       setUserPayments(payments);
 
-      // A payment unlocks upload if status === 'verified' AND is not a legacy fake UTR
+      // A payment unlocks upload strictly if status === 'verified' AND is not a fake UTR
       const verifiedPay = payments.find(p => 
         p.status === 'verified' && 
         p.amount >= currentPrice &&
         (!p.utr || !detectFakeUtr(p.utr).isFake)
       );
 
-      setPaymentVerified(!!verifiedPay);
+      // A payment is pending review if status === 'pending_verification'
+      const pendingPay = payments.find(p => 
+        p.status === 'pending_verification' && 
+        p.amount >= currentPrice &&
+        (!p.utr || !detectFakeUtr(p.utr).isFake)
+      );
+
+      if (verifiedPay) {
+        setPaymentVerified(true);
+        setPaymentPending(false);
+      } else if (pendingPay) {
+        setPaymentVerified(false);
+        setPaymentPending(true);
+        setPendingUtr(pendingPay.utr);
+      } else {
+        setPaymentVerified(false);
+        setPaymentPending(false);
+      }
     };
 
     // 1. Initial Fetch
@@ -241,6 +261,10 @@ const UploadRelease = () => {
   const handlePaymentModalSuccess = (payment) => {
     if (payment?.status === 'verified') {
       setPaymentVerified(true);
+      setPaymentPending(false);
+    } else {
+      setPaymentPending(true);
+      if (payment?.utr) setPendingUtr(payment.utr);
     }
   };
 
@@ -256,12 +280,41 @@ const UploadRelease = () => {
             Create New Release
           </h1>
           <p className="text-zinc-400 text-sm">
-            Select release format, scan the official merchant UPI QR code (<span className="text-[#DEDCFF] font-mono">9691546208-3@ybl</span>) to pay, and unlock uploads instantly.
+            Select release format, pay via official merchant UPI QR (<span className="text-[#DEDCFF] font-mono">9691546208-3@ybl</span>), and submit UTR proof for Admin verification.
           </p>
         </div>
 
-        {/* Payment Lock Notification Banner */}
-        {!paymentVerified && (
+        {/* 1. Payment Under Review Banner (Submitted, waiting for Admin approval) */}
+        {!paymentVerified && paymentPending && (
+          <div className="p-6 rounded-2xl border transition-all bg-[#585589]/20 border-[#585589]/40 text-[#DEDCFF]">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 font-bold text-sm text-white">
+                  <Hourglass className="w-5 h-5 text-amber-400 animate-pulse shrink-0" />
+                  <span>Payment Proof Submitted — Pending Admin Verification</span>
+                </div>
+                <p className="text-xs text-zinc-300">
+                  UTR: <strong className="text-amber-400 font-mono font-bold">{pendingUtr}</strong> is currently being verified by the Adventure Records billing desk.
+                </p>
+                <p className="text-[11px] text-zinc-400">
+                  As soon as the admin verifies your ₹{currentPrice} payment in merchant bank records (9691546208-3@ybl), this page will <strong>unlock automatically in real-time</strong>.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsPaymentModalOpen(true)}
+                className="px-5 py-3 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/15 border border-white/20 text-white flex items-center gap-2 shrink-0 transition-all"
+              >
+                <QrCode className="w-4 h-4" />
+                <span>View Payment Info</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 2. Payment Locked Banner (Not yet paid) */}
+        {!paymentVerified && !paymentPending && (
           <div className="p-6 rounded-2xl border transition-all bg-red-500/10 border-red-500/30 text-red-300">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="space-y-1">
@@ -270,7 +323,7 @@ const UploadRelease = () => {
                   <span>Audio & Artwork Upload Locked (₹{currentPrice} Payment Verification Required)</span>
                 </div>
                 <p className="text-xs text-zinc-300">
-                  Scan the merchant UPI QR code to complete payment of <strong className="text-white">₹{currentPrice}</strong> for {formData.releaseType} release. Uploads will be unlocked instantly upon QR verification.
+                  Please scan the merchant UPI QR code to pay <strong className="text-white">₹{currentPrice}</strong> for {formData.releaseType} release and submit your 12-digit UTR. Uploads will be unlocked upon admin verification.
                 </p>
               </div>
 
@@ -280,12 +333,13 @@ const UploadRelease = () => {
                 className="btn-primary px-6 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-500/20 shrink-0"
               >
                 <QrCode className="w-4 h-4" />
-                <span>⚡ Scan QR & Unlock (₹{currentPrice})</span>
+                <span>Pay via UPI QR (₹{currentPrice})</span>
               </button>
             </div>
           </div>
         )}
 
+        {/* 3. Payment Verified Banner (Approved by Admin) */}
         {paymentVerified && (
           <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-3 animate-fade-in">
             <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
