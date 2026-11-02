@@ -57,31 +57,6 @@ const AdminPanel = () => {
     }
   };
 
-  const [autoVerifyingAll, setAutoVerifyingAll] = useState(false);
-
-  const handleAutoVerifyAllPending = async () => {
-    const pendingList = payments.filter(p => p.status === 'pending_verification');
-    if (pendingList.length === 0) return;
-    setAutoVerifyingAll(true);
-    setError('');
-    setSuccess('');
-    let verifiedCount = 0;
-    let rejectedCount = 0;
-    for (const pay of pendingList) {
-      const fakeCheck = detectFakeUtr(pay.utr);
-      if (fakeCheck.isFake) {
-        await verifyPaymentAdmin(pay.id, 'rejected', `Fake UTR detected: ${fakeCheck.reason}`);
-        rejectedCount++;
-      } else {
-        const res = await verifyPaymentAdmin(pay.id, 'verified', 'Auto-verified via instant admin batch check.');
-        if (res.success) verifiedCount++;
-      }
-    }
-    setAutoVerifyingAll(false);
-    setSuccess(`Batch complete: ${verifiedCount} payment(s) verified, ${rejectedCount} fake UTR(s) rejected!`);
-    await loadAdminData();
-  };
-
   const loadAdminData = async () => {
     const storedUserStr = localStorage.getItem('user');
     const authUser = auth?.currentUser;
@@ -323,16 +298,6 @@ const AdminPanel = () => {
               </h3>
               <div className="flex items-center gap-3">
                 <span className="text-xs text-zinc-400 font-mono">Total Submissions: {payments.length}</span>
-                {payments.some(p => p.status === 'pending_verification') && (
-                  <button
-                    onClick={handleAutoVerifyAllPending}
-                    disabled={autoVerifyingAll}
-                    className="px-3.5 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-xs font-bold flex items-center gap-1.5 hover:bg-emerald-500/30 transition-all shadow-sm disabled:opacity-50"
-                  >
-                    <Zap className="w-3.5 h-3.5" />
-                    {autoVerifyingAll ? 'Auto-Verifying...' : '⚡ Auto-Verify All Pending'}
-                  </button>
-                )}
               </div>
             </div>
 
