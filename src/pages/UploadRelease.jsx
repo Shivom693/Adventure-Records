@@ -39,12 +39,6 @@ const UploadRelease = () => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [userPayments, setUserPayments] = useState([]);
   const [paymentVerified, setPaymentVerified] = useState(false);
-  const [paymentPending, setPaymentPending] = useState(false);
-  const [paymentRejected, setPaymentRejected] = useState(false);
-  const [rejectedReason, setRejectedReason] = useState('');
-  const [paymentUtr, setPaymentUtr] = useState('');
-  const [isAutoChecking, setIsAutoChecking] = useState(false);
-  const [activePendingPayment, setActivePendingPayment] = useState(null);
 
   const navigate = useNavigate();
 
@@ -55,30 +49,6 @@ const UploadRelease = () => {
   };
 
   const currentPrice = getReleasePrice(formData.releaseType);
-
-  // Manual or Automated Verification Trigger
-  const handleManualAutoCheck = async (paymentToVerify = null) => {
-    const pay = paymentToVerify || activePendingPayment;
-    if (!pay) return;
-    setIsAutoChecking(true);
-    try {
-      const res = await autoCheckAndVerifyPayment(pay.id, pay);
-      if (res.verified) {
-        setPaymentVerified(true);
-        setPaymentPending(false);
-        setPaymentRejected(false);
-      } else if (res.isFake || res.status === 'rejected') {
-        setPaymentVerified(false);
-        setPaymentPending(false);
-        setPaymentRejected(true);
-        setRejectedReason(res.error || 'Fake or invalid UTR reference detected.');
-      }
-    } catch (e) {
-      console.warn('Auto-check error:', e);
-    } finally {
-      setIsAutoChecking(false);
-    }
-  };
 
   // Real-time live synchronization with Firebase payments (onSnapshot & auto-check)
   useEffect(() => {
@@ -97,85 +67,20 @@ const UploadRelease = () => {
     // Bypass payment lock completely for tripathihariom573@gmail.com
     if (userEmail && userEmail.toLowerCase().trim() === 'tripathihariom573@gmail.com') {
       setPaymentVerified(true);
-      setPaymentPending(false);
-      setPaymentRejected(false);
       return;
     }
 
     const processPayments = (payments) => {
-      // 1. Detect and auto-reject any payments with fake / dummy / sequential UTRs
-      payments.forEach(async (p) => {
-        if (p.utr) {
-          const fakeCheck = detectFakeUtr(p.utr);
-          if (fakeCheck.isFake) {
-            p.status = 'rejected';
-            p.rejectedReason = `Fake UTR detected: ${fakeCheck.reason}`;
-            if (db && p.id) {
-              try {
-                await updateDoc(doc(db, 'payments', p.id), {
-                  status: 'rejected',
-                  rejectedReason: `Fake UTR detected: ${fakeCheck.reason}`,
-                  verifiedAt: null,
-                  verifiedBy: null,
-                  updatedAt: new Date().toISOString()
-                });
-              } catch (e) {}
-            }
-          }
-        }
-      });
-
       setUserPayments(payments);
 
-      // A payment is only verified if status === 'verified' AND UTR is strictly NOT fake!
+      // A payment unlocks upload if status === 'verified' AND is not a legacy fake UTR
       const verifiedPay = payments.find(p => 
         p.status === 'verified' && 
-        !detectFakeUtr(p.utr || '').isFake && 
-        p.amount >= currentPrice
+        p.amount >= currentPrice &&
+        (!p.utr || !detectFakeUtr(p.utr).isFake)
       );
 
-      // Pending payment: status pending AND not fake
-      const pendingPay = payments.find(p => 
-        p.status === 'pending_verification' && 
-        !detectFakeUtr(p.utr || '').isFake && 
-        p.amount >= currentPrice
-      );
-
-      // Rejected or fake payment
-      const rejectedPay = payments.find(p => 
-        (p.status === 'rejected' || detectFakeUtr(p.utr || '').isFake) && 
-        p.amount >= currentPrice
-      );
-
-      if (verifiedPay) {
-        setPaymentVerified(true);
-        setPaymentPending(false);
-        setPaymentRejected(false);
-        setActivePendingPayment(null);
-      } else if (pendingPay) {
-        setPaymentVerified(false);
-        setPaymentPending(true);
-        setPaymentRejected(false);
-        setPaymentUtr(pendingPay.utr);
-        setActivePendingPayment(pendingPay);
-
-        // Auto-check pending payment automatically after 1.5 seconds
-        setTimeout(() => {
-          handleManualAutoCheck(pendingPay);
-        }, 1500);
-      } else if (rejectedPay) {
-        setPaymentVerified(false);
-        setPaymentPending(false);
-        setPaymentRejected(true);
-        setPaymentUtr(rejectedPay.utr);
-        setRejectedReason(rejectedPay.rejectedReason || detectFakeUtr(rejectedPay.utr || '').reason || 'Fake or invalid UTR reference number.');
-        setActivePendingPayment(null);
-      } else {
-        setPaymentVerified(false);
-        setPaymentPending(false);
-        setPaymentRejected(false);
-        setActivePendingPayment(null);
-      }
+      setPaymentVerified(!!verifiedPay);
     };
 
     // 1. Initial Fetch
@@ -336,17 +241,6 @@ const UploadRelease = () => {
   const handlePaymentModalSuccess = (payment) => {
     if (payment?.status === 'verified') {
       setPaymentVerified(true);
-      setPaymentPending(false);
-      setActivePendingPayment(null);
-      if (payment?.utr) setPaymentUtr(payment.utr);
-    } else {
-      setPaymentPending(true);
-      setPaymentVerified(false);
-      if (payment?.utr) setPaymentUtr(payment.utr);
-      if (payment?.id) {
-        setActivePendingPayment(payment);
-        handleManualAutoCheck(payment);
-      }
     }
   };
 
@@ -362,103 +256,38 @@ const UploadRelease = () => {
             Create New Release
           </h1>
           <p className="text-zinc-400 text-sm">
-            Select release format, pay via official UPI (<span className="text-[#DEDCFF] font-mono">9691546208-3@ybl</span>), and submit UTR proof for Admin verification.
+            Select release format, scan the official merchant UPI QR code (<span className="text-[#DEDCFF] font-mono">9691546208-3@ybl</span>) to pay, and unlock uploads instantly.
           </p>
         </div>
 
-        {/* Payment Rejected Banner (Fake or Invalid UTR detected) */}
-        {paymentRejected && !paymentVerified && (
-          <div className="p-6 rounded-2xl bg-red-500/10 border border-red-500/40 text-red-300 space-y-3">
+        {/* Payment Lock Notification Banner */}
+        {!paymentVerified && (
+          <div className="p-6 rounded-2xl border transition-all bg-red-500/10 border-red-500/30 text-red-300">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="space-y-1">
-                <div className="flex items-center gap-2 font-bold text-sm text-red-400">
-                  <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
-                  <span>Payment Rejected — Fake / Invalid UTR ({String(paymentUtr || '').replace(/^UTR:?\s*/i, '')})</span>
+                <div className="flex items-center gap-2 font-bold text-sm text-white">
+                  <Lock className="w-5 h-5 text-red-400" />
+                  <span>Audio & Artwork Upload Locked (₹{currentPrice} Payment Verification Required)</span>
                 </div>
                 <p className="text-xs text-zinc-300">
-                  {rejectedReason || 'The submitted UTR number failed security verification. Uploads cannot be unlocked with a fake or dummy UTR.'}
-                </p>
-                <p className="text-xs text-zinc-400">
-                  Please pay ₹{currentPrice} for {formData.releaseType} release to merchant <strong className="text-white font-mono">9691546208-3@ybl</strong> via UPI and submit the genuine 12-digit UTR from your UPI transaction history.
+                  Scan the merchant UPI QR code to complete payment of <strong className="text-white">₹{currentPrice}</strong> for {formData.releaseType} release. Uploads will be unlocked instantly upon QR verification.
                 </p>
               </div>
+
               <button
                 type="button"
                 onClick={() => setIsPaymentModalOpen(true)}
-                className="px-5 py-3 rounded-xl text-xs font-bold bg-red-500 hover:bg-red-400 text-black flex items-center gap-2 shrink-0 transition-all shadow-md"
+                className="btn-primary px-6 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-500/20 shrink-0"
               >
                 <QrCode className="w-4 h-4" />
-                <span>Pay ₹{currentPrice} (Real UTR)</span>
+                <span>⚡ Scan QR & Unlock (₹{currentPrice})</span>
               </button>
             </div>
           </div>
         )}
 
-        {/* Payment Lock Notification Banner */}
-        {!paymentVerified && !paymentRejected && (
-          <div className={`p-6 rounded-2xl border transition-all ${
-            paymentPending 
-              ? 'bg-[#585589]/20 border-[#585589]/40 text-[#DEDCFF]'
-              : 'bg-red-500/10 border-red-500/30 text-red-300'
-          }`}>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 font-bold text-sm text-white">
-                  {paymentPending ? (
-                    <>
-                      <RefreshCw className="w-5 h-5 text-amber-400 animate-spin" />
-                      <span>Payment Submitted — Automatic Verification Active</span>
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="w-5 h-5 text-red-400" />
-                      <span>Audio & Artwork Upload Locked (₹{currentPrice} Payment Verification Required)</span>
-                    </>
-                  )}
-                </div>
-                <p className="text-xs text-zinc-400">
-                  {paymentPending 
-                    ? `UTR: ${String(paymentUtr || '').replace(/^UTR:?\s*/i, '')} is being checked with the UPI network automatically.`
-                    : `Please pay ₹${currentPrice} for ${formData.releaseType} release to merchant 9691546208-3@ybl via UPI and submit UTR to unlock upload fields.`}
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2 shrink-0">
-                {paymentPending && (
-                  <button
-                    type="button"
-                    onClick={() => handleManualAutoCheck()}
-                    disabled={isAutoChecking}
-                    className="px-4 py-3 rounded-xl text-xs font-bold bg-amber-400 hover:bg-amber-300 text-black flex items-center gap-1.5 shadow-md transition-all disabled:opacity-50"
-                  >
-                    {isAutoChecking ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin text-black" />
-                        <span>Verifying...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Zap className="w-4 h-4 text-black" />
-                        <span>⚡ Check & Auto-Verify</span>
-                      </>
-                    )}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setIsPaymentModalOpen(true)}
-                  className="btn-primary px-5 py-3 rounded-xl text-xs font-bold flex items-center gap-2"
-                >
-                  <QrCode className="w-4 h-4" />
-                  {paymentPending ? 'View Payment' : `Pay ₹${currentPrice}`}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
         {paymentVerified && (
-          <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-3">
+          <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-3 animate-fade-in">
             <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
             <div>
               <span className="font-bold text-white text-sm block">Payment Verified ✓</span>

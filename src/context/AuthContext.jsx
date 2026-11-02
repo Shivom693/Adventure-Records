@@ -75,20 +75,29 @@ export const AuthProvider = ({ children }) => {
   const [firebaseUser, setFirebaseUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
 
-  // Helper to build cohesive user profile object
+  // Helper to build cohesive user profile object (isolated per account)
   const buildUserProfile = async (fbUser) => {
     if (!fbUser) return null;
     let storedUser = null;
     try {
       const raw = localStorage.getItem('user');
-      if (raw) storedUser = JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // ONLY reuse stored data if it belongs to the EXACT same user
+        if (parsed && (parsed.uid === fbUser.uid || parsed.email?.toLowerCase() === fbUser.email?.toLowerCase())) {
+          storedUser = parsed;
+        } else {
+          // Stale user from another account found in storage — purge it immediately!
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+        }
+      }
     } catch (e) {}
 
-    const email = fbUser.email || storedUser?.email || '';
-    const displayName = fbUser.displayName || storedUser?.artistName || storedUser?.name || email.split('@')[0];
-    const role = (email.toLowerCase() === 'adventureof693@gmail.com' || storedUser?.role === 'Admin') 
-      ? 'Admin' 
-      : 'Artist';
+    const email = fbUser.email ? fbUser.email.toLowerCase().trim() : '';
+    const displayName = fbUser.displayName || storedUser?.artistName || storedUser?.name || (email ? email.split('@')[0] : 'Artist');
+    // Role is strictly determined: only official owner email gets Admin role
+    const role = (email === 'adventureof693@gmail.com') ? 'Admin' : 'Artist';
 
     let token = `firebase-${fbUser.uid}`;
     try {
@@ -103,8 +112,7 @@ export const AuthProvider = ({ children }) => {
       role: role,
       isOtpVerified: true,
       emailVerified: fbUser.emailVerified,
-      photoURL: fbUser.photoURL || null,
-      ...storedUser
+      photoURL: fbUser.photoURL || null
     };
 
     // Cache locally for synchronous reads
@@ -125,21 +133,11 @@ export const AuthProvider = ({ children }) => {
           const profile = await buildUserProfile(fbUser);
           setUser(profile);
         } else {
-          // Check if admin user is logged in via legacy backend token
-          let legacyUser = null;
-          try {
-            const raw = localStorage.getItem('user');
-            if (raw) legacyUser = JSON.parse(raw);
-          } catch (e) {}
-
-          if (legacyUser && legacyUser.role === 'Admin') {
-            setUser(legacyUser);
-          } else {
-            setFirebaseUser(null);
-            setUser(null);
-            localStorage.removeItem('user');
-            localStorage.removeItem('token');
-          }
+          setFirebaseUser(null);
+          setUser(null);
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+          sessionStorage.clear();
         }
         setAuthLoading(false);
       });
@@ -205,6 +203,12 @@ export const AuthProvider = ({ children }) => {
   // Explicit User Logout
   const logout = async () => {
     try {
+      setUser(null);
+      setFirebaseUser(null);
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      localStorage.removeItem('activeUser');
+      sessionStorage.clear();
       if (isConfigured && auth) {
         await signOut(auth);
       }
@@ -215,6 +219,7 @@ export const AuthProvider = ({ children }) => {
       setFirebaseUser(null);
       localStorage.removeItem('user');
       localStorage.removeItem('token');
+      localStorage.removeItem('activeUser');
       sessionStorage.clear();
       window.dispatchEvent(new Event('auth-change'));
     }
