@@ -544,3 +544,36 @@ canvas {
 .dark .vinyl-player-card .vinyl-badge-dark * {
   color: #ffffff !important;
 }
+
+
+/* ═══════════════════════════════════════════
+   COMPACT PRIVACY & NECESSARY DATA POPUP
+   Must ALWAYS remain clean crisp white card in BOTH Light & Dark modes!
+   ═══════════════════════════════════════════ */
+.cookie-mini-popup,
+.light .cookie-mini-popup,
+.dark .cookie-mini-popup {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.cookie-mini-popup h2,
+.cookie-mini-popup h3,
+.light .cookie-mini-popup h2,
+.light .cookie-mini-popup h3,
+.dark .cookie-mini-popup h2,
+.dark .cookie-mini-popup h3 {
+  color: #1e293b !important;
+}
+
+.cookie-mini-popup p,
+.light .cookie-mini-popup p,
+.dark .cookie-mini-popup p {
+  color: #475569 !important;
+}
+
+.cookie-mini-popup p strong,
+.light .cookie-mini-popup p strong,
+.dark .cookie-mini-popup p strong {
+  color: #0f172a !important;
+}

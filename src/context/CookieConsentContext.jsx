@@ -27,20 +27,17 @@ export const CookieConsentProvider = ({ children }) => {
     } catch (e) {
       console.warn('Unable to read cookie consent from localStorage', e);
     }
-    return null;
+    return defaultConsent;
   });
 
-  const [showBanner, setShowBanner] = useState(() => consent === null);
+  // Always show banner when website opens as requested
+  const [showBanner, setShowBanner] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
-    // If no consent has been given yet, banner should be shown
-    if (consent === null) {
-      setShowBanner(true);
-    } else {
-      setShowBanner(false);
-    }
-  }, [consent]);
+    // Show banner on website open/mount
+    setShowBanner(true);
+  }, []);
 
   // Listen for global custom events to open settings modal from anywhere
   useEffect(() => {
@@ -73,7 +70,6 @@ export const CookieConsentProvider = ({ children }) => {
     setShowBanner(false);
     setShowSettings(false);
 
-    // Notify non-React or global listeners if analytics/marketing need gating
     window.dispatchEvent(
       new CustomEvent('adventure-cookie-consent-updated', { detail: newConsent })
     );
@@ -109,6 +105,7 @@ export const CookieConsentProvider = ({ children }) => {
         consent: consent || defaultConsent,
         hasConsented: consent !== null,
         showBanner,
+        setShowBanner,
         showSettings,
         acceptAll,
         rejectAll,
@@ -130,7 +127,6 @@ export const useCookieConsent = () => {
   return context;
 };
 
-// Global helper for non-react or static triggers
 export const triggerCookieSettingsModal = () => {
   window.dispatchEvent(new Event('adventure-open-cookie-settings'));
 };
