@@ -58,12 +58,19 @@ const CookieConsentBanner = () => {
             aria-live="polite"
             className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-[9999] w-[calc(100vw-2rem)] max-w-[390px]"
           >
-            <div className="cookie-mini-popup bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-[0_12px_36px_rgba(0,0,0,0.14),0_2px_8px_rgba(0,0,0,0.06)] font-sans">
+            <div
+              className="cookie-mini-popup rounded-2xl p-4 sm:p-5 border shadow-[0_12px_36px_rgba(0,0,0,0.14),0_2px_8px_rgba(0,0,0,0.06)] font-sans"
+              style={{
+                backgroundColor: '#ffffff',
+                color: '#0f172a',
+                borderColor: '#e2e8f0',
+              }}
+            >
               
               {/* Header row: Shield + Title + Close X */}
               <div className="flex items-center justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2">
-                  {/* Duotone Shield icon matching screenshot */}
+                  {/* Duotone Shield icon */}
                   <svg
                     viewBox="0 0 24 24"
                     className="w-[18px] h-[18px] shrink-0"
@@ -82,7 +89,10 @@ const CookieConsentBanner = () => {
                       fill="#94a3b8"
                     />
                   </svg>
-                  <h3 className="font-semibold text-slate-800 text-[14px] sm:text-[15px] tracking-tight m-0">
+                  <h3
+                    className="font-semibold text-[14px] sm:text-[15px] tracking-tight m-0"
+                    style={{ color: '#0f172a' }}
+                  >
                     Privacy &amp; Necessary Data
                   </h3>
                 </div>
@@ -91,7 +101,8 @@ const CookieConsentBanner = () => {
                 <button
                   type="button"
                   onClick={() => setShowBanner(false)}
-                  className="p-1 rounded-md text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                  className="p-1 rounded-md transition-colors cursor-pointer"
+                  style={{ color: '#94a3b8', background: 'transparent', border: 'none' }}
                   aria-label="Dismiss cookie notice"
                 >
                   <X className="w-4 h-4" />
@@ -99,8 +110,11 @@ const CookieConsentBanner = () => {
               </div>
 
               {/* Body text */}
-              <p className="text-[12.5px] sm:text-[13px] leading-relaxed text-slate-600 my-2.5 font-normal">
-                We strictly adhere to <strong className="font-bold text-slate-800">data minimization</strong>. We only collect details required for logistics services &amp; session security.
+              <p
+                className="text-[12.5px] sm:text-[13px] leading-relaxed my-2.5 font-normal"
+                style={{ color: '#475569' }}
+              >
+                We strictly adhere to <strong className="font-bold" style={{ color: '#0f172a' }}>data minimization</strong>. We only collect details required for logistics services &amp; session security.
               </p>
 
               {/* Action buttons row */}
@@ -108,7 +122,12 @@ const CookieConsentBanner = () => {
                 <button
                   type="button"
                   onClick={rejectAll}
-                  className="flex-1 py-2 px-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 font-semibold text-[12px] sm:text-[12.5px] hover:bg-slate-50 hover:border-slate-400 active:scale-95 transition-all cursor-pointer text-center whitespace-nowrap"
+                  className="cookie-btn-secondary flex-1 py-2 px-2.5 rounded-lg font-semibold text-[12px] sm:text-[12.5px] active:scale-95 transition-all cursor-pointer text-center whitespace-nowrap"
+                  style={{
+                    backgroundColor: '#ffffff',
+                    color: '#0f172a',
+                    border: '1.5px solid #cbd5e1',
+                  }}
                 >
                   Essential Only
                 </button>
@@ -116,7 +135,12 @@ const CookieConsentBanner = () => {
                 <button
                   type="button"
                   onClick={openCookieSettings}
-                  className="flex-1 py-2 px-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 font-semibold text-[12px] sm:text-[12.5px] hover:bg-slate-50 hover:border-slate-400 active:scale-95 transition-all cursor-pointer text-center whitespace-nowrap"
+                  className="cookie-btn-secondary flex-1 py-2 px-2.5 rounded-lg font-semibold text-[12px] sm:text-[12.5px] active:scale-95 transition-all cursor-pointer text-center whitespace-nowrap"
+                  style={{
+                    backgroundColor: '#ffffff',
+                    color: '#0f172a',
+                    border: '1.5px solid #cbd5e1',
+                  }}
                 >
                   Customize
                 </button>
@@ -124,7 +148,12 @@ const CookieConsentBanner = () => {
                 <button
                   type="button"
                   onClick={acceptAll}
-                  className="flex-1 py-2 px-2.5 rounded-lg bg-[#0f172a] text-white font-bold text-[12px] sm:text-[12.5px] hover:bg-[#1e293b] active:scale-95 transition-all cursor-pointer text-center whitespace-nowrap shadow-sm"
+                  className="cookie-btn-primary flex-1 py-2 px-2.5 rounded-lg font-bold text-[12px] sm:text-[12.5px] active:scale-95 transition-all cursor-pointer text-center whitespace-nowrap shadow-sm"
+                  style={{
+                    backgroundColor: '#0f172a',
+                    color: '#ffffff',
+                    border: '1.5px solid #0f172a',
+                  }}
                 >
                   Accept All
                 </button>
@@ -148,7 +177,12 @@ const CookieConsentBanner = () => {
             onClick={() => setShowBanner(true)}
             title="Privacy & Cookie Preferences"
             aria-label="Open Privacy & Cookie Preferences"
-            className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-[9990] p-2.5 rounded-full bg-white border border-slate-200 shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center justify-center text-slate-600 hover:text-slate-900"
+            className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-[9990] p-2.5 rounded-full border shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center justify-center"
+            style={{
+              backgroundColor: '#ffffff',
+              borderColor: '#e2e8f0',
+              color: '#475569',
+            }}
           >
             <svg
               viewBox="0 0 24 24"
@@ -189,22 +223,37 @@ const CookieConsentBanner = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 16 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="cookie-mini-popup w-full max-w-xl max-h-[90vh] bg-white rounded-2xl p-6 sm:p-7 flex flex-col shadow-2xl border border-slate-200 overflow-hidden font-sans"
+              className="cookie-mini-popup w-full max-w-xl max-h-[90vh] rounded-2xl p-6 sm:p-7 flex flex-col shadow-2xl border overflow-hidden font-sans"
+              style={{
+                backgroundColor: '#ffffff',
+                color: '#0f172a',
+                borderColor: '#e2e8f0',
+              }}
             >
               {/* Modal Header */}
-              <div className="flex items-start justify-between pb-4 mb-4 border-b border-slate-200 shrink-0">
+              <div
+                className="flex items-start justify-between pb-4 mb-4 border-b shrink-0"
+                style={{ borderColor: '#e2e8f0' }}
+              >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-slate-900 text-white">
+                  <div
+                    className="p-2 rounded-xl"
+                    style={{ backgroundColor: '#0f172a', color: '#ffffff' }}
+                  >
                     <Settings className="w-5 h-5" />
                   </div>
                   <div>
                     <h2
                       id="cookie-settings-title"
-                      className="font-bold text-lg text-slate-900 m-0"
+                      className="font-bold text-lg m-0"
+                      style={{ color: '#0f172a' }}
                     >
                       Cookie Preferences
                     </h2>
-                    <p className="text-xs text-slate-500 m-0 mt-0.5">
+                    <p
+                      className="text-xs m-0 mt-0.5"
+                      style={{ color: '#64748b' }}
+                    >
                       Configure your cookie preferences. Essential cookies are required for system security.
                     </p>
                   </div>
@@ -212,7 +261,8 @@ const CookieConsentBanner = () => {
                 <button
                   type="button"
                   onClick={closeCookieSettings}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg transition-colors cursor-pointer"
+                  style={{ color: '#94a3b8', background: 'transparent', border: 'none' }}
                   aria-label="Close settings"
                 >
                   <X className="w-5 h-5" />
@@ -247,11 +297,19 @@ const CookieConsentBanner = () => {
               </div>
 
               {/* Modal Footer */}
-              <div className="pt-4 mt-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+              <div
+                className="pt-4 mt-4 border-t flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0"
+                style={{ borderColor: '#e2e8f0' }}
+              >
                 <button
                   type="button"
                   onClick={rejectAll}
-                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold text-xs sm:text-sm hover:bg-slate-50 transition-colors cursor-pointer"
+                  className="cookie-btn-secondary w-full sm:w-auto px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition-colors cursor-pointer"
+                  style={{
+                    backgroundColor: '#ffffff',
+                    color: '#0f172a',
+                    border: '1.5px solid #cbd5e1',
+                  }}
                 >
                   Reject All
                 </button>
@@ -259,14 +317,24 @@ const CookieConsentBanner = () => {
                   <button
                     type="button"
                     onClick={handleSavePreferences}
-                    className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold text-xs sm:text-sm hover:bg-slate-50 transition-colors cursor-pointer"
+                    className="cookie-btn-secondary flex-1 sm:flex-none px-4 py-2.5 rounded-xl font-semibold text-xs sm:text-sm transition-colors cursor-pointer"
+                    style={{
+                      backgroundColor: '#ffffff',
+                      color: '#0f172a',
+                      border: '1.5px solid #cbd5e1',
+                    }}
                   >
                     Save Preferences
                   </button>
                   <button
                     type="button"
                     onClick={acceptAll}
-                    className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs sm:text-sm hover:bg-slate-800 transition-colors shadow-sm cursor-pointer"
+                    className="cookie-btn-primary flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-colors shadow-sm cursor-pointer"
+                    style={{
+                      backgroundColor: '#0f172a',
+                      color: '#ffffff',
+                      border: '1.5px solid #0f172a',
+                    }}
                   >
                     Accept All
                   </button>
@@ -283,21 +351,43 @@ const CookieConsentBanner = () => {
 
 /* ── Toggle Sub-component ── */
 const SettingsCard = ({ title, desc, alwaysOn, checked, onChange }) => (
-  <div className="p-3.5 sm:p-4 rounded-xl border border-slate-200 bg-slate-50/60 flex items-center justify-between gap-4">
+  <div
+    className="cookie-settings-card p-3.5 sm:p-4 rounded-xl border flex items-center justify-between gap-4"
+    style={{
+      backgroundColor: '#f8fafc',
+      borderColor: '#e2e8f0',
+    }}
+  >
     <div className="space-y-1">
       <div className="flex items-center gap-2">
-        <span className="font-semibold text-sm text-slate-900">{title}</span>
+        <span
+          className="font-semibold text-sm"
+          style={{ color: '#0f172a' }}
+        >
+          {title}
+        </span>
         {alwaysOn ? (
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-900 text-white flex items-center gap-1">
+          <span
+            className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"
+            style={{ backgroundColor: '#0f172a', color: '#ffffff' }}
+          >
             <Lock className="w-2.5 h-2.5" /> Required
           </span>
         ) : (
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-slate-200 text-slate-600">
+          <span
+            className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider"
+            style={{ backgroundColor: '#e2e8f0', color: '#475569' }}
+          >
             Optional
           </span>
         )}
       </div>
-      <p className="text-xs text-slate-500 m-0 leading-relaxed">{desc}</p>
+      <p
+        className="text-xs m-0 leading-relaxed"
+        style={{ color: '#64748b' }}
+      >
+        {desc}
+      </p>
     </div>
     <div className="shrink-0">
       {alwaysOn ? (
@@ -319,7 +409,12 @@ const ToggleSwitch = ({ checked, onChange }) => (
       onChange={(e) => onChange(e.target.checked)}
       className="sr-only peer"
     />
-    <div className="w-10 h-5 bg-slate-300 rounded-full peer peer-checked:bg-slate-900 transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-5" />
+    <div
+      className="w-10 h-5 rounded-full transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-transform peer-checked:after:translate-x-5"
+      style={{
+        backgroundColor: checked ? '#0f172a' : '#cbd5e1',
+      }}
+    />
   </label>
 );
 
