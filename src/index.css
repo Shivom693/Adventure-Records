@@ -577,3 +577,68 @@ canvas {
 .dark .cookie-mini-popup p strong {
   color: #0f172a !important;
 }
+
+/* Specific button rules for Cookie Mini Popup & Settings Modal */
+.cookie-btn-secondary,
+.light .cookie-btn-secondary,
+.dark .cookie-btn-secondary {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1.5px solid #cbd5e1 !important;
+}
+
+.cookie-btn-secondary *,
+.light .cookie-btn-secondary *,
+.dark .cookie-btn-secondary * {
+  color: #0f172a !important;
+}
+
+.cookie-btn-secondary:hover,
+.light .cookie-btn-secondary:hover,
+.dark .cookie-btn-secondary:hover {
+  background-color: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+}
+
+.cookie-btn-primary,
+.light .cookie-btn-primary,
+.dark .cookie-btn-primary {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  border: 1.5px solid #0f172a !important;
+}
+
+.cookie-btn-primary *,
+.light .cookie-btn-primary *,
+.dark .cookie-btn-primary * {
+  color: #ffffff !important;
+}
+
+.cookie-btn-primary:hover,
+.light .cookie-btn-primary:hover,
+.dark .cookie-btn-primary:hover {
+  background-color: #1e293b !important;
+  border-color: #1e293b !important;
+  color: #ffffff !important;
+}
+
+/* Modal specific overrides for text inside settings */
+.cookie-settings-card,
+.light .cookie-settings-card,
+.dark .cookie-settings-card {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+.cookie-settings-card span,
+.light .cookie-settings-card span,
+.dark .cookie-settings-card span {
+  color: #0f172a !important;
+}
+
+.cookie-settings-card p,
+.light .cookie-settings-card p,
+.dark .cookie-settings-card p {
+  color: #64748b !important;
+}
