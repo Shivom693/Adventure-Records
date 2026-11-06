@@ -140,6 +140,79 @@
   }
 }
 
+/* ═══════════════════════════════════════════
+   GLASS PANEL — Always dark, never light-mode overridden
+   Used for futuristic dark glassmorphism cards
+   ═══════════════════════════════════════════ */
+.glass-panel {
+  background: rgba(10, 8, 20, 0.75) !important;
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid rgba(136, 85, 255, 0.18) !important;
+  box-shadow:
+    0 0 0 1px rgba(136, 85, 255, 0.08),
+    0 8px 32px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  color: #ffffff !important;
+}
+
+.glass-panel *,
+.light .glass-panel,
+.light .glass-panel * {
+  color: #ffffff !important;
+}
+
+.glass-panel .text-zinc-200,
+.glass-panel .text-zinc-300,
+.glass-panel .text-zinc-400,
+.light .glass-panel .text-zinc-200,
+.light .glass-panel .text-zinc-300,
+.light .glass-panel .text-zinc-400 {
+  color: rgba(255, 255, 255, 0.72) !important;
+}
+
+/* ═══════════════════════════════════════════
+   DARK SECTION BAND — always-dark panel (Features page, etc.)
+   ═══════════════════════════════════════════ */
+.dark-section-band {
+  background: linear-gradient(135deg,
+    rgba(5, 3, 15, 0.98) 0%,
+    rgba(14, 10, 35, 0.98) 50%,
+    rgba(5, 3, 15, 0.98) 100%
+  ) !important;
+  border-top: 1px solid rgba(136, 85, 255, 0.15) !important;
+  border-bottom: 1px solid rgba(136, 85, 255, 0.10) !important;
+  position: relative;
+}
+
+.dark-section-band::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 50%, rgba(88, 85, 137, 0.14) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 60% at 80% 50%, rgba(99, 60, 180, 0.09) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.dark-section-band *,
+.light .dark-section-band,
+.light .dark-section-band * {
+  color: #ffffff !important;
+}
+
+.dark-section-band .text-zinc-400,
+.light .dark-section-band .text-zinc-400 {
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+
+.dark-section-band .text-zinc-300,
+.dark-section-band .text-zinc-200,
+.light .dark-section-band .text-zinc-300,
+.light .dark-section-band .text-zinc-200 {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
 /* Minimalist D2C Card & Surface Utilities */
 .minimal-card {
   background-color: var(--bg-card);
