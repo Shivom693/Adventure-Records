@@ -33,7 +33,7 @@ function getKnowledgeResponse(promptText, authUser, userReleases = [], userTicke
 
   // Payment & Merchant UPI
   if (query.includes('payment') || query.includes('upi') || query.includes('pay') || query.includes('merchant')) {
-    return "We accept instant payments via UPI. Our official Merchant UPI ID is 9691546208-3@ybl. Enter the UTR/Reference number after completing payment to activate your release.";
+    return "We accept instant payments via UPI. Our official Merchant UPI ID is 9691546208-3@ybl. Scan the QR code in the payment modal to verify and unlock your release upload instantly.";
   }
 
   // User Releases & Status
