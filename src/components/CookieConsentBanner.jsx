@@ -45,7 +45,7 @@ const CookieConsentBanner = () => {
 
   return (
     <>
-      {/* ── Compact Privacy & Necessary Data Popup ── */}
+      {/* ── Compact This website uses cookies Popup ── */}
       <AnimatePresence>
         {showBanner && !showSettings && (
           <motion.div
@@ -56,7 +56,7 @@ const CookieConsentBanner = () => {
             transition={{ duration: 0.25, ease: 'easeOut' }}
             role="dialog"
             aria-live="polite"
-            className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-[9999] w-[calc(100vw-2rem)] max-w-[390px]"
+            className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-[9999] w-[calc(100vw-2rem)] max-w-[440px]"
           >
             <div
               className="cookie-mini-popup rounded-2xl p-4 sm:p-5 border shadow-[0_12px_36px_rgba(0,0,0,0.14),0_2px_8px_rgba(0,0,0,0.06)] font-sans"
@@ -93,7 +93,7 @@ const CookieConsentBanner = () => {
                     className="font-semibold text-[14px] sm:text-[15px] tracking-tight m-0"
                     style={{ color: '#0f172a' }}
                   >
-                    Privacy &amp; Necessary Data
+                    This website uses cookies
                   </h3>
                 </div>
 
@@ -111,10 +111,10 @@ const CookieConsentBanner = () => {
 
               {/* Body text */}
               <p
-                className="text-[12.5px] sm:text-[13px] leading-relaxed my-2.5 font-normal"
+                className="text-[12px] sm:text-[12.5px] leading-relaxed my-2.5 font-normal"
                 style={{ color: '#475569' }}
               >
-                We strictly adhere to <strong className="font-bold" style={{ color: '#0f172a' }}>data minimization</strong>. We only collect details required for logistics services &amp; session security.
+                We use cookies to personalise content and ads, to provide social media features and to analyse our traffic. We also share information about your use of our site with our social media, advertising and analytics partners who may combine it with other information that you’ve provided to them or that they’ve collected from your use of their services.
               </p>
 
               {/* Action buttons row */}
