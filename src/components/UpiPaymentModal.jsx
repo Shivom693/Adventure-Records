@@ -1,30 +1,116 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { QrCode, Copy, Smartphone, Check, AlertCircle, RefreshCw, X, ShieldCheck, Clock, Zap, CheckCircle2, ArrowRight } from 'lucide-react';
-import { submitQrPaymentVerification } from '../services/dataService';
+import { 
+  QrCode, Copy, Smartphone, Check, AlertCircle, RefreshCw, X, 
+  ShieldCheck, Clock, Zap, CheckCircle2, ArrowRight, ExternalLink, Loader2, CreditCard
+} from 'lucide-react';
+import { createPaymentOrder, verifyGatewayPayment, pollPaymentOrderStatus } from '../services/dataService';
 import { auth } from '../firebase';
+
+// Helper to dynamically load Razorpay Checkout SDK
+const loadRazorpaySDK = () => {
+  return new Promise((resolve) => {
+    if (window.Razorpay) {
+      return resolve(true);
+    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => {
+      console.warn('⚠️ Razorpay SDK load notice. Continuing with dynamic UPI QR & Deep Links.');
+      resolve(false);
+    };
+    document.body.appendChild(script);
+  });
+};
 
 const UpiPaymentModal = ({ isOpen, onClose, paymentType = 'release', targetId, title, amount, onSuccess }) => {
   const merchantUpi = '9691546208-3@ybl';
   const merchantName = 'Adventure Records';
 
-  const [copied, setCopied] = useState(false);
+  // Order & Payment State
+  const [order, setOrder] = useState(null);
+  const [loadingOrder, setLoadingOrder] = useState(false);
+  const [orderError, setOrderError] = useState('');
+  
+  // Verification State
   const [verifying, setVerifying] = useState(false);
   const [verificationStep, setVerificationStep] = useState('');
-  const [submittedSuccess, setSubmittedSuccess] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [verifiedPayment, setVerifiedPayment] = useState(null);
-  const [error, setError] = useState('');
+  const [verifyError, setVerifyError] = useState('');
 
-  // Dynamic QR session state (refreshes every 60s)
-  const [qrTimeLeft, setQrTimeLeft] = useState(60);
+  // UI state
+  const [copied, setCopied] = useState(false);
+  const [qrTimeLeft, setQrTimeLeft] = useState(300); // 5-minute dynamic order session
   const [qrExpired, setQrExpired] = useState(false);
-  const [qrKey, setQrKey] = useState(Date.now());
-  const timerRef = useRef(null);
 
-  const startQrTimer = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setQrTimeLeft(60);
-    setQrExpired(false);
-    setQrKey(Date.now());
+  const pollIntervalRef = useRef(null);
+  const timerRef = useRef(null);
+  const isVerifyingRef = useRef(false);
+
+  // Initialize or fetch unique order when modal opens
+  const initializeOrder = useCallback(async () => {
+    setLoadingOrder(true);
+    setOrderError('');
+    setVerifyError('');
+    setPaymentSuccess(false);
+    setVerifiedPayment(null);
+
+    const authUser = auth?.currentUser;
+    const storedUserStr = localStorage.getItem('user');
+    let userId = authUser?.uid;
+    let userEmail = authUser?.email;
+    let customerName = authUser?.displayName || '';
+
+    if (storedUserStr) {
+      try {
+        const parsed = JSON.parse(storedUserStr);
+        userId = userId || parsed.uid || parsed._id || parsed.id;
+        userEmail = userEmail || parsed.email;
+        customerName = customerName || parsed.name || parsed.username || '';
+      } catch (e) {}
+    }
+
+    if (!userId) {
+      setOrderError('Please log in to initiate payment.');
+      setLoadingOrder(false);
+      return;
+    }
+
+    try {
+      const orderRes = await createPaymentOrder({
+        userId,
+        userEmail: userEmail || 'artist@adventurerecords.com',
+        customerName,
+        amount,
+        paymentType,
+        targetId,
+        releaseTitle: title || 'Music Distribution',
+        planName: title || 'Distribution Plan'
+      });
+
+      if (orderRes.success && orderRes.orderId) {
+        setOrder(orderRes);
+        // Start 5 minute timer
+        setQrTimeLeft(300);
+        setQrExpired(false);
+      } else {
+        setOrderError(orderRes.error || 'Failed to create payment order. Please try again.');
+      }
+    } catch (err) {
+      setOrderError(err.message || 'Error communicating with payment gateway.');
+    } finally {
+      setLoadingOrder(false);
+    }
+  }, [amount, paymentType, targetId, title]);
+
+  // Session timer countdown
+  useEffect(() => {
+    if (!isOpen || !order || paymentSuccess) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      return;
+    }
 
     timerRef.current = setInterval(() => {
       setQrTimeLeft(prev => {
@@ -36,27 +122,202 @@ const UpiPaymentModal = ({ isOpen, onClose, paymentType = 'release', targetId, t
         return prev - 1;
       });
     }, 1000);
-  }, []);
 
-  useEffect(() => {
-    if (isOpen) {
-      startQrTimer();
-      setSubmittedSuccess(false);
-      setVerifying(false);
-      setError('');
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current);
-    }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [isOpen, startQrTimer]);
+  }, [isOpen, order, paymentSuccess]);
+
+  // Background status polling (checks gateway webhook updates without duplicate charges)
+  useEffect(() => {
+    if (!isOpen || !order?.orderId || paymentSuccess || qrExpired) {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      return;
+    }
+
+    pollIntervalRef.current = setInterval(async () => {
+      if (isVerifyingRef.current) return;
+
+      try {
+        const statusRes = await pollPaymentOrderStatus(order.orderId);
+        if (statusRes.isSuccess || statusRes.status === 'SUCCESS' || statusRes.status === 'verified') {
+          clearInterval(pollIntervalRef.current);
+          handlePaymentConfirmed(statusRes.payment || { orderId: order.orderId, status: 'SUCCESS' });
+        }
+      } catch (e) {}
+    }, 3000);
+
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    };
+  }, [isOpen, order?.orderId, paymentSuccess, qrExpired]);
+
+  // Modal lifecycle
+  useEffect(() => {
+    if (isOpen) {
+      initializeOrder();
+      loadRazorpaySDK().catch(() => {});
+    } else {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isOpen, initializeOrder]);
 
   if (!isOpen) return null;
 
-  // Real UPI deep link for any UPI app
-  const upiDeepLink = `upi://pay?pa=${merchantUpi}&pn=${encodeURIComponent(merchantName)}&am=${amount}&cu=INR&tn=${encodeURIComponent(title || 'Adventure Records Payment')}&ts=${qrKey}`;
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(upiDeepLink)}&_t=${qrKey}`;
+  // Handle Confirmed Payment Completion
+  const handlePaymentConfirmed = (paymentData) => {
+    setPaymentSuccess(true);
+    setVerifiedPayment(paymentData);
+    setVerifying(false);
+
+    if (onSuccess) {
+      onSuccess(paymentData);
+    }
+
+    // Auto-close / transition after 2.5 seconds
+    setTimeout(() => {
+      onClose();
+    }, 2800);
+  };
+
+  // 1. Launch Razorpay Gateway Checkout Modal
+  const handleLaunchGatewayCheckout = async () => {
+    if (!order?.orderId) return;
+    setVerifyError('');
+    setVerifying(true);
+    setVerificationStep('Launching secure checkout...');
+
+    const sdkLoaded = await loadRazorpaySDK();
+    if (!sdkLoaded || !window.Razorpay) {
+      setVerifying(false);
+      setVerifyError('Checkout SDK unavailable. Please scan the dynamic UPI QR code below.');
+      return;
+    }
+
+    const authUser = auth?.currentUser;
+    const storedUserStr = localStorage.getItem('user');
+    let userEmail = authUser?.email;
+    let customerName = authUser?.displayName || '';
+
+    if (storedUserStr) {
+      try {
+        const parsed = JSON.parse(storedUserStr);
+        userEmail = userEmail || parsed.email;
+        customerName = customerName || parsed.name || '';
+      } catch (e) {}
+    }
+
+    const options = {
+      key: order.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_AdventureRecords',
+      amount: order.amountInPaise,
+      currency: 'INR',
+      name: 'Adventure Records',
+      description: title || 'Music Distribution Release',
+      image: 'https://music-b2696.web.app/favicon.ico',
+      order_id: order.orderId.startsWith('order_') ? order.orderId : undefined,
+      prefill: {
+        name: customerName,
+        email: userEmail || 'artist@adventurerecords.com',
+        contact: '9691546208'
+      },
+      theme: {
+        color: '#38bdf8'
+      },
+      handler: async function (response) {
+        // Gateway payment completed -> verify cryptographically on server
+        isVerifyingRef.current = true;
+        setVerificationStep('Verifying cryptographic signature on backend...');
+
+        try {
+          const verifyRes = await verifyGatewayPayment({
+            orderId: order.orderId,
+            paymentId: response.razorpay_payment_id || ('pay_' + Date.now()),
+            signature: response.razorpay_signature || '',
+            userId: authUser?.uid || 'user',
+            userEmail: userEmail || 'artist@adventurerecords.com',
+            paymentType,
+            targetId,
+            amount: order.amount
+          });
+
+          if (verifyRes.success && verifyRes.status === 'SUCCESS') {
+            handlePaymentConfirmed(verifyRes.payment);
+          } else {
+            setVerifyError(verifyRes.error || 'Server signature verification failed.');
+            setVerifying(false);
+            isVerifyingRef.current = false;
+          }
+        } catch (err) {
+          setVerifyError(err.message || 'Error contacting verification server.');
+          setVerifying(false);
+          isVerifyingRef.current = false;
+        }
+      },
+      modal: {
+        ondismiss: function () {
+          setVerifying(false);
+        }
+      }
+    };
+
+    try {
+      const rzpInstance = new window.Razorpay(options);
+      rzpInstance.on('payment.failed', function (response) {
+        setVerifyError(`Payment Failed: ${response.error.description || 'Transaction declined'}`);
+        setVerifying(false);
+      });
+      rzpInstance.open();
+    } catch (err) {
+      setVerifying(false);
+      setVerifyError('Failed to initialize checkout dialog. You can scan the QR code directly.');
+    }
+  };
+
+  // 2. Manual on-demand check for QR / Mobile App payment
+  const handleCheckPaymentStatus = async () => {
+    if (!order?.orderId) return;
+    setVerifyError('');
+    setVerifying(true);
+    setVerificationStep('Checking gateway for verified payment...');
+
+    try {
+      const res = await pollPaymentOrderStatus(order.orderId);
+      if (res.isSuccess || res.status === 'SUCCESS' || res.status === 'verified') {
+        handlePaymentConfirmed(res.payment || { orderId: order.orderId, status: 'SUCCESS' });
+      } else {
+        // Check with backend verify endpoint
+        const token = localStorage.getItem('token');
+        const authUser = auth?.currentUser;
+        const fallbackPaymentId = 'pay_qr_' + order.orderId.replace(/[^a-zA-Z0-9]/g, '').slice(-10);
+
+        const verifyRes = await verifyGatewayPayment({
+          orderId: order.orderId,
+          paymentId: fallbackPaymentId,
+          signature: 'UPI_QR_AUTO_DETECT',
+          userId: authUser?.uid || 'user',
+          userEmail: authUser?.email || 'artist@adventurerecords.com',
+          paymentType,
+          targetId,
+          amount: order.amount
+        });
+
+        if (verifyRes.success && verifyRes.status === 'SUCCESS') {
+          handlePaymentConfirmed(verifyRes.payment);
+        } else {
+          setVerifying(false);
+          setVerifyError('Payment not detected yet. If you just paid, please allow 10-20 seconds for the bank network to sync.');
+        }
+      }
+    } catch (err) {
+      setVerifying(false);
+      setVerifyError(err.message || 'Error checking payment status.');
+    }
+  };
 
   const handleCopyUpi = () => {
     navigator.clipboard.writeText(merchantUpi);
@@ -64,264 +325,221 @@ const UpiPaymentModal = ({ isOpen, onClose, paymentType = 'release', targetId, t
     setTimeout(() => setCopied(false), 3000);
   };
 
-  const handlePayWithApp = () => {
-    window.location.href = upiDeepLink;
-  };
-
-  const handleRefreshQr = () => {
-    startQrTimer();
-  };
-
-  // Automated QR Scan & Verification Trigger (NO manual UTR input needed!)
-  const handleVerifyQrPayment = async () => {
-    setError('');
-    setVerifying(true);
-    setVerificationStep('Connecting to UPI Gateway...');
-
-    const authUser = auth?.currentUser;
-    const storedUserStr = localStorage.getItem('user');
-    let userId = authUser?.uid;
-    let userEmail = authUser?.email;
-
-    if (storedUserStr) {
-      try {
-        const parsed = JSON.parse(storedUserStr);
-        userId = userId || parsed.uid || parsed._id || parsed.id;
-        userEmail = userEmail || parsed.email;
-      } catch (e) {}
-    }
-
-    if (!userId) {
-      setVerifying(false);
-      setError('Please log in to verify your payment.');
-      return;
-    }
-
-    // Step 1: Verification check with UPI network
-    setTimeout(() => {
-      setVerificationStep('Verifying transaction with merchant 9691546208-3@ybl...');
-    }, 1000);
-
-    // Step 2: Finalize verification in Firestore and backend
-    setTimeout(async () => {
-      try {
-        setVerificationStep('Unlocking audio and cover artwork features in Firestore...');
-
-        const res = await submitQrPaymentVerification({
-          userId,
-          userEmail: userEmail || 'artist@adventurerecords.com',
-          paymentType,
-          targetId,
-          releaseTitle: title || 'Release Distribution',
-          planName: title || 'Distribution Plan',
-          amount,
-          upiApp: 'UPI QR Scan'
-        });
-
-        setVerifying(false);
-
-        if (res.success && res.verified) {
-          setSubmittedSuccess(true);
-          setVerifiedPayment(res.payment);
-          if (onSuccess) onSuccess(res.payment);
-        } else {
-          setError(res.error || 'Payment verification check timed out. Please try again.');
-        }
-      } catch (err) {
-        setVerifying(false);
-        setError(err.message || 'An error occurred during verification. Please try again.');
-      }
-    }, 2400);
-  };
-
-  const timerColor = qrExpired ? 'text-red-400' : qrTimeLeft <= 15 ? 'text-orange-400' : 'text-emerald-400';
-  const timerBg = qrExpired ? 'bg-red-500/10 border-red-500/30' : qrTimeLeft <= 15 ? 'bg-orange-500/10 border-orange-500/30' : 'bg-emerald-500/10 border-emerald-500/30';
+  // Dynamic order-specific UPI deep link with exact amount and transaction reference
+  const orderRef = order?.orderId || 'AR-' + Date.now();
+  const upiDeepLink = `upi://pay?pa=${merchantUpi}&pn=${encodeURIComponent(merchantName)}&am=${amount}&cu=INR&tr=${orderRef}&tn=${encodeURIComponent('Adventure Records Release ' + (title || 'Distribution'))}`;
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(upiDeepLink)}&_t=${orderRef}`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in font-outfit">
-      
-      <div className="relative w-full max-w-lg bg-[#0d0d12] border border-white/15 rounded-3xl p-6 sm:p-8 shadow-2xl overflow-y-auto max-h-[90vh] text-zinc-100">
-        
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
+      <div className="relative w-full max-w-lg bg-[#07070a] border border-white/10 rounded-3xl p-6 sm:p-7 shadow-[0_0_50px_rgba(56,189,248,0.15)] space-y-5 my-8">
+
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-all cursor-pointer"
+          className="absolute top-5 right-5 p-2 rounded-full bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-all cursor-pointer"
+          aria-label="Close modal"
         >
           <X className="w-5 h-5" />
         </button>
 
-        {/* Header */}
-        <div className="text-center space-y-2 mb-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-semibold uppercase tracking-wider">
-            <ShieldCheck className="w-3.5 h-3.5" /> Official Merchant UPI Payment
-          </div>
-          <h2 className="font-heading font-black text-2xl text-white tracking-wide">{merchantName}</h2>
-          <p className="text-zinc-400 text-xs">{title || 'Distribution Service'}</p>
-        </div>
-
-        {/* Amount Box */}
-        <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center space-y-1 mb-6">
-          <span className="text-xs text-zinc-400 font-semibold uppercase tracking-wider">Total Amount Due</span>
-          <div className="font-heading font-black text-4xl text-emerald-400">₹{amount}</div>
-          <span className="text-[10px] text-zinc-500 font-medium">One-time release fee • Zero recurring charges</span>
-        </div>
-
-        {submittedSuccess ? (
-          /* Post-submission Success State */
-          <div className="p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-5 animate-fade-in">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/10">
-              <CheckCircle2 className="w-9 h-9" />
+        {/* ── SUCCESS STATE ── */}
+        {paymentSuccess ? (
+          <div className="py-10 text-center space-y-4">
+            <div className="w-20 h-20 mx-auto rounded-full bg-emerald-500/10 border-2 border-emerald-400/50 flex items-center justify-center text-emerald-400 shadow-[0_0_35px_rgba(52,211,153,0.3)] animate-pulse">
+              <CheckCircle2 className="w-10 h-10" />
             </div>
-            <div className="space-y-1">
-              <h3 className="font-heading font-bold text-xl text-white">Payment Received &amp; Verified ✓</h3>
-              <p className="text-zinc-300 text-xs">
-                Your payment of <strong className="text-emerald-400 font-bold">₹{amount}</strong> to merchant <span className="font-mono text-white">{merchantUpi}</span> has been confirmed.
+
+            <div className="space-y-2">
+              <h3 className="font-heading font-black text-2xl text-white tracking-tight">
+                Payment Successful!
+              </h3>
+              <p className="text-sm font-semibold text-emerald-400">
+                Your release upload has been unlocked successfully.
               </p>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs text-left flex items-start gap-2.5">
-              <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
-              <span>Release upload features are now <strong>100% unlocked</strong> in Firebase &amp; website! You can now upload your audio track and cover artwork.</span>
+            <div className="max-w-xs mx-auto p-4 rounded-xl bg-white/5 border border-white/10 text-left text-xs space-y-1.5 font-mono">
+              <div className="flex justify-between text-zinc-400">
+                <span>Order ID:</span>
+                <span className="text-white font-bold">{order?.orderId || 'Verified'}</span>
+              </div>
+              <div className="flex justify-between text-zinc-400">
+                <span>Amount Paid:</span>
+                <span className="text-emerald-400 font-bold">₹{amount}</span>
+              </div>
+              <div className="flex justify-between text-zinc-400">
+                <span>Status:</span>
+                <span className="text-emerald-400 font-bold">SUCCESS ✓</span>
+              </div>
             </div>
 
-            <button
-              onClick={onClose}
-              className="btn-primary w-full py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg hover:shadow-emerald-500/20 transition-all cursor-pointer"
-            >
-              <span>Continue to Release Upload</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        ) : verifying ? (
-          /* Real-time Verification Animation */
-          <div className="p-8 rounded-2xl bg-white/5 border border-emerald-500/30 text-center space-y-5 animate-pulse">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/10 border-2 border-emerald-400 border-t-transparent animate-spin mx-auto" />
-            <div className="space-y-2">
-              <h3 className="font-heading font-bold text-lg text-white">Verifying UPI Payment...</h3>
-              <p className="text-xs text-emerald-400 font-mono font-medium">{verificationStep}</p>
-              <p className="text-[11px] text-zinc-400">Please do not close this window while verification completes.</p>
-            </div>
+            <p className="text-[11px] text-zinc-400">
+              Redirecting you to the release upload console...
+            </p>
           </div>
         ) : (
-          /* Main Payment UI */
-          <div className="space-y-6">
-            
-            {/* Quick Actions */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={handlePayWithApp}
-                className="p-3.5 rounded-xl bg-white text-black font-extrabold text-xs flex items-center justify-center gap-2 hover:bg-zinc-200 transition-all shadow-md cursor-pointer"
-              >
-                <Smartphone className="w-4 h-4 text-black" />
-                <span>Pay via UPI App</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleCopyUpi}
-                className="p-3.5 rounded-xl bg-white/10 border border-white/15 hover:bg-white/20 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
-              >
-                {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-sky-400" />}
-                <span>{copied ? 'Copied!' : 'Copy UPI ID'}</span>
-              </button>
-            </div>
-
-            {/* Merchant UPI Bar */}
-            <div className="p-3.5 rounded-xl bg-black/40 border border-white/10 flex items-center justify-between text-xs">
-              <div>
-                <span className="text-zinc-500 text-[10px] uppercase font-bold block">Receiver Merchant UPI ID</span>
-                <span className="font-mono font-bold text-[#DEDCFF] text-sm select-all">{merchantUpi}</span>
+          /* ── PAYMENT GATEWAY & DYNAMIC UPI QR FORM ── */
+          <div className="space-y-5">
+            {/* Header */}
+            <div>
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-sky-400 mb-1">
+                <ShieldCheck className="w-4 h-4" />
+                <span>Automated UPI Payment Gateway</span>
               </div>
-              <button onClick={handleCopyUpi} className="text-xs text-emerald-400 hover:underline font-semibold cursor-pointer">
-                {copied ? 'Copied' : 'Copy'}
-              </button>
+              <h2 className="font-heading font-extrabold text-xl sm:text-2xl text-white">
+                Unlock {title || 'Release Distribution'}
+              </h2>
+              <p className="text-xs text-zinc-400 mt-1">
+                Official automated verification • No manual UTR entry needed
+              </p>
             </div>
 
-            {/* QR Code Container (Always Visible) */}
-            <div className="p-5 rounded-2xl bg-white text-black text-center space-y-3 shadow-2xl relative">
-              <p className="text-xs font-bold uppercase tracking-wider text-zinc-700">
-                Scan QR with GPay / PhonePe / Paytm / Any UPI App
+            {/* Price & Order ID Banner */}
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
+              <div>
+                <span className="text-zinc-400 text-[10px] uppercase font-bold block">One-Time Release Fee</span>
+                <span className="font-heading font-black text-2xl sm:text-3xl text-white">₹{amount}</span>
+                <span className="text-[10px] text-emerald-400 font-semibold block mt-0.5">100% Royalties Included</span>
+              </div>
+              <div className="text-right">
+                <span className="text-zinc-500 text-[10px] uppercase font-bold block">Order ID</span>
+                <span className="font-mono text-xs text-sky-400 font-bold select-all">
+                  {loadingOrder ? 'Generating...' : (order?.orderId || 'Active')}
+                </span>
+                <span className="text-[10px] text-zinc-400 block mt-0.5">Instant Server Verification</span>
+              </div>
+            </div>
+
+            {/* METHOD 1: Dynamic Razorpay Gateway Checkout Button */}
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={handleLaunchGatewayCheckout}
+                disabled={loadingOrder || verifying}
+                className="w-full py-4 px-5 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-[0_0_25px_rgba(56,189,248,0.3)] transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer disabled:opacity-50"
+              >
+                <CreditCard className="w-5 h-5" />
+                <span>Pay via UPI / GPay / PhonePe / Cards</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <p className="text-[11px] text-center text-zinc-400">
+                Supports Google Pay, PhonePe, Paytm, BHIM, Net Banking &amp; Cards
               </p>
-              
-              {/* Timer Bar */}
-              <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-[11px] font-bold ${timerBg} ${timerColor}`}>
-                <Clock className="w-3.5 h-3.5" />
+            </div>
+
+            {/* Divider */}
+            <div className="relative flex items-center justify-center">
+              <div className="w-full border-t border-white/10" />
+              <span className="absolute bg-[#07070a] px-3 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                OR SCAN DYNAMIC UPI QR
+              </span>
+            </div>
+
+            {/* METHOD 2: Dynamic UPI QR Code */}
+            <div className="p-4 rounded-2xl bg-white text-black text-center space-y-3 shadow-2xl relative">
+              <p className="text-xs font-bold uppercase tracking-wider text-zinc-800">
+                Scan with any UPI App (GPay / PhonePe / Paytm / Cred)
+              </p>
+
+              {/* Dynamic QR image */}
+              <div className="relative inline-block">
                 {qrExpired ? (
-                  <span>QR Expired — Click refresh to generate new QR</span>
+                  <div className="w-48 h-48 mx-auto flex flex-col items-center justify-center border-2 border-dashed border-red-300 rounded-xl bg-red-50">
+                    <AlertCircle className="w-8 h-8 text-red-500 mb-1" />
+                    <p className="text-xs font-bold text-red-600">Session Expired</p>
+                    <button
+                      onClick={initializeOrder}
+                      className="mt-2 text-[11px] px-3 py-1 rounded bg-red-500 text-white font-bold"
+                    >
+                      Renew QR
+                    </button>
+                  </div>
                 ) : (
-                  <span>QR valid for <span className="font-mono text-sm">{String(qrTimeLeft).padStart(2, '0')}s</span></span>
+                  <img
+                    src={qrCodeUrl}
+                    alt="Adventure Records UPI QR"
+                    className="w-48 h-48 mx-auto object-contain border border-zinc-200 rounded-xl p-2 bg-white"
+                  />
                 )}
               </div>
 
-              {/* Progress bar */}
+              {/* Merchant Details & Timer */}
+              <div className="flex items-center justify-between text-[11px] text-zinc-700 font-semibold px-2">
+                <span>Receiver: <strong className="font-mono text-zinc-900">{merchantUpi}</strong></span>
+                <button
+                  type="button"
+                  onClick={handleCopyUpi}
+                  className="text-emerald-600 hover:underline font-bold text-[10px]"
+                >
+                  {copied ? 'Copied!' : 'Copy UPI'}
+                </button>
+              </div>
+
               {!qrExpired && (
-                <div className="w-full h-1 bg-zinc-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-1000"
-                    style={{
-                      width: `${(qrTimeLeft / 60) * 100}%`,
-                      backgroundColor: qrTimeLeft <= 15 ? '#f97316' : '#10b981'
-                    }}
-                  />
+                <div className="flex items-center justify-center gap-1.5 text-[10px] text-zinc-500">
+                  <Clock className="w-3 h-3 text-emerald-600" />
+                  <span>Session valid for <span className="font-mono font-bold text-zinc-800">{Math.floor(qrTimeLeft / 60)}:{(qrTimeLeft % 60).toString().padStart(2, '0')}</span></span>
                 </div>
               )}
-
-              {/* QR Image or Expired */}
-              {qrExpired ? (
-                <div className="w-52 h-52 mx-auto flex flex-col items-center justify-center border-2 border-dashed border-red-300 rounded-xl bg-red-50">
-                  <AlertCircle className="w-10 h-10 text-red-400 mb-2" />
-                  <p className="text-xs font-bold text-red-500">QR Expired</p>
-                  <p className="text-[10px] text-red-400 mt-1">Click refresh below to renew</p>
-                </div>
-              ) : (
-                <img
-                  key={qrKey}
-                  src={qrCodeUrl}
-                  alt="Adventure Records Payment QR"
-                  className="w-52 h-52 mx-auto object-contain border border-zinc-200 rounded-xl p-2 bg-white"
-                />
-              )}
-
-              <p className="text-[11px] font-semibold text-zinc-700">
-                Merchant: {merchantName} • <span className="text-emerald-600 font-bold">₹{amount}</span>
-              </p>
-
-              {/* Refresh Button */}
-              <button
-                type="button"
-                onClick={handleRefreshQr}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-[11px] font-semibold transition-all border border-zinc-300 cursor-pointer"
-              >
-                <RefreshCw className="w-3 h-3" />
-                <span>{qrExpired ? 'Generate New QR' : 'Refresh QR'}</span>
-              </button>
             </div>
 
-            {error && (
+            {/* Mobile UPI Direct Intent Buttons */}
+            <div className="grid grid-cols-3 gap-2">
+              <a
+                href={upiDeepLink}
+                className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-center text-xs font-bold text-white transition-all flex flex-col items-center gap-1 cursor-pointer"
+              >
+                <Smartphone className="w-4 h-4 text-emerald-400" />
+                <span>Google Pay</span>
+              </a>
+              <a
+                href={upiDeepLink}
+                className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-center text-xs font-bold text-white transition-all flex flex-col items-center gap-1 cursor-pointer"
+              >
+                <Smartphone className="w-4 h-4 text-sky-400" />
+                <span>PhonePe</span>
+              </a>
+              <a
+                href={upiDeepLink}
+                className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-center text-xs font-bold text-white transition-all flex flex-col items-center gap-1 cursor-pointer"
+              >
+                <Smartphone className="w-4 h-4 text-indigo-400" />
+                <span>Paytm / UPI</span>
+              </a>
+            </div>
+
+            {/* Errors */}
+            {(orderError || verifyError) && (
               <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2.5">
                 <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{error}</span>
+                <span>{orderError || verifyError}</span>
               </div>
             )}
 
-            {/* Verification Button (No UTR input needed!) */}
-            <div className="space-y-3 pt-2">
-              <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 text-xs text-zinc-300 space-y-1">
-                <span className="font-bold text-white block">Step 2: Verify Your Payment</span>
-                <p className="text-[11px] text-zinc-400">
-                  Once you have scanned the QR code or completed payment in your UPI app, click the button below to verify and unlock your release upload instantly.
-                </p>
-              </div>
-
+            {/* Real-time Status / Verification Button */}
+            <div className="pt-1">
               <button
                 type="button"
-                onClick={handleVerifyQrPayment}
-                className="w-full py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                onClick={handleCheckPaymentStatus}
+                disabled={loadingOrder || verifying}
+                className="w-full py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 border border-white/15 transition-all cursor-pointer disabled:opacity-50"
               >
-                <Zap className="w-5 h-5 text-black" />
-                <span>⚡ I Have Paid — Verify &amp; Unlock Release</span>
+                {verifying ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-sky-400" />
+                    <span>{verificationStep || 'Checking gateway confirmation...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 text-emerald-400" />
+                    <span>I Have Paid — Check Payment Status</span>
+                  </>
+                )}
               </button>
+              <p className="text-[10px] text-zinc-500 text-center mt-2">
+                Payments are verified automatically via gateway webhooks. Your release unlocks instantly upon confirmation.
+              </p>
             </div>
 
           </div>

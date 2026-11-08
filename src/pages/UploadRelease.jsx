@@ -75,9 +75,9 @@ const UploadRelease = () => {
     const processPayments = (payments) => {
       setUserPayments(payments);
 
-      // A payment unlocks upload if status === 'verified'
+      // A payment unlocks upload if status === 'SUCCESS' or 'verified'
       const verifiedPay = payments.find(p => 
-        p.status === 'verified' && 
+        (p.status === 'SUCCESS' || p.status === 'verified') && 
         p.amount >= currentPrice
       );
 
@@ -246,12 +246,9 @@ const UploadRelease = () => {
   };
 
   const handlePaymentModalSuccess = (payment) => {
-    if (payment?.status === 'verified') {
+    if (payment?.status === 'SUCCESS' || payment?.status === 'verified') {
       setPaymentVerified(true);
       setPaymentPending(false);
-    } else {
-      setPaymentPending(true);
-      if (payment?.utr) setPendingUtr(payment.utr);
     }
   };
 
