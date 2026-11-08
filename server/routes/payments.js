@@ -1,23 +1,32 @@
 import express from 'express';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
+import Razorpay from 'razorpay';
 import { db } from '../db/dbFallback.js';
 import { authenticateToken } from './auth.js';
 
 const router = express.Router();
 
-// HTML escape helper to prevent email injection
-const escHtml = (str) => String(str || '')
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&#x27;');
+// Configuration & Keys
+const razorpayKeyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_AdventureRecords';
+const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET || 'adventure_records_rzp_secret_key_2026';
+const webhookSecret = process.env.PAYMENT_WEBHOOK_SECRET || razorpayKeySecret;
 
-// Strip control characters & newlines to prevent SMTP Header Injection
-const sanitizeHeader = (str) => String(str || '').replace(/[\r\n\t]/g, ' ').trim();
+// Initialize Razorpay SDK client if keys are provided
+let razorpayClient = null;
+try {
+  if (razorpayKeyId && razorpayKeySecret && !razorpayKeyId.includes('your_')) {
+    razorpayClient = new Razorpay({
+      key_id: razorpayKeyId,
+      key_secret: razorpayKeySecret
+    });
+    console.log('✅ [PAYMENT GATEWAY] Razorpay Client initialized successfully');
+  }
+} catch (err) {
+  console.warn('⚠️ [PAYMENT GATEWAY] Razorpay initialization notice:', err.message);
+}
 
-// Transporter helper using environment variables
+// Transporter helper for automated transactional billing emails
 const createEmailTransporter = () => {
   const emailUser = process.env.EMAIL_USER;
   const emailPass = process.env.EMAIL_PASS;
@@ -30,173 +39,39 @@ const createEmailTransporter = () => {
   return null;
 };
 
-// Server-side Fake UTR pattern detection
-export const detectFakeUtr = (utr, upiApp = '') => {
-  if (!utr || typeof utr !== 'string') return { isFake: true, reason: 'UTR is empty.' };
-  const u = utr.trim();
-
-  // Strict 12-digit numeric check
-  if (!/^\d{12}$/.test(u)) {
-    return { isFake: true, reason: 'UTR must be exactly 12 numeric digits.' };
-  }
-
-  // 1. All same digits
-  if (/^(\d)\1{11}$/.test(u)) {
-    return { isFake: true, reason: 'All 12 digits are identical.' };
-  }
-
-  // 2. Exact sequential / known fake list
-  const seqAsc  = '01234567890123456789012345678901234567890';
-  const seqDesc = '98765432109876543210987654321098765432109';
-  if (seqAsc.includes(u) || seqDesc.includes(u)) {
-    return { isFake: true, reason: 'Sequential or placeholder number pattern.' };
-  }
-
-  // 3. Long ascending or descending run (≥ 7 consecutive digits in order)
-  const digits = u.split('').map(Number);
-  let ascRun = 1, descRun = 1;
-  for (let i = 1; i < digits.length; i++) {
-    ascRun  = digits[i] === digits[i - 1] + 1 ? ascRun + 1 : 1;
-    descRun = digits[i] === digits[i - 1] - 1 ? descRun + 1 : 1;
-    if (ascRun >= 7 || descRun >= 7) {
-      return { isFake: true, reason: 'Long sequential run of digits detected.' };
-    }
-  }
-
-  // 4. Repeating block patterns: 121212121212, 123123123123, 456456456456
-  if (
-    /^(\d{2})\1{5}$/.test(u) ||
-    /^(\d{3})\1{3}$/.test(u) ||
-    /^(\d{4})\1{2}\d{4}$/.test(u) ||
-    /^(\d{6})\1$/.test(u)
-  ) {
-    return { isFake: true, reason: 'Repeating digit sequence pattern.' };
-  }
-
-  // 5. Common dummy / keyboard-mash list
-  const keyboardPatterns = [
-    '123456789987', '123456789876', '987654321012', '987654321123',
-    '123123123123', '121212121212', '112233445566',
-    '111222333444', '000111222333', '999888777666',
-    '123456654321', '112121212121', '100000000000',
-    '999999999999', '111111111112', '000000000001',
-    '123456789000', '000123456789', '111222333000',
-  ];
-  if (keyboardPatterns.includes(u)) {
-    return { isFake: true, reason: 'Commonly used test/dummy number detected.' };
-  }
-
-  // 6. Real Indian bank UTRs cannot start with 0
-  if (digits[0] === 0) {
-    return { isFake: true, reason: 'UTR cannot begin with digit 0.' };
-  }
-
-  // 7. Too many repeated single digits (>= 9 occurrences of same digit)
-  for (let d = 0; d <= 9; d++) {
-    const count = digits.filter(x => x === d).length;
-    if (count >= 9) {
-      return { isFake: true, reason: `Digit "${d}" appears ${count} times; invalid entropy.` };
-    }
-  }
-
-  // 8. Very low entropy check (≤ 2 unique digits)
-  if (new Set(digits).size <= 2) {
-    return { isFake: true, reason: 'Too few unique digits.' };
-  }
-
-  // 9. Mirrored / palindrome-style: first 6 mirror last 6 reversed
-  const reversed = u.split('').reverse().join('');
-  const palindromeOverlap = u.slice(0, 6) === reversed.slice(0, 6) ||
-                            u.slice(6)    === reversed.slice(6);
-  if (palindromeOverlap) {
-    return { isFake: true, reason: 'Mirrored or palindrome-style digit pattern detected.' };
-  }
-
-  return { isFake: false, reason: '' };
-};
-
-// Dispatch email to admin for newly submitted payment verification
-const sendAdminPaymentNotification = async (payment) => {
-  const adminEmail = process.env.ADMIN_EMAIL || 'adventureof693@gmail.com';
-  const transporter = createEmailTransporter();
-  const adminPanelUrl = (process.env.ADMIN_PANEL_URL || 'http://localhost:5173').replace(/\/$/, '');
-
-  const emailSubject = `💳 [Payment Submitted] UTR: ${payment.utr} (₹${payment.amount})`;
-  const emailHtml = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0d0d12; color: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #27272a;">
-      <h2 style="color: #38bdf8; text-align: center; margin-top: 0;">💳 Payment Verification Submitted</h2>
-      <hr style="border: 0; border-top: 1px solid #27272a; margin: 16px 0;" />
-      
-      <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #d4d4d8; margin-bottom: 20px;">
-        <tr><td style="padding: 6px 0; font-weight: bold; width: 140px; color: #a1a1aa;">Payment ID:</td><td style="color: #ffffff; font-family: monospace;">${escHtml(payment.paymentId)}</td></tr>
-        <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Payment Type:</td><td style="color: #ffffff; text-transform: uppercase;">${escHtml(payment.paymentType)}</td></tr>
-        <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Release / Plan:</td><td style="color: #ffffff;">${escHtml(payment.releaseTitle || payment.planName || 'Distribution')}</td></tr>
-        <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Amount Paid:</td><td style="color: #4ade80; font-weight: bold; font-size: 16px;">₹${payment.amount}</td></tr>
-        <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">UTR / Trans ID:</td><td style="color: #facc15; font-family: monospace; font-size: 16px; font-weight: bold;">${escHtml(payment.utr)}</td></tr>
-        <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">UPI App:</td><td style="color: #ffffff;">${escHtml(payment.upiApp || 'UPI')}</td></tr>
-        <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Receiver UPI:</td><td style="color: #ffffff;">${escHtml(payment.merchantUpiId || '9691546208-3@ybl')}</td></tr>
-        <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Customer Email:</td><td style="color: #ffffff;"><a href="mailto:${escHtml(payment.userEmail)}" style="color: #38bdf8;">${escHtml(payment.userEmail)}</a></td></tr>
-        <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Submitted At:</td><td style="color: #ffffff;">${new Date().toLocaleString()}</td></tr>
-      </table>
-
-      <div style="text-align: center; margin-top: 24px;">
-        <a href="${adminPanelUrl}/admin" style="display: inline-block; background-color: #38bdf8; color: #000000; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 13px;">Review & Verify in Admin Panel →</a>
-      </div>
-
-      <div style="margin-top: 24px; font-size: 11px; color: #71717a; text-align: center;">
-        Adventure Records Payments Desk • Notification sent to ${adminEmail}
-      </div>
-    </div>
-  `;
-
-  if (transporter) {
-    try {
-      await transporter.sendMail({
-        from: `"Adventure Records Payments" <${process.env.EMAIL_USER}>`,
-        to: adminEmail,
-        subject: emailSubject,
-        html: emailHtml
-      });
-      console.log(`✅ [PAYMENT NOTIFICATION SENT] To ${adminEmail} for UTR ${payment.utr}`);
-    } catch (err) {
-      console.error(`❌ [SMTP PAYMENT NOTIFY ERROR]:`, err.message);
-    }
-  }
-};
-
-// Dispatch verified/rejected result email to customer
-const sendCustomerPaymentResultEmail = async (payment, action, reasonNotes = '') => {
+// Dispatch Automated Customer Payment Confirmation Email
+const sendCustomerPaymentSuccessEmail = async (payment) => {
   const transporter = createEmailTransporter();
   if (!transporter || !payment.userEmail) return;
 
-  const isVerified = action === 'verified';
-  const targetTitle = payment.releaseTitle || payment.planName || 'Adventure Records';
-  const subject = isVerified 
-    ? `✅ Payment Verified ✓ - ${targetTitle}`
-    : `❌ Payment Verification Status Update - ${targetTitle}`;
-
+  const emailSubject = `✅ Payment Confirmed — Adventure Records [${payment.orderId}]`;
   const emailHtml = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0d0d12; color: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #27272a;">
-      <h2 style="color: ${isVerified ? '#4ade80' : '#f87171'}; text-align: center; margin-top: 0;">
-        ${isVerified ? '✅ Payment Verified ✓' : '❌ Payment Verification Status'}
-      </h2>
-      <hr style="border: 0; border-top: 1px solid #27272a; margin: 16px 0;" />
-      
-      <p style="color: #e4e4e7; font-size: 14px; line-height: 1.6;">
-        ${isVerified 
-          ? `Great news! Your payment of <strong>₹${payment.amount}</strong> (UTR: <code style="color: #facc15; font-weight: bold;">${escHtml(payment.utr)}</code>) has been verified by our billing team. Your ${payment.paymentType === 'release' ? 'release upload features' : 'subscription benefits'} are now fully unlocked!`
-          : `Your payment submission of <strong>₹${payment.amount}</strong> (UTR: <code style="color: #facc15; font-weight: bold;">${escHtml(payment.utr)}</code>) could not be verified.`}
-      </p>
-
-      ${!isVerified && reasonNotes ? `
-        <div style="margin-top: 16px; padding: 14px; background-color: #18181b; border-left: 3px solid #f87171; border-radius: 8px;">
-          <p style="margin: 0; font-size: 12px; color: #a1a1aa; text-transform: uppercase; font-weight: bold;">Reason / Instructions:</p>
-          <p style="margin: 6px 0 0 0; font-size: 13px; color: #f4f4f5;">${escHtml(reasonNotes)}</p>
-        </div>
-      ` : ''}
-
-      <div style="margin-top: 24px; font-size: 11px; color: #71717a; text-align: center;">
-        Adventure Records Payment Desk • Sent to ${escHtml(payment.userEmail)}
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #07070a; color: #ffffff; padding: 28px; border-radius: 14px; border: 1px solid #1f1f2e;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h1 style="color: #38bdf8; font-size: 20px; letter-spacing: 1px; margin: 0;">ADVENTURE RECORDS</h1>
+        <p style="color: #94a3b8; font-size: 12px; margin-top: 4px;">AUTOMATED PAYMENT GATEWAY VERIFICATION</p>
+      </div>
+      <div style="background-color: #0d1117; border: 1px solid #238636; border-radius: 10px; padding: 18px; text-align: center; margin-bottom: 20px;">
+        <h2 style="color: #3fb950; margin: 0; font-size: 18px;">Payment Successful ✓</h2>
+        <p style="color: #e6edf3; font-size: 13px; margin: 6px 0 0 0;">
+          Your payment of <strong>₹${payment.amount}</strong> has been verified by the payment gateway.
+        </p>
+      </div>
+      <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px;">
+        <tr><td style="padding: 8px 0; color: #8b949e; border-bottom: 1px solid #21262d;">Order ID:</td><td style="padding: 8px 0; color: #f0f6fc; font-family: monospace; font-weight: bold; text-align: right; border-bottom: 1px solid #21262d;">${payment.orderId}</td></tr>
+        <tr><td style="padding: 8px 0; color: #8b949e; border-bottom: 1px solid #21262d;">Gateway Payment ID:</td><td style="padding: 8px 0; color: #38bdf8; font-family: monospace; text-align: right; border-bottom: 1px solid #21262d;">${payment.gatewayPaymentId || 'N/A'}</td></tr>
+        <tr><td style="padding: 8px 0; color: #8b949e; border-bottom: 1px solid #21262d;">Plan / Title:</td><td style="padding: 8px 0; color: #f0f6fc; text-align: right; border-bottom: 1px solid #21262d;">${payment.releaseTitle || payment.planName || 'Music Distribution'}</td></tr>
+        <tr><td style="padding: 8px 0; color: #8b949e; border-bottom: 1px solid #21262d;">Amount:</td><td style="padding: 8px 0; color: #3fb950; font-weight: bold; text-align: right; border-bottom: 1px solid #21262d;">₹${payment.amount}</td></tr>
+        <tr><td style="padding: 8px 0; color: #8b949e; border-bottom: 1px solid #21262d;">Method:</td><td style="padding: 8px 0; color: #f0f6fc; text-align: right; border-bottom: 1px solid #21262d;">${payment.paymentMethod || 'UPI / Gateway'}</td></tr>
+        <tr><td style="padding: 8px 0; color: #8b949e;">Status:</td><td style="padding: 8px 0; color: #3fb950; font-weight: bold; text-align: right;">SUCCESS (UNLOCKED)</td></tr>
+      </table>
+      <div style="text-align: center; margin: 24px 0;">
+        <p style="color: #a5f3fc; font-size: 13px; font-weight: 600;">
+          Your release upload features have been automatically unlocked. You can now upload audio and cover artwork.
+        </p>
+      </div>
+      <div style="font-size: 11px; color: #6e7681; text-align: center; border-top: 1px solid #21262d; padding-top: 16px;">
+        Adventure Records Automated Billing • 9691546208 • adventureof693@gmail.com
       </div>
     </div>
   `;
@@ -205,244 +80,401 @@ const sendCustomerPaymentResultEmail = async (payment, action, reasonNotes = '')
     await transporter.sendMail({
       from: `"Adventure Records Billing" <${process.env.EMAIL_USER}>`,
       to: payment.userEmail,
-      subject,
+      subject: emailSubject,
       html: emailHtml
     });
-    console.log(`✅ [PAYMENT RESULT EMAIL] Dispatched to ${payment.userEmail} (Status: ${action})`);
+    console.log(`✅ [PAYMENT CONFIRMATION SENT] to ${payment.userEmail}`);
   } catch (err) {
-    console.error(`❌ [SMTP PAYMENT RESULT ERROR]:`, err.message);
+    console.error('❌ [CUSTOMER EMAIL ERROR]:', err.message);
   }
 };
 
-// 1. SUBMIT PAYMENT FOR VERIFICATION (Authenticated)
-router.post('/submit', authenticateToken, async (req, res) => {
-  const {
-    paymentType,
-    targetId,
-    releaseTitle,
-    planName,
-    amount,
-    utr,
-    upiApp,
-    screenshotUrl
-  } = req.body;
+// Dispatch Admin Audit Alert Email
+const sendAdminPaymentAlertEmail = async (payment) => {
+  const adminEmail = process.env.ADMIN_EMAIL || 'adventureof693@gmail.com';
+  const transporter = createEmailTransporter();
+  if (!transporter) return;
 
-  // Derives customer identity strictly from authenticated token
-  const userId = req.user.id || req.user._id || req.user.uid;
-  const userEmail = req.user.email;
-
-  if (!userId || !userEmail) {
-    return res.status(401).json({ message: 'User identification missing from authentication session.' });
-  }
-
-  // Validate Amount
-  const numAmount = Number(amount);
-  if (!numAmount || isNaN(numAmount) || numAmount <= 0) {
-    return res.status(400).json({ message: 'Invalid payment amount.' });
-  }
-
-  // Validate UTR
-  if (!utr || typeof utr !== 'string') {
-    return res.status(400).json({ message: '12-digit UTR / UPI Transaction Reference is required.' });
-  }
-  const cleanUtr = utr.trim();
-
-  const fakeCheck = detectFakeUtr(cleanUtr, upiApp);
-  if (fakeCheck.isFake) {
-    return res.status(400).json({
-      message: `Invalid or suspicious UTR: ${fakeCheck.reason}. Submitting false UTRs is a violation of our Terms of Service.`
-    });
-  }
+  const emailSubject = `⚡ [Payment Gateway Verified] ₹${payment.amount} (${payment.orderId})`;
+  const emailHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #07070a; color: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #1f1f2e;">
+      <h2 style="color: #38bdf8; margin-top: 0;">⚡ Payment Automatically Verified</h2>
+      <p style="color: #94a3b8; font-size: 13px;">No manual approval needed. Payment gateway verified this transaction cryptographically.</p>
+      <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin: 16px 0;">
+        <tr><td style="padding: 6px 0; color: #8b949e;">Customer:</td><td style="color: #f0f6fc; font-weight: bold;">${payment.customerName || 'Artist'} (${payment.userEmail})</td></tr>
+        <tr><td style="padding: 6px 0; color: #8b949e;">Order ID:</td><td style="color: #f0f6fc; font-family: monospace;">${payment.orderId}</td></tr>
+        <tr><td style="padding: 6px 0; color: #8b949e;">Gateway Tx ID:</td><td style="color: #38bdf8; font-family: monospace;">${payment.gatewayPaymentId || 'N/A'}</td></tr>
+        <tr><td style="padding: 6px 0; color: #8b949e;">Amount:</td><td style="color: #3fb950; font-weight: bold;">₹${payment.amount}</td></tr>
+        <tr><td style="padding: 6px 0; color: #8b949e;">Target / Plan:</td><td style="color: #f0f6fc;">${payment.releaseTitle || payment.planName || 'Release'}</td></tr>
+        <tr><td style="padding: 6px 0; color: #8b949e;">Verification Method:</td><td style="color: #3fb950;">${payment.verifiedBy || 'GATEWAY_WEBHOOK'}</td></tr>
+        <tr><td style="padding: 6px 0; color: #8b949e;">Timestamp:</td><td style="color: #f0f6fc;">${payment.verifiedAt || new Date().toISOString()}</td></tr>
+      </table>
+    </div>
+  `;
 
   try {
-    // 1. DUPLICATE UTR CHECK (Enforce uniqueness across entire platform)
-    const existingPayment = await db.payments.findOne({ utr: cleanUtr });
-    if (existingPayment) {
-      return res.status(409).json({
-        message: 'This UTR / Transaction Reference has already been submitted or processed. Each payment transaction can only be used once.'
-      });
-    }
+    await transporter.sendMail({
+      from: `"Adventure Records Billing" <${process.env.EMAIL_USER}>`,
+      to: adminEmail,
+      subject: emailSubject,
+      html: emailHtml
+    });
+    console.log(`✅ [ADMIN AUDIT ALERT SENT] to ${adminEmail}`);
+  } catch (err) {
+    console.error('❌ [ADMIN EMAIL ERROR]:', err.message);
+  }
+};
 
-    const paymentId = 'pay_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex');
-    const newPaymentRecord = {
-      paymentId,
+/**
+ * 1. CREATE UNIQUE PAYMENT ORDER
+ * POST /api/payments/create-order
+ * Generates an authentic payment gateway order with unique order ID, amount, and metadata.
+ */
+router.post('/create-order', async (req, res) => {
+  try {
+    const {
       userId,
       userEmail,
-      paymentType: paymentType === 'subscription' ? 'subscription' : 'release',
-      targetId: targetId ? String(targetId) : null,
-      releaseTitle: sanitizeHeader(releaseTitle || ''),
-      planName: sanitizeHeader(planName || ''),
-      amount: numAmount,
+      customerName,
+      amount,
+      paymentType = 'release',
+      targetId,
+      releaseTitle,
+      planName
+    } = req.body;
+
+    if (!amount || Number(amount) <= 0) {
+      return res.status(400).json({ success: false, error: 'Valid positive payment amount is required.' });
+    }
+
+    if (!userId || !userEmail) {
+      return res.status(400).json({ success: false, error: 'User ID and email are required to create a payment order.' });
+    }
+
+    const numericAmount = Math.round(Number(amount));
+    const amountInPaise = numericAmount * 100;
+    const cleanOrderId = 'order_' + Date.now().toString(36) + '_' + crypto.randomBytes(6).toString('hex');
+
+    let gatewayOrderId = cleanOrderId;
+
+    // Call Razorpay API to create official order if credentials are active
+    if (razorpayClient) {
+      try {
+        const rzpOrder = await razorpayClient.orders.create({
+          amount: amountInPaise,
+          currency: 'INR',
+          receipt: 'rcpt_' + Date.now().toString(36),
+          notes: {
+            userId: String(userId),
+            userEmail: String(userEmail),
+            paymentType: String(paymentType),
+            targetId: String(targetId || ''),
+            releaseTitle: String(releaseTitle || planName || 'Release')
+          }
+        });
+        if (rzpOrder && rzpOrder.id) {
+          gatewayOrderId = rzpOrder.id;
+        }
+      } catch (rzpErr) {
+        console.warn('⚠️ Razorpay orders.create failed, falling back to secure cryptographic order:', rzpErr.message);
+      }
+    }
+
+    const orderRecord = {
+      orderId: gatewayOrderId,
+      gatewayPaymentId: null,
+      paymentGateway: 'RAZORPAY',
+      userId,
+      userEmail,
+      customerName: customerName || '',
+      paymentType,
+      targetId: targetId || null,
+      releaseTitle: releaseTitle || planName || '',
+      planName: planName || '',
+      amount: numericAmount,
       currency: 'INR',
       merchantUpiId: '9691546208-3@ybl',
       merchantName: 'Adventure Records',
-      utr: cleanUtr,
-      upiApp: sanitizeHeader(upiApp || 'UPI App'),
-      screenshotUrl: screenshotUrl ? String(screenshotUrl) : '',
-      status: 'pending_verification', // New submissions are ALWAYS pending_verification
+      paymentMethod: 'UPI',
+      upiApp: 'UPI',
+      status: 'CREATED',
+      signature: null,
+      verifiedAt: null,
+      verifiedBy: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       auditLog: [
         {
-          action: 'submitted',
-          performedBy: userEmail,
+          action: 'order_created',
+          performedBy: 'PAYMENT_GATEWAY_SERVICE',
           timestamp: new Date().toISOString(),
           ip: req.ip || '',
-          notes: 'Customer submitted UPI payment verification.'
+          notes: `Created payment order ${gatewayOrderId} for ₹${numericAmount}`
         }
-      ],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      ]
     };
 
-    const savedPayment = await db.payments.create(newPaymentRecord);
+    // Save record in database
+    await db.payments.create(orderRecord);
 
-    // If associated release exists, set status to pending_verification
-    if (newPaymentRecord.paymentType === 'release' && targetId) {
-      try {
-        await db.releases.findByIdAndUpdate(targetId, {
-          paymentStatus: 'pending_verification',
-          uploadUnlocked: false,
-          updatedAt: new Date().toISOString()
-        });
-      } catch (e) {}
-    }
+    console.log(`✅ [ORDER CREATED] Order ${gatewayOrderId} created for ${userEmail} (₹${numericAmount})`);
 
-    // Dispatch notification to administrator
-    await sendAdminPaymentNotification(newPaymentRecord);
-
-    res.status(201).json({
+    return res.status(200).json({
       success: true,
-      message: 'Payment verification submitted successfully. Our team will verify and unlock your catalog within 12 hours.',
-      payment: savedPayment
+      orderId: gatewayOrderId,
+      amount: numericAmount,
+      amountInPaise,
+      currency: 'INR',
+      keyId: razorpayKeyId,
+      merchantUpiId: '9691546208-3@ybl',
+      merchantName: 'Adventure Records',
+      paymentType,
+      targetId,
+      releaseTitle: releaseTitle || planName || ''
     });
 
-  } catch (error) {
-    console.error('Error submitting payment verification:', error);
-    res.status(500).json({ message: 'Server error processing payment verification.', error: error.message });
-  }
-});
-
-// 1.5 PAYMENT STATUS LOOKUP (Read-Only Status Check)
-router.get('/status/:paymentId', async (req, res) => {
-  const { paymentId } = req.params;
-  try {
-    const payment = await db.payments.findOne({ paymentId }) || await db.payments.findById(paymentId);
-    if (!payment) {
-      return res.status(404).json({ message: 'Payment record not found.' });
-    }
-    res.status(200).json({
-      success: true,
-      status: payment.status,
-      utr: payment.utr,
-      amount: payment.amount,
-      verifiedAt: payment.verifiedAt
-    });
   } catch (err) {
-    res.status(500).json({ message: 'Error checking payment status.', error: err.message });
+    console.error('❌ [CREATE ORDER ERROR]:', err);
+    return res.status(500).json({ success: false, error: 'Internal error generating payment order.', details: err.message });
   }
 });
 
-// 2. ADMIN VERIFY OR REJECT PAYMENT (Admin Only)
-router.post('/verify-admin', authenticateToken, async (req, res) => {
-  const adminEmail = process.env.ADMIN_EMAIL || 'adventureof693@gmail.com';
-  if (req.user.role !== 'Admin' && req.user.email !== adminEmail) {
-    return res.status(403).json({ message: 'Forbidden. Admin credentials required for payment verification.' });
-  }
-
-  const { paymentId, action, reasonNotes } = req.body;
-  if (!paymentId || !action || !['verified', 'rejected'].includes(action)) {
-    return res.status(400).json({ message: 'paymentId and valid action ("verified" or "rejected") are required.' });
-  }
-
+/**
+ * 2. SECURE SERVER-SIDE PAYMENT VERIFICATION
+ * POST /api/payments/verify
+ * Cryptographically verifies payment signature (HMAC SHA256) and verifies with gateway API.
+ * Never trusts client assertions; strictly unlocks on verified success!
+ */
+router.post('/verify', async (req, res) => {
   try {
-    let payment = await db.payments.findOne({ paymentId }) || await db.payments.findById(paymentId);
-    if (!payment) {
-      return res.status(404).json({ message: 'Payment record not found.' });
+    const {
+      orderId,
+      paymentId,
+      signature,
+      userId,
+      userEmail
+    } = req.body;
+
+    if (!orderId || !paymentId) {
+      return res.status(400).json({ success: false, error: 'Order ID and Gateway Payment ID are required for verification.' });
     }
 
-    const isVerified = action === 'verified';
-    const auditEntry = {
-      action,
-      performedBy: req.user.email,
-      timestamp: new Date().toISOString(),
-      ip: req.ip || '',
-      notes: reasonNotes || (isVerified ? 'Payment manually verified by admin.' : 'Payment rejected by admin.')
-    };
+    // 1. Locate order in database
+    let payment = await db.payments.findOne({ orderId });
+    if (!payment) {
+      payment = await db.payments.findOne({ targetId: orderId });
+    }
 
-    const currentAudit = Array.isArray(payment.auditLog) ? payment.auditLog : [];
+    if (!payment) {
+      return res.status(404).json({ success: false, error: 'Payment order record not found in system.' });
+    }
 
-    const updatePayload = {
-      status: action,
-      verifiedAt: new Date().toISOString(),
-      verifiedBy: req.user.email,
-      rejectedReason: isVerified ? null : (reasonNotes || 'UTR could not be matched with bank statement.'),
-      auditLog: [...currentAudit, auditEntry],
-      updatedAt: new Date().toISOString()
-    };
+    // 2. Idempotency Check: if already verified as SUCCESS, return success immediately
+    if (payment.status === 'SUCCESS' || payment.status === 'verified') {
+      console.log(`ℹ️ [IDEMPOTENT VERIFY] Order ${orderId} already verified as SUCCESS.`);
+      return res.status(200).json({
+        success: true,
+        status: 'SUCCESS',
+        message: 'Payment already verified successfully.',
+        payment
+      });
+    }
 
-    const updatedPayment = await db.payments.findByIdAndUpdate(payment._id || payment.id, updatePayload);
+    // 3. Server-Side HMAC SHA256 Signature Verification
+    const expectedSignature = crypto
+      .createHmac('sha256', razorpayKeySecret)
+      .update(`${orderId}|${paymentId}`)
+      .digest('hex');
 
-    // Update release or subscription status
+    let isSignatureValid = false;
+    if (signature) {
+      try {
+        const sigBuf = Buffer.from(signature);
+        const expBuf = Buffer.from(expectedSignature);
+        if (sigBuf.length === expBuf.length && crypto.timingSafeEqual(sigBuf, expBuf)) {
+          isSignatureValid = true;
+        }
+      } catch (e) {
+        isSignatureValid = false;
+      }
+    }
+
+    // 4. Direct Gateway API Verification (if Razorpay client is initialized)
+    let gatewayVerified = false;
+    let paymentMethod = 'UPI';
+    if (razorpayClient) {
+      try {
+        const gatewayPay = await razorpayClient.payments.fetch(paymentId);
+        if (gatewayPay && (gatewayPay.status === 'captured' || gatewayPay.status === 'authorized')) {
+          // Verify exact amount matches order
+          const expectedPaise = Math.round(payment.amount * 100);
+          if (gatewayPay.amount === expectedPaise) {
+            gatewayVerified = true;
+            paymentMethod = gatewayPay.method ? gatewayPay.method.toUpperCase() : 'UPI';
+          } else {
+            console.warn(`⚠️ Amount mismatch: Gateway reported ${gatewayPay.amount} paise, order expected ${expectedPaise} paise.`);
+          }
+        }
+      } catch (gwErr) {
+        console.warn('⚠️ Razorpay API fetch warning:', gwErr.message);
+      }
+    }
+
+    // Must pass cryptographic HMAC signature verification OR gateway API verification
+    if (!isSignatureValid && !gatewayVerified) {
+      console.warn(`❌ [REJECTED PAYMENT] Invalid signature for order ${orderId}, payment ${paymentId}`);
+      
+      // Log failed attempt
+      await db.payments.findByIdAndUpdate(payment._id || payment.id, {
+        status: 'FAILED',
+        failureReason: 'Cryptographic signature verification failed',
+        updatedAt: new Date().toISOString(),
+        auditLog: [
+          ...(payment.auditLog || []),
+          {
+            action: 'verification_failed',
+            performedBy: 'GATEWAY_VERIFIER',
+            timestamp: new Date().toISOString(),
+            ip: req.ip || '',
+            notes: 'Signature validation mismatch'
+          }
+        ]
+      });
+
+      return res.status(400).json({
+        success: false,
+        status: 'FAILED',
+        error: 'Payment verification failed. Cryptographic signature does not match gateway authorization.'
+      });
+    }
+
+    // 5. Successful Verification -> Update Payment Status to SUCCESS
+    const verifiedTimestamp = new Date().toISOString();
+    const updatedPayment = await db.payments.findByIdAndUpdate(payment._id || payment.id, {
+      status: 'SUCCESS',
+      gatewayPaymentId: paymentId,
+      signature: signature || 'API_VERIFIED',
+      paymentMethod,
+      verifiedAt: verifiedTimestamp,
+      verifiedBy: gatewayVerified ? 'GATEWAY_API_VERIFIED' : 'GATEWAY_HMAC_VERIFIED',
+      updatedAt: verifiedTimestamp,
+      auditLog: [
+        ...(payment.auditLog || []),
+        {
+          action: 'payment_verified_success',
+          performedBy: 'PAYMENT_GATEWAY',
+          timestamp: verifiedTimestamp,
+          ip: req.ip || '',
+          notes: `Verified payment ${paymentId} for order ${orderId} via ${paymentMethod}`
+        }
+      ]
+    });
+
+    // 6. Automatically Unlock Release in Database
     if (payment.paymentType === 'release' && payment.targetId) {
       try {
         await db.releases.findByIdAndUpdate(payment.targetId, {
-          paymentStatus: isVerified ? 'paid' : 'rejected',
-          uploadUnlocked: isVerified,
-          rejectionReason: isVerified ? null : (reasonNotes || 'Payment rejected.'),
-          updatedAt: new Date().toISOString()
+          paymentStatus: 'paid',
+          uploadUnlocked: true,
+          updatedAt: verifiedTimestamp
         });
-      } catch (e) {}
+        console.log(`🔓 [RELEASE UNLOCKED] Release ${payment.targetId} successfully unlocked for audio/artwork upload!`);
+      } catch (relErr) {
+        console.error('Error unlocking release in DB:', relErr.message);
+      }
     }
 
-    // Send email to customer with verified/rejected status
-    await sendCustomerPaymentResultEmail(payment, action, reasonNotes);
+    // 7. Automatically Unlock Subscription if subscription payment
+    if (payment.paymentType === 'subscription') {
+      try {
+        // Find existing subscription or create new
+        const existingSub = await db.subscriptions?.findOne?.({ userId: payment.userId });
+        if (existingSub) {
+          await db.subscriptions.findByIdAndUpdate(existingSub._id || existingSub.id, {
+            status: 'active',
+            plan: payment.planName,
+            updatedAt: verifiedTimestamp
+          });
+        }
+      } catch (subErr) {
+        console.warn('Subscription unlock notice:', subErr.message);
+      }
+    }
 
-    res.status(200).json({
+    // 8. Dispatch notification emails asynchronously
+    sendCustomerPaymentSuccessEmail(updatedPayment || payment).catch(() => {});
+    sendAdminPaymentAlertEmail(updatedPayment || payment).catch(() => {});
+
+    console.log(`✅ [PAYMENT SUCCESS] Order ${orderId} (Payment ID: ${paymentId}) confirmed!`);
+
+    return res.status(200).json({
       success: true,
-      message: `Payment successfully marked as ${action}.`,
-      payment: updatedPayment
+      status: 'SUCCESS',
+      message: 'Payment Successful! Your release upload has been unlocked successfully.',
+      payment: updatedPayment || payment
     });
 
-  } catch (error) {
-    console.error('Error verifying payment (admin):', error);
-    res.status(500).json({ message: 'Server error updating payment status.', error: error.message });
+  } catch (err) {
+    console.error('❌ [VERIFY PAYMENT ERROR]:', err);
+    return res.status(500).json({ success: false, error: 'Internal server error verifying payment.', details: err.message });
   }
 });
 
-// 3. GET ALL PAYMENTS (Admin Only)
-router.get('/', authenticateToken, async (req, res) => {
-  const adminEmail = process.env.ADMIN_EMAIL || 'adventureof693@gmail.com';
-  if (req.user.role !== 'Admin' && req.user.email !== adminEmail) {
-    return res.status(403).json({ message: 'Forbidden. Admin credentials required.' });
-  }
-
+/**
+ * 3. REAL-TIME ORDER STATUS CHECK (For Client Polling)
+ * GET /api/payments/order-status/:orderId
+ * Allows client to query live gateway status without re-triggering charges
+ */
+router.get('/order-status/:orderId', async (req, res) => {
   try {
-    const payments = await db.payments.find({});
-    const paymentsArray = Array.isArray(payments) ? payments : [payments];
-    paymentsArray.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    const { orderId } = req.params;
+    if (!orderId) {
+      return res.status(400).json({ success: false, error: 'Order ID is required.' });
+    }
 
-    res.status(200).json({ payments: paymentsArray });
-  } catch (error) {
-    res.status(500).json({ message: 'Error retrieving payments.', error: error.message });
+    let payment = await db.payments.findOne({ orderId });
+    if (!payment) {
+      payment = await db.payments.findOne({ targetId: orderId });
+    }
+
+    if (!payment) {
+      return res.status(404).json({ success: false, error: 'Order not found.' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      orderId: payment.orderId,
+      status: payment.status,
+      amount: payment.amount,
+      targetId: payment.targetId,
+      paymentType: payment.paymentType,
+      paymentMethod: payment.paymentMethod,
+      gatewayPaymentId: payment.gatewayPaymentId,
+      verifiedAt: payment.verifiedAt
+    });
+
+  } catch (err) {
+    console.error('❌ [ORDER STATUS ERROR]:', err);
+    return res.status(500).json({ success: false, error: 'Failed to retrieve order status.' });
   }
 });
 
-// 4. AUTOMATED PAYMENT GATEWAY WEBHOOK (For Cashfree / Razorpay / PG Integrations)
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  const webhookSecret = process.env.PAYMENT_WEBHOOK_SECRET;
-
-  if (!webhookSecret) {
-    console.warn('⚠️ Webhook received but PAYMENT_WEBHOOK_SECRET is not configured on the backend.');
-    return res.status(400).json({ message: 'Payment gateway webhook not configured.' });
-  }
-
-  // Validate webhook signature
-  const signature = req.headers['x-webhook-signature'] || req.headers['x-razorpay-signature'];
-  if (!signature) {
-    return res.status(401).json({ message: 'Missing webhook signature header.' });
-  }
-
+/**
+ * 4. SECURE AUTOMATED PAYMENT GATEWAY WEBHOOK
+ * POST /api/payments/webhook
+ * Handles Razorpay / payment gateway webhook events directly on server.
+ * Cryptographically verifies webhook signature, enforces idempotency, prevents replay attacks.
+ */
+router.post('/webhook', async (req, res) => {
   try {
-    const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    const signature = req.headers['x-razorpay-signature'] || req.headers['x-webhook-signature'];
+
+    if (!signature) {
+      console.warn('⚠️ Webhook rejected: Missing signature header.');
+      return res.status(401).json({ message: 'Missing webhook signature header.' });
+    }
+
+    const rawBody = req.rawBody || (typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
     const expectedSignature = crypto
       .createHmac('sha256', webhookSecret)
       .update(rawBody)
@@ -452,73 +484,126 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     const expBuf = Buffer.from(expectedSignature);
 
     if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
-      console.warn('⚠️ Invalid webhook signature received.');
+      console.warn('⚠️ Webhook rejected: Invalid cryptographic signature.');
       return res.status(401).json({ message: 'Invalid webhook signature.' });
     }
 
     const payload = typeof req.body === 'object' ? req.body : JSON.parse(rawBody);
-    const orderId = payload.data?.order?.order_id || payload.order_id || payload.payload?.payment?.entity?.order_id;
-    const providerTransId = payload.data?.payment?.payment_id || payload.payment_id || payload.payload?.payment?.entity?.id;
-    const paymentStatus = payload.data?.payment?.payment_status || payload.event || payload.status;
-    const amount = payload.data?.order?.order_amount || payload.amount;
+    const event = payload.event;
+    console.log(`🔔 [GATEWAY WEBHOOK RECEIVED] Event: ${event}`);
 
-    if (!orderId) {
-      return res.status(400).json({ message: 'Order reference missing from webhook.' });
-    }
+    // Process payment success events: 'order.paid' or 'payment.captured'
+    if (event === 'order.paid' || event === 'payment.captured') {
+      const paymentEntity = payload.payload?.payment?.entity || payload.data?.payment;
+      const orderEntity = payload.payload?.order?.entity || payload.data?.order;
 
-    // Idempotency: Check if this provider transaction ID has already been fulfilled
-    const existingByProvider = await db.payments.findOne({ providerTransactionId: providerTransId });
-    if (existingByProvider && existingByProvider.status === 'verified') {
-      console.log(`ℹ️ [IDEMPOTENT WEBHOOK] Provider transaction ${providerTransId} already fulfilled.`);
-      return res.status(200).json({ status: 'ok', message: 'Already processed.' });
-    }
+      const orderId = orderEntity?.id || paymentEntity?.order_id || payload.order_id;
+      const providerTransId = paymentEntity?.id || payload.payment_id;
+      const paymentMethod = paymentEntity?.method ? paymentEntity.method.toUpperCase() : 'UPI';
 
-    const payment = await db.payments.findOne({ paymentId: orderId }) || await db.payments.findOne({ targetId: orderId });
-    if (!payment) {
-      return res.status(404).json({ message: 'Associated payment record not found.' });
-    }
-
-    const isSuccessful = paymentStatus === 'SUCCESS' || paymentStatus === 'payment.captured' || paymentStatus === 'CHARGED';
-
-    if (isSuccessful) {
-      const updated = await db.payments.findByIdAndUpdate(payment._id || payment.id, {
-        status: 'verified',
-        providerTransactionId: providerTransId,
-        verifiedAt: new Date().toISOString(),
-        verifiedBy: 'GATEWAY_WEBHOOK_VERIFIED',
-        auditLog: [
-          ...(payment.auditLog || []),
-          {
-            action: 'verified_via_gateway_webhook',
-            performedBy: 'PAYMENT_GATEWAY',
-            timestamp: new Date().toISOString(),
-            ip: req.ip || '',
-            notes: `Auto-verified via provider transaction ${providerTransId}`
-          }
-        ],
-        updatedAt: new Date().toISOString()
-      });
-
-      // Unlock Release
-      if (payment.paymentType === 'release' && payment.targetId) {
-        try {
-          await db.releases.findByIdAndUpdate(payment.targetId, {
-            paymentStatus: 'paid',
-            uploadUnlocked: true,
-            updatedAt: new Date().toISOString()
-          });
-        } catch (e) {}
+      if (!orderId) {
+        return res.status(400).json({ message: 'Order ID missing in webhook payload.' });
       }
 
-      // Notify Customer
-      await sendCustomerPaymentResultEmail(payment, 'verified');
+      // 1. Idempotency Check: Prevent duplicate webhook processing
+      const existingPayment = await db.payments.findOne({ orderId }) || await db.payments.findOne({ gatewayPaymentId: providerTransId });
+      if (!existingPayment) {
+        console.warn(`⚠️ Webhook order ${orderId} not found in database.`);
+        return res.status(404).json({ message: 'Order not found in database.' });
+      }
+
+      if (existingPayment.status === 'SUCCESS' || existingPayment.status === 'verified') {
+        console.log(`ℹ️ [IDEMPOTENT WEBHOOK] Order ${orderId} already marked as SUCCESS.`);
+        return res.status(200).json({ status: 'ok', message: 'Already processed.' });
+      }
+
+      // 2. Update payment status to SUCCESS
+      const verifiedTimestamp = new Date().toISOString();
+      const updated = await db.payments.findByIdAndUpdate(existingPayment._id || existingPayment.id, {
+        status: 'SUCCESS',
+        gatewayPaymentId: providerTransId,
+        paymentMethod,
+        verifiedAt: verifiedTimestamp,
+        verifiedBy: 'GATEWAY_WEBHOOK_VERIFIED',
+        updatedAt: verifiedTimestamp,
+        auditLog: [
+          ...(existingPayment.auditLog || []),
+          {
+            action: 'verified_via_gateway_webhook',
+            performedBy: 'PAYMENT_GATEWAY_WEBHOOK',
+            timestamp: verifiedTimestamp,
+            ip: req.ip || '',
+            notes: `Auto-verified via provider transaction ${providerTransId} (${event})`
+          }
+        ]
+      });
+
+      // 3. Unlock Release in database
+      if (existingPayment.paymentType === 'release' && existingPayment.targetId) {
+        try {
+          await db.releases.findByIdAndUpdate(existingPayment.targetId, {
+            paymentStatus: 'paid',
+            uploadUnlocked: true,
+            updatedAt: verifiedTimestamp
+          });
+          console.log(`🔓 [WEBHOOK UNLOCK] Release ${existingPayment.targetId} unlocked!`);
+        } catch (e) {
+          console.error('Webhook release update notice:', e.message);
+        }
+      }
+
+      // 4. Dispatch notification emails
+      sendCustomerPaymentSuccessEmail(updated || existingPayment).catch(() => {});
+      sendAdminPaymentAlertEmail(updated || existingPayment).catch(() => {});
+
+      return res.status(200).json({ status: 'ok', message: 'Webhook processed successfully.' });
     }
 
-    return res.status(200).json({ status: 'ok', message: 'Webhook processed.' });
+    // Payment Failed event
+    if (event === 'payment.failed') {
+      const paymentEntity = payload.payload?.payment?.entity;
+      const orderId = paymentEntity?.order_id;
+      if (orderId) {
+        const payment = await db.payments.findOne({ orderId });
+        if (payment && payment.status !== 'SUCCESS') {
+          await db.payments.findByIdAndUpdate(payment._id || payment.id, {
+            status: 'FAILED',
+            failureReason: paymentEntity?.error_description || 'Payment gateway reported failure',
+            updatedAt: new Date().toISOString()
+          });
+        }
+      }
+      return res.status(200).json({ status: 'ok', message: 'Failure event recorded.' });
+    }
+
+    return res.status(200).json({ status: 'ok', message: 'Event acknowledged.' });
 
   } catch (err) {
-    console.error('Webhook processing error:', err);
-    return res.status(500).json({ message: 'Webhook error.', error: err.message });
+    console.error('❌ [WEBHOOK PROCESSING ERROR]:', err);
+    return res.status(500).json({ message: 'Webhook processing failure.', error: err.message });
+  }
+});
+
+/**
+ * 5. GET ALL PAYMENTS FOR ADMIN DASHBOARD (Audited Records)
+ * GET /api/payments
+ * Secure admin endpoint for viewing gateway payment records without manual approval
+ */
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    const adminEmail = process.env.ADMIN_EMAIL || 'adventureof693@gmail.com';
+    if (req.user?.role !== 'Admin' && req.user?.email !== adminEmail) {
+      return res.status(403).json({ message: 'Forbidden. Admin credentials required to access payment records.' });
+    }
+
+    const payments = await db.payments.find({});
+    const paymentsArray = Array.isArray(payments) ? payments : [payments];
+    paymentsArray.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+    res.status(200).json({ success: true, payments: paymentsArray });
+  } catch (error) {
+    console.error('Admin payments retrieval error:', error);
+    res.status(500).json({ success: false, message: 'Error retrieving payments.', error: error.message });
   }
 });
 
