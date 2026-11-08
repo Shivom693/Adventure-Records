@@ -89,10 +89,58 @@ const AdminPanel = () => {
 
     // 1. Fetch real gateway payments from Firestore & Gateway API
     const allPayments = await fetchAllPaymentsAdmin();
+    // Automatically mark bhoomiadventure7@gmail.com as FAKE / REJECTED in Firestore & UI
+    for (const pay of allPayments) {
+      if (pay.userEmail && pay.userEmail.toLowerCase().trim() === 'bhoomiadventure7@gmail.com') {
+        pay.status = 'rejected';
+        pay.rejectedReason = 'Fake payment detected - account flagged by Owner';
+        pay.isFraudFlagged = true;
+        if (db && pay.id) {
+          try {
+            await updateDoc(doc(db, 'payments', pay.id), {
+              status: 'rejected',
+              rejectedReason: 'Fake payment detected by Owner',
+              verifiedAt: null,
+              verifiedBy: null,
+              updatedAt: new Date().toISOString()
+            });
+            if (pay.paymentType === 'release' && pay.targetId) {
+              await updateDoc(doc(db, 'releases', pay.targetId), {
+                paymentStatus: 'rejected',
+                status: 'rejected',
+                rejectionReason: 'Fake payment detected by Owner.',
+                uploadUnlocked: false,
+                updatedAt: new Date().toISOString()
+              });
+            }
+          } catch (e) {}
+        }
+      }
+    }
     setPayments(allPayments);
 
     // 2. Fetch real releases from Firestore
     const allReleases = await fetchAllReleasesAdmin();
+    // Auto-reject any releases submitted by bhoomiadventure7@gmail.com
+    for (const rel of allReleases) {
+      if (rel.userEmail && rel.userEmail.toLowerCase().trim() === 'bhoomiadventure7@gmail.com') {
+        rel.paymentStatus = 'rejected';
+        rel.status = 'rejected';
+        rel.rejectionReason = 'Fake payment detected by Owner.';
+        rel.uploadUnlocked = false;
+        if (db && rel.id) {
+          try {
+            await updateDoc(doc(db, 'releases', rel.id), {
+              paymentStatus: 'rejected',
+              status: 'rejected',
+              rejectionReason: 'Fake payment detected by Owner.',
+              uploadUnlocked: false,
+              updatedAt: new Date().toISOString()
+            });
+          } catch (e) {}
+        }
+      }
+    }
     setReleases(allReleases);
 
     // 3. Fetch real support tickets from Firestore
@@ -303,7 +351,11 @@ const AdminPanel = () => {
                               <Clock className="w-3 h-3" /> PENDING GATEWAY CONFIRMATION
                             </span>
                           )}
-                          {isFailed && (
+                          {pay.isFraudFlagged || pay.userEmail === 'bhoomiadventure7@gmail.com' ? (
+                            <span className="text-[10px] font-extrabold uppercase px-3 py-1 rounded-full bg-red-600/30 text-red-300 border border-red-500 flex items-center gap-1.5 shadow-[0_0_15px_rgba(239,68,68,0.4)]">
+                              <AlertCircle className="w-3.5 h-3.5 text-red-400" /> FAKE PAYMENT (REJECTED BY OWNER)
+                            </span>
+                          ) : {isFailed && (
                             <span className="text-[10px] font-extrabold uppercase px-3 py-1 rounded-full bg-red-500/15 text-red-400 border border-red-500/40 flex items-center gap-1.5">
                               <AlertCircle className="w-3 h-3" /> FAILED / REJECTED
                             </span>
@@ -344,6 +396,13 @@ const AdminPanel = () => {
                             </span>
                           </div>
                         </div>
+
+                        {(pay.isFraudFlagged || pay.userEmail === 'bhoomiadventure7@gmail.com') && (
+                          <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                            <span>Fraud Alert: Account flagged for fake payment. Releases rejected and uploads locked.</span>
+                          </div>
+                        )}
 
                         {pay.releaseTitle && (
                           <div className="text-[11px] text-zinc-400">

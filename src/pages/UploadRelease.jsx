@@ -66,6 +66,14 @@ const UploadRelease = () => {
     }
 
     // Bypass payment lock completely for tripathihariom573@gmail.com
+    // Hard lock & fraud alert for flagged fake accounts
+    if (userEmail && userEmail.toLowerCase().trim() === 'bhoomiadventure7@gmail.com') {
+      setPaymentVerified(false);
+      setPaymentPending(false);
+      setErrors(prev => ({ ...prev, fraud: '⚠️ Account Flagged: Payment submitted under this account was detected as fake. Release uploads are suspended.' }));
+      return;
+    }
+
     if (userEmail && userEmail.toLowerCase().trim() === 'tripathihariom573@gmail.com') {
       setPaymentVerified(true);
       setPaymentPending(false);
@@ -76,6 +84,12 @@ const UploadRelease = () => {
       setUserPayments(payments);
 
       // A payment unlocks upload if status === 'SUCCESS' or 'verified'
+      if (userEmail && userEmail.toLowerCase().trim() === 'bhoomiadventure7@gmail.com') {
+        setPaymentVerified(false);
+        setPaymentPending(false);
+        return;
+      }
+
       const verifiedPay = payments.find(p => 
         (p.status === 'SUCCESS' || p.status === 'verified') && 
         p.amount >= currentPrice

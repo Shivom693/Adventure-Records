@@ -720,6 +720,10 @@ export async function createPaymentOrder(orderData) {
     planName
   } = orderData;
 
+  if (isEmailFlaggedFraud(userEmail)) {
+    return { success: false, error: 'Account suspended: Fake payment activity detected.' };
+  }
+
   if (!userId || !amount || Number(amount) <= 0) {
     return { success: false, error: 'User ID and a valid positive amount are required.' };
   }
@@ -1101,6 +1105,15 @@ export async function fetchAllPaymentsAdmin() {
     if (key) paymentMap.set(key, { ...paymentMap.get(key), ...p });
   });
 
+  // Enforce fraud blacklist in payment audit records
+  for (const p of paymentMap.values()) {
+    if (isEmailFlaggedFraud(p.userEmail)) {
+      p.status = 'rejected';
+      p.rejectedReason = 'Fake payment detected - account flagged by Owner';
+      p.isFraudFlagged = true;
+    }
+  }
+
   const merged = Array.from(paymentMap.values());
   merged.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
   return merged;
@@ -1129,6 +1142,14 @@ export async function fetchUserPayments(userId, userEmail = null) {
           const snap2 = await withTimeout(getDocs(q2), 8000);
           snap2.forEach(docSnap => paymentsMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() }));
         } catch (e) {}
+      }
+
+      for (const p of paymentsMap.values()) {
+        if (isEmailFlaggedFraud(p.userEmail)) {
+          p.status = 'rejected';
+          p.rejectedReason = 'Fake payment detected - account flagged by Owner';
+          p.isFraudFlagged = true;
+        }
       }
 
       const payments = Array.from(paymentsMap.values());

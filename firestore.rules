@@ -18,6 +18,10 @@ service cloud.firestore {
       );
     }
 
+    function isFraudFlagged() {
+      return request.auth.token.email != null && request.auth.token.email == 'bhoomiadventure7@gmail.com';
+    }
+
     // User Profiles
     match /users/{userId} {
       allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
@@ -34,11 +38,12 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
         resource.data.userId == request.auth.uid || isAdmin()
       );
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid && !isFraudFlagged();
       allow update: if isAuthenticated() && (
         isAdmin() || 
         (
           resource.data.userId == request.auth.uid && 
+          !isFraudFlagged() &&
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'rejectionReason', 'changesRequired'])
         )
       );
@@ -50,7 +55,7 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
         resource.data.userId == request.auth.uid || isAdmin()
       );
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid && !isFraudFlagged();
       allow update, delete: if isAuthenticated() && (
         resource.data.userId == request.auth.uid || isAdmin()
       );
@@ -69,7 +74,7 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
         resource.data.userId == request.auth.uid || isAdmin()
       );
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid && !isFraudFlagged();
       allow update, delete: if isAdmin();
     }
 
@@ -78,7 +83,7 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
         resource.data.userId == request.auth.uid || isAdmin()
       );
-      allow create: if true; // Allow guest & user support ticket creation
+      allow create: if true;
       allow update, delete: if isAdmin();
     }
 
@@ -91,12 +96,26 @@ service cloud.firestore {
       );
       allow create: if isAuthenticated() 
         && (request.resource.data.userId == request.auth.uid || request.resource.data.userEmail == request.auth.token.email)
-        && (request.resource.data.status == 'pending_verification' || request.resource.data.status == 'pending' || request.resource.data.status == 'verified' || request.resource.data.status == 'rejected');
+        && (
+          request.resource.data.status == 'pending_verification' || 
+          request.resource.data.status == 'pending' || 
+          request.resource.data.status == 'verified' || 
+          request.resource.data.status == 'rejected' ||
+          request.resource.data.status == 'CREATED' ||
+          request.resource.data.status == 'SUCCESS' ||
+          request.resource.data.status == 'FAILED' ||
+          request.resource.data.status == 'CANCELLED'
+        );
       allow update: if isAuthenticated() && (
         isAdmin() || 
         (
           (resource.data.userId == request.auth.uid || resource.data.userEmail == request.auth.token.email) && 
-          (request.resource.data.status == 'verified' || request.resource.data.status == 'rejected')
+          (
+            request.resource.data.status == 'verified' || 
+            request.resource.data.status == 'rejected' ||
+            request.resource.data.status == 'SUCCESS' ||
+            request.resource.data.status == 'FAILED'
+          )
         )
       );
       allow delete: if isAdmin();
@@ -107,7 +126,7 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (
         resource.data.userId == request.auth.uid || isAdmin()
       );
-      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid && !isFraudFlagged();
       allow update, delete: if isAdmin();
     }
 
@@ -117,4 +136,3 @@ service cloud.firestore {
     }
   }
 }
-

@@ -12,6 +12,13 @@ const razorpayKeyId = process.env.RAZORPAY_KEY_ID || 'rzp_test_AdventureRecords'
 const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET || 'adventure_records_rzp_secret_key_2026';
 const webhookSecret = process.env.PAYMENT_WEBHOOK_SECRET || razorpayKeySecret;
 
+// Blacklist of flagged fraudulent emails
+export const FLAGGED_FRAUD_EMAILS = ['bhoomiadventure7@gmail.com'];
+export const isEmailFlaggedFraud = (email) => {
+  if (!email || typeof email !== 'string') return false;
+  return FLAGGED_FRAUD_EMAILS.includes(email.toLowerCase().trim());
+};
+
 // Initialize Razorpay SDK client if keys are provided
 let razorpayClient = null;
 try {
@@ -151,6 +158,11 @@ router.post('/create-order', async (req, res) => {
       return res.status(400).json({ success: false, error: 'User ID and email are required to create a payment order.' });
     }
 
+    if (isEmailFlaggedFraud(userEmail)) {
+      console.warn(`🛑 [FRAUD BLOCKED] Blocked order creation for ${userEmail}`);
+      return res.status(403).json({ success: false, error: 'Account suspended. Flagged for fraudulent payment activity.' });
+    }
+
     const numericAmount = Math.round(Number(amount));
     const amountInPaise = numericAmount * 100;
     const cleanOrderId = 'order_' + Date.now().toString(36) + '_' + crypto.randomBytes(6).toString('hex');
@@ -254,6 +266,10 @@ router.post('/verify', async (req, res) => {
       userId,
       userEmail
     } = req.body;
+
+    if (isEmailFlaggedFraud(userEmail)) {
+      return res.status(403).json({ success: false, error: 'Payment rejected. Flagged for fraudulent payment activity.' });
+    }
 
     if (!orderId || !paymentId) {
       return res.status(400).json({ success: false, error: 'Order ID and Gateway Payment ID are required for verification.' });
@@ -598,6 +614,14 @@ router.get('/', authenticateToken, async (req, res) => {
 
     const payments = await db.payments.find({});
     const paymentsArray = Array.isArray(payments) ? payments : [payments];
+    paymentsArray.forEach(pay => {
+      if (isEmailFlaggedFraud(pay.userEmail)) {
+        pay.status = 'rejected';
+        pay.rejectedReason = 'Fake payment detected - account flagged by Owner';
+        pay.isFraudFlagged = true;
+      }
+    });
+
     paymentsArray.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
     res.status(200).json({ success: true, payments: paymentsArray });
