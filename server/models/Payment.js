@@ -9,29 +9,32 @@ const auditLogSchema = new mongoose.Schema({
 }, { _id: false });
 
 const paymentSchema = new mongoose.Schema({
-  paymentId: { type: String, required: true, unique: true, index: true },
+  orderId: { type: String, required: true, unique: true, index: true },
+  gatewayPaymentId: { type: String, default: null, index: true },
+  paymentGateway: { type: String, default: 'RAZORPAY' },
   userId: { type: String, required: true, index: true },
-  userEmail: { type: String, required: true },
+  userEmail: { type: String, required: true, index: true },
+  customerName: { type: String, default: '' },
   paymentType: { type: String, enum: ['release', 'subscription'], default: 'release' },
-  targetId: { type: String, default: null },
+  targetId: { type: String, default: null, index: true },
   releaseTitle: { type: String, default: '' },
   planName: { type: String, default: '' },
   amount: { type: Number, required: true },
   currency: { type: String, default: 'INR' },
   merchantUpiId: { type: String, default: '9691546208-3@ybl' },
   merchantName: { type: String, default: 'Adventure Records' },
-  utr: { type: String, required: true, unique: true, index: true },
-  upiApp: { type: String, default: 'UPI App' },
-  screenshotUrl: { type: String, default: '' },
+  paymentMethod: { type: String, default: 'UPI' },
+  upiApp: { type: String, default: 'UPI' },
   status: { 
     type: String, 
-    enum: ['pending_verification', 'verified', 'rejected', 'refunded'], 
-    default: 'pending_verification' 
+    enum: ['CREATED', 'PENDING', 'SUCCESS', 'FAILED', 'CANCELLED', 'verified', 'pending_verification', 'rejected'], 
+    default: 'CREATED',
+    index: true
   },
-  providerTransactionId: { type: String, default: null },
+  signature: { type: String, default: null },
   verifiedAt: { type: String, default: null },
   verifiedBy: { type: String, default: null },
-  rejectedReason: { type: String, default: null },
+  failureReason: { type: String, default: null },
   auditLog: [auditLogSchema]
 }, { timestamps: true });
 
