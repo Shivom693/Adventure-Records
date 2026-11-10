@@ -318,7 +318,7 @@ const AdminPanel = () => {
                   <CreditCard className="w-5 h-5 text-emerald-400" /> Automated Payment Gateway Records
                 </h3>
                 <p className="text-xs text-zinc-400 mt-1">
-                  Verified server-side via Razorpay / UPI Gateway webhooks. No manual approval required.
+                  Verified server-side via Cashfree / Dynamic UPI Gateway webhooks. No manual approval required.
                 </p>
               </div>
               <div className="flex items-center gap-3">
@@ -377,7 +377,7 @@ const AdminPanel = () => {
                           <div>
                             <span className="text-[10px] text-zinc-500 uppercase font-bold block">Order ID</span>
                             <span className="font-mono text-sky-400 font-bold select-all">{pay.orderId || pay.id}</span>
-                            <span className="text-zinc-500 text-[10px] block">Gateway: {pay.paymentGateway || 'RAZORPAY'}</span>
+                            <span className="text-zinc-500 text-[10px] block">Gateway: {pay.paymentGateway || 'CASHFREE'}</span>
                           </div>
 
                           <div>
