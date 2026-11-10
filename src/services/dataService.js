@@ -698,15 +698,15 @@ export function detectFakeUtr(utr, upiApp = '') {
 
 /**
  * ───────────────────────────────────────────────────────────
- * AUTOMATED UPI PAYMENT GATEWAY INTEGRATION (RAZORPAY / CASHFREE)
- * No manual UTR, no fake checks, no manual admin approvals.
- * Real order creation -> dynamic gateway checkout / UPI QR ->
- * server-side HMAC & webhook verification -> instant unlock.
+ * AUTOMATED DYNAMIC UPI QR PAYMENT GATEWAY (CASHFREE)
+ * Generates unique Dynamic UPI QR codes.
+ * Automatic webhook & background polling verification.
+ * Zero manual UTR, zero screenshots, zero manual approval.
  * ───────────────────────────────────────────────────────────
  */
 
 /**
- * 1. Create a Unique Payment Order via Server API & Sync to Firestore
+ * 1. Create a Unique Dynamic UPI QR Payment Order via Server API & Sync to Firestore
  */
 export async function createPaymentOrder(orderData) {
   const {
@@ -730,7 +730,7 @@ export async function createPaymentOrder(orderData) {
 
   const numericAmount = Math.round(Number(amount));
 
-  // 1. Request Order Creation from Backend Payment Gateway API
+  // 1. Request Order Creation from Backend Cashfree / Dynamic UPI API
   let serverOrder = null;
   try {
     const token = localStorage.getItem('token');
@@ -754,19 +754,25 @@ export async function createPaymentOrder(orderData) {
 
     if (res.ok) {
       serverOrder = await res.json();
+    } else {
+      const errData = await res.json().catch(() => ({}));
+      console.warn('Backend create-order error:', errData.error);
     }
   } catch (err) {
     console.warn('Backend create-order API notice:', err.message);
   }
 
-  // Fallback order ID if backend is offline during local test
-  const orderId = serverOrder?.orderId || ('order_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 8));
-  const keyId = serverOrder?.keyId || (import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_AdventureRecords');
+  const orderId = serverOrder?.orderId || ('AR_ORD_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8).toUpperCase());
+  const merchantUpi = serverOrder?.merchantUpiId || '9691546208-3@ybl';
+  const merchantName = serverOrder?.merchantName || 'Adventure Records';
+  const upiQrString = serverOrder?.upiQrString || `upi://pay?pa=${merchantUpi}&pn=${encodeURIComponent(merchantName)}&am=${numericAmount}&cu=INR&tr=${orderId}&tn=${encodeURIComponent('Adventure Records ' + (releaseTitle || planName || 'Distribution'))}`;
+  const qrCodeUrl = serverOrder?.qrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(upiQrString)}&_t=${orderId}`;
 
   const paymentRecord = {
     orderId,
     gatewayPaymentId: null,
-    paymentGateway: 'RAZORPAY',
+    bankReference: null,
+    paymentGateway: 'CASHFREE',
     userId,
     userEmail: userEmail || 'artist@adventurerecords.com',
     customerName: customerName || '',
@@ -776,15 +782,16 @@ export async function createPaymentOrder(orderData) {
     planName: planName || '',
     amount: numericAmount,
     currency: 'INR',
-    merchantUpiId: '9691546208-3@ybl',
-    merchantName: 'Adventure Records',
+    merchantUpiId: merchantUpi,
+    merchantName: merchantName,
     paymentMethod: 'UPI',
-    status: 'CREATED',
+    upiQrString,
+    status: 'PENDING',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
 
-  // 2. Sync Order Record to Firestore
+  // 2. Sync Order Record to Firestore as PENDING (client cannot forge SUCCESS)
   if (db) {
     try {
       await addDoc(collection(db, 'payments'), paymentRecord);
@@ -797,144 +804,14 @@ export async function createPaymentOrder(orderData) {
     success: true,
     orderId,
     amount: numericAmount,
-    amountInPaise: numericAmount * 100,
     currency: 'INR',
-    keyId,
-    merchantUpiId: '9691546208-3@ybl',
-    merchantName: 'Adventure Records',
+    merchantUpiId: merchantUpi,
+    merchantName: merchantName,
+    upiQrString,
+    qrCodeUrl,
+    paymentGateway: 'CASHFREE',
+    expiresAt: serverOrder?.expiresAt || new Date(Date.now() + 10 * 60 * 1000).toISOString(),
     paymentRecord
-  };
-}
-
-/**
- * 2. Cryptographically Verify Payment with Server & Unlock Release
- */
-export async function verifyGatewayPayment(verifyData) {
-  const {
-    orderId,
-    paymentId,
-    signature,
-    userId,
-    userEmail,
-    paymentType = 'release',
-    targetId,
-    amount
-  } = verifyData;
-
-  if (!orderId || !paymentId) {
-    return { success: false, error: 'Order ID and Gateway Payment ID are required for verification.' };
-  }
-
-  let serverVerifyResult = null;
-  try {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`${API_URL}/api/payments/verify`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      },
-      body: JSON.stringify({
-        orderId,
-        paymentId,
-        signature: signature || '',
-        userId,
-        userEmail
-      })
-    });
-
-    serverVerifyResult = await res.json();
-    if (!res.ok || !serverVerifyResult.success) {
-      return {
-        success: false,
-        error: serverVerifyResult?.error || 'Payment verification failed on the secure gateway.'
-      };
-    }
-  } catch (err) {
-    console.warn('Gateway verify API notice:', err.message);
-    if (!serverVerifyResult) {
-      serverVerifyResult = {
-        success: true,
-        status: 'SUCCESS',
-        payment: { orderId, gatewayPaymentId: paymentId, amount, status: 'SUCCESS' }
-      };
-    }
-  }
-
-  // 3. Update Firestore Payment Document to SUCCESS & Unlock Release
-  if (db) {
-    try {
-      const q = query(collection(db, 'payments'), where('orderId', '==', orderId));
-      const snap = await getDocs(q);
-      const nowIso = new Date().toISOString();
-
-      if (!snap.empty) {
-        for (const docSnap of snap.docs) {
-          await updateDoc(doc(db, 'payments', docSnap.id), {
-            status: 'SUCCESS',
-            gatewayPaymentId: paymentId,
-            verifiedAt: nowIso,
-            verifiedBy: 'GATEWAY_VERIFIED',
-            updatedAt: nowIso
-          });
-        }
-      } else {
-        await addDoc(collection(db, 'payments'), {
-          orderId,
-          gatewayPaymentId: paymentId,
-          paymentGateway: 'RAZORPAY',
-          userId,
-          userEmail,
-          paymentType,
-          targetId,
-          amount: Number(amount || 100),
-          currency: 'INR',
-          status: 'SUCCESS',
-          verifiedAt: nowIso,
-          verifiedBy: 'GATEWAY_VERIFIED',
-          createdAt: nowIso,
-          updatedAt: nowIso
-        });
-      }
-
-      // Unlock Release in Firestore immediately
-      if (paymentType === 'release' && targetId) {
-        try {
-          const relRef = doc(db, 'releases', targetId);
-          await updateDoc(relRef, {
-            paymentStatus: 'paid',
-            uploadUnlocked: true,
-            updatedAt: nowIso
-          });
-        } catch (e) {}
-      }
-
-      // Unlock Subscription in Firestore
-      if (paymentType === 'subscription') {
-        try {
-          await addDoc(collection(db, 'subscriptions'), {
-            userId,
-            userEmail,
-            orderId,
-            gatewayPaymentId: paymentId,
-            amount: Number(amount || 499),
-            currency: 'INR',
-            status: 'active',
-            subscriptionStatus: 'active',
-            createdAt: nowIso
-          });
-        } catch (e) {}
-      }
-    } catch (fsErr) {
-      console.warn('Firestore unlock sync notice:', fsErr.message);
-    }
-  }
-
-  return {
-    success: true,
-    status: 'SUCCESS',
-    message: 'Payment Successful! Your release upload has been unlocked successfully.',
-    payment: serverVerifyResult?.payment || { orderId, gatewayPaymentId: paymentId, status: 'SUCCESS' }
   };
 }
 

@@ -11,7 +11,8 @@ const auditLogSchema = new mongoose.Schema({
 const paymentSchema = new mongoose.Schema({
   orderId: { type: String, required: true, unique: true, index: true },
   gatewayPaymentId: { type: String, default: null, index: true },
-  paymentGateway: { type: String, default: 'RAZORPAY' },
+  bankReference: { type: String, default: null }, // UTR / RRN from Cashfree
+  paymentGateway: { type: String, default: 'CASHFREE' },
   userId: { type: String, required: true, index: true },
   userEmail: { type: String, required: true, index: true },
   customerName: { type: String, default: '' },
@@ -27,13 +28,14 @@ const paymentSchema = new mongoose.Schema({
   upiApp: { type: String, default: 'UPI' },
   status: { 
     type: String, 
-    enum: ['CREATED', 'PENDING', 'SUCCESS', 'FAILED', 'CANCELLED', 'verified', 'pending_verification', 'rejected'], 
-    default: 'CREATED',
+    enum: ['CREATED', 'PENDING', 'SUCCESS', 'FAILED', 'EXPIRED', 'CANCELLED', 'verified', 'pending_verification', 'rejected'], 
+    default: 'PENDING',
     index: true
   },
   signature: { type: String, default: null },
   verifiedAt: { type: String, default: null },
   verifiedBy: { type: String, default: null },
+  completedAt: { type: String, default: null },
   failureReason: { type: String, default: null },
   auditLog: [auditLogSchema]
 }, { timestamps: true });
