@@ -330,7 +330,7 @@ const UpiPaymentModal = ({
             {/* Dynamic UPI QR Code Section */}
             <div className="p-5 rounded-2xl bg-white text-black text-center space-y-3.5 shadow-2xl relative">
               <p className="text-xs font-bold uppercase tracking-wider text-zinc-800">
-                Scan QR using any supported UPI app
+                Scan QR with any UPI app to complete payment.
               </p>
 
               {/* Dynamic QR image */}
@@ -427,17 +427,11 @@ const UpiPaymentModal = ({
             )}
 
             {/* ── AUTOMATIC WAITING STATUS INDICATOR ── */}
-            <div className="p-4 rounded-2xl bg-white/5 border border-sky-500/20 text-center space-y-1.5">
+            <div className="p-4 rounded-2xl bg-white/5 border border-sky-500/20 text-center">
               <div className="flex items-center justify-center gap-2.5 text-sky-400 text-xs font-bold tracking-wide">
                 <Loader2 className="w-4 h-4 animate-spin text-sky-400" />
                 <span>Waiting for payment confirmation...</span>
               </div>
-              <p className="text-[11px] text-zinc-400">
-                Complete payment in your UPI app. The system will detect your transaction automatically.
-              </p>
-              <p className="text-[10px] text-zinc-500 font-mono">
-                Zero manual submission • No UTR entry needed
-              </p>
             </div>
 
           </div>

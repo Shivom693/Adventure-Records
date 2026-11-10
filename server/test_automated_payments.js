@@ -1,3 +1,5 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import crypto from 'crypto';
 import express from 'express';
 import paymentRoutes from './routes/payments.js';
