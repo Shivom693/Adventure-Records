@@ -355,11 +355,11 @@ const AdminPanel = () => {
                             <span className="text-[10px] font-extrabold uppercase px-3 py-1 rounded-full bg-red-600/30 text-red-300 border border-red-500 flex items-center gap-1.5 shadow-[0_0_15px_rgba(239,68,68,0.4)]">
                               <AlertCircle className="w-3.5 h-3.5 text-red-400" /> FAKE PAYMENT (REJECTED BY OWNER)
                             </span>
-                          ) : {isFailed && (
+                          ) : isFailed ? (
                             <span className="text-[10px] font-extrabold uppercase px-3 py-1 rounded-full bg-red-500/15 text-red-400 border border-red-500/40 flex items-center gap-1.5">
                               <AlertCircle className="w-3 h-3" /> FAILED / REJECTED
                             </span>
-                          )}
+                          ) : null}
 
                           <span className="text-xs text-zinc-400 font-semibold uppercase tracking-wider">
                             {pay.paymentType === 'release' ? '🎵 Release Distribution' : '⭐ Subscription Plan'}
