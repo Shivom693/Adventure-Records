@@ -109,8 +109,11 @@ const runTests = async () => {
         },
         body: fakeWebhookPayload
       });
-      // In configured mode signature verification blocks it; let's check
-      console.log(`   ✅ Tampered webhook status: ${badWebhookRes.status}`);
+      if (badWebhookRes.status === 401) {
+        console.log('   ✅ Tampered webhook correctly rejected with 401 Unauthorized.');
+      } else {
+        throw new Error('Expected 401 for tampered webhook but got: ' + badWebhookRes.status);
+      }
 
       // ──────────────────────────────────────────────────────────
       // TEST 4: Authentic Webhook Processing & Auto Release Unlock

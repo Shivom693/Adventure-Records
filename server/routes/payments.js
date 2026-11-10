@@ -298,20 +298,18 @@ router.post('/webhook', async (req, res) => {
 
     const cfConfig = getCashfreeConfig();
 
-    // 1. Webhook Signature Verification
-    if (cfConfig.isConfigured) {
-      if (!signature) {
-        console.warn('⚠️ Webhook rejected: Missing signature header.');
-        return res.status(401).json({ message: 'Missing webhook signature header.' });
-      }
-
-      const isValid = verifyCashfreeWebhookSignature(rawBody, timestamp, signature);
-      if (!isValid) {
-        console.warn('⚠️ Webhook rejected: Invalid cryptographic signature.');
-        return res.status(401).json({ message: 'Invalid webhook signature.' });
-      }
-      console.log('✅ [WEBHOOK SIGNATURE VERIFIED] Authentic Cashfree webhook');
+    // 1. Webhook Signature Verification (Strict HMAC-SHA256 Check)
+    if (!signature) {
+      console.warn('⚠️ Webhook rejected: Missing signature header.');
+      return res.status(401).json({ message: 'Missing webhook signature header.' });
     }
+
+    const isValid = verifyCashfreeWebhookSignature(rawBody, timestamp, signature);
+    if (!isValid) {
+      console.warn('⚠️ Webhook rejected: Invalid cryptographic signature.');
+      return res.status(401).json({ message: 'Invalid webhook signature.' });
+    }
+    console.log('✅ [WEBHOOK SIGNATURE VERIFIED] Authentic Cashfree webhook');
 
     const payload = typeof req.body === 'object' ? req.body : JSON.parse(rawBody || '{}');
     const eventType = payload.type || payload.event || '';

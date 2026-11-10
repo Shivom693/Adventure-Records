@@ -306,7 +306,7 @@ export async function fetchCashfreeOrder(orderId) {
  */
 export function verifyCashfreeWebhookSignature(rawBody, timestamp, signature) {
   const config = getCashfreeConfig();
-  const secret = config.webhookSecret;
+  const secret = process.env.PAYMENT_WEBHOOK_SECRET || config.webhookSecret || config.secretKey;
 
   if (!signature || !secret) {
     return false;
