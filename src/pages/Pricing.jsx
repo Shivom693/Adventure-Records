@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, Star, HelpCircle, ChevronDown, Music, Disc, Disc2 } from 'lucide-react';
+import { Check, Star, ChevronDown, Music, Disc, Disc2 } from 'lucide-react';
 import SeoHead from '../components/SeoHead';
 
 const pricingPlans = [
   {
-    icon: <Music className="w-6 h-6 text-white" />,
+    icon: <Music className="w-6 h-6 text-emerald-500" />,
     emoji: '🎵',
     name: 'SINGLE',
     price: '₹100',
@@ -23,7 +23,7 @@ const pricingPlans = [
     popular: false
   },
   {
-    icon: <Disc className="w-6 h-6 text-white" />,
+    icon: <Disc className="w-6 h-6 text-sky-500" />,
     emoji: '💿',
     name: 'EP',
     price: '₹500',
@@ -42,7 +42,7 @@ const pricingPlans = [
     popular: true
   },
   {
-    icon: <Disc2 className="w-6 h-6 text-white" />,
+    icon: <Disc2 className="w-6 h-6 text-purple-500" />,
     emoji: '💽',
     name: 'ALBUM',
     price: '₹1,000',
@@ -90,7 +90,7 @@ const Pricing = () => {
   ];
 
   return (
-    <div className="relative pt-12 pb-24 overflow-x-hidden min-h-screen bg-white text-[#050315] font-outfit">
+    <div className="relative pt-12 pb-24 overflow-x-hidden min-h-screen bg-white dark:bg-[#0a0a0c] text-[#050315] dark:text-white font-outfit">
       
       <SeoHead
         title="Music Distribution Pricing | Single ₹100, EP ₹500, Album ₹1,000 | Adventure Records"
@@ -102,13 +102,13 @@ const Pricing = () => {
       {/* Header */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-12 text-center space-y-4">
         <div className="minimal-badge mx-auto">One-Time Payment Per Release</div>
-        <h1 className="font-heading font-black text-4xl sm:text-6xl text-[#050315] tracking-tight">
+        <h1 className="font-heading font-black text-4xl sm:text-6xl text-[#050315] dark:text-white tracking-tight">
           Distribution Pricing
         </h1>
-        <p className="text-[#050315] text-lg sm:text-xl font-medium max-w-xl mx-auto">
+        <p className="text-[#050315] dark:text-zinc-200 text-lg sm:text-xl font-medium max-w-xl mx-auto">
           Release your music. Reach the world.
         </p>
-        <p className="text-[#050315]/80 text-sm max-w-2xl mx-auto leading-relaxed">
+        <p className="text-zinc-600 dark:text-zinc-400 text-sm max-w-2xl mx-auto leading-relaxed">
           Simple, transparent pricing with one-time payment per release. No hidden renewal fees.
         </p>
       </section>
@@ -120,11 +120,13 @@ const Pricing = () => {
             <div
               key={idx}
               className={`minimal-card p-8 flex flex-col justify-between relative transition-all duration-300 ${
-                plan.popular ? 'border-black shadow-xl bg-white' : ''
+                plan.popular 
+                  ? 'border-black dark:border-white/40 shadow-xl bg-white dark:bg-[#141418] ring-1 ring-black/10 dark:ring-white/20' 
+                  : 'bg-white dark:bg-[#141418]'
               }`}
             >
               {plan.popular && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full bg-black text-white font-extrabold text-[10px] uppercase tracking-widest border border-black shadow-md">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full bg-black dark:bg-white text-white dark:text-black font-extrabold text-[10px] uppercase tracking-widest border border-black dark:border-white shadow-md">
                   Most Popular
                 </span>
               )}
@@ -133,20 +135,20 @@ const Pricing = () => {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">{plan.emoji}</span>
-                    <h3 className="font-heading font-black text-2xl text-[#050315] tracking-wide">{plan.name}</h3>
+                    <h3 className="font-heading font-black text-2xl text-[#050315] dark:text-white tracking-wide">{plan.name}</h3>
                   </div>
-                  <p className="text-[#050315]/70 text-xs font-medium">{plan.subtitle}</p>
+                  <p className="text-zinc-600 dark:text-zinc-400 text-xs font-medium">{plan.subtitle}</p>
                 </div>
 
-                <div className="border-b border-black/15 pb-6">
-                  <span className="font-heading font-black text-4xl text-[#050315]">{plan.price}</span>
-                  <span className="text-[#050315]/70 text-xs font-semibold"> / {plan.period}</span>
+                <div className="border-b border-black/15 dark:border-white/15 pb-6">
+                  <span className="font-heading font-black text-4xl text-[#050315] dark:text-white">{plan.price}</span>
+                  <span className="text-zinc-500 dark:text-zinc-400 text-xs font-semibold"> / {plan.period}</span>
                 </div>
 
-                <ul className="space-y-3 text-xs text-[#050315]">
+                <ul className="space-y-3 text-xs text-[#050315] dark:text-zinc-200">
                   {plan.features.map((feat, fIdx) => (
                     <li key={fIdx} className="flex items-center gap-2.5">
-                      <Check className="w-4 h-4 text-black shrink-0" />
+                      <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 font-bold" />
                       <span>{feat}</span>
                     </li>
                   ))}
@@ -157,7 +159,9 @@ const Pricing = () => {
                 <Link
                   to="/upload"
                   className={`block w-full py-4 rounded-xl font-bold text-center text-xs tracking-wide transition-all ${
-                    plan.popular ? 'bg-black hover:bg-black/90 text-white shadow-lg' : 'bg-black text-white hover:bg-black/90 border border-black'
+                    plan.popular 
+                      ? 'btn-primary shadow-lg' 
+                      : 'btn-secondary'
                   }`}
                 >
                   {plan.cta} →
@@ -170,54 +174,54 @@ const Pricing = () => {
 
       {/* ⭐ Simple Pricing. No Confusion Banner */}
       <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-20">
-        <div className="minimal-card p-8 sm:p-10 bg-white border-black/20 text-center space-y-6">
-          <div className="inline-flex items-center gap-2 text-[#050315] font-extrabold text-lg sm:text-xl">
-            <Star className="w-5 h-5 fill-black text-black" />
+        <div className="minimal-card p-8 sm:p-10 bg-white dark:bg-[#141418] border-black/20 dark:border-white/15 text-center space-y-6">
+          <div className="inline-flex items-center gap-2 text-[#050315] dark:text-white font-extrabold text-lg sm:text-xl">
+            <Star className="w-5 h-5 fill-current text-amber-500" />
             <span>Simple Pricing. No Confusion.</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-            <div className="p-4 rounded-xl bg-black/5 border border-black/15 space-y-1">
-              <p className="font-heading font-black text-2xl text-[#050315]">₹100</p>
-              <p className="text-xs text-[#050315]/80 font-semibold">Single Release</p>
+            <div className="p-4 rounded-xl bg-black/5 dark:bg-white/5 border border-black/15 dark:border-white/10 space-y-1">
+              <p className="font-heading font-black text-2xl text-[#050315] dark:text-white">₹100</p>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400 font-semibold">Single Release</p>
             </div>
-            <div className="p-4 rounded-xl bg-black/5 border border-black/15 space-y-1">
-              <p className="font-heading font-black text-2xl text-[#050315]">₹500</p>
-              <p className="text-xs text-[#050315]/80 font-semibold">EP Release</p>
+            <div className="p-4 rounded-xl bg-black/5 dark:bg-white/5 border border-black/15 dark:border-white/10 space-y-1">
+              <p className="font-heading font-black text-2xl text-[#050315] dark:text-white">₹500</p>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400 font-semibold">EP Release</p>
             </div>
-            <div className="p-4 rounded-xl bg-black/5 border border-black/15 space-y-1">
-              <p className="font-heading font-black text-2xl text-[#050315]">₹1,000</p>
-              <p className="text-xs text-[#050315]/80 font-semibold">Album Release</p>
+            <div className="p-4 rounded-xl bg-black/5 dark:bg-white/5 border border-black/15 dark:border-white/10 space-y-1">
+              <p className="font-heading font-black text-2xl text-[#050315] dark:text-white">₹1,000</p>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400 font-semibold">Album Release</p>
             </div>
           </div>
 
-          <p className="text-xs text-[#050315]/80 font-medium pt-2">
+          <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium pt-2">
             One-time distribution fee per release. Keep 100% of your earnings.
           </p>
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section className="border-t border-white/10 py-20 bg-[#09090d]">
+      <section className="border-t border-black/10 dark:border-white/10 py-20 bg-slate-50 dark:bg-[#09090d]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
           <div className="text-center space-y-2">
-            <h2 className="font-heading font-bold text-3xl text-white">
+            <h2 className="font-heading font-bold text-3xl text-[#050315] dark:text-white">
               Pricing FAQs
             </h2>
           </div>
 
           <div className="space-y-4">
             {faqs.map((faq, idx) => (
-              <div key={idx} className="minimal-card overflow-hidden">
+              <div key={idx} className="minimal-card overflow-hidden bg-white dark:bg-[#141418]">
                 <button
                   onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
-                  className="w-full p-6 text-left font-semibold text-white text-sm sm:text-base flex justify-between items-center gap-4 hover:text-zinc-300 transition-colors"
+                  className="w-full p-6 text-left font-semibold text-[#050315] dark:text-white text-sm sm:text-base flex justify-between items-center gap-4 hover:text-black/70 dark:hover:text-zinc-300 transition-colors"
                 >
                   <span>{faq.question}</span>
-                  <ChevronDown className={`w-4 h-4 shrink-0 transition-transform duration-300 ${openFaq === idx ? 'rotate-180 text-white' : 'text-zinc-500'}`} />
+                  <ChevronDown className={`w-4 h-4 shrink-0 transition-transform duration-300 ${openFaq === idx ? 'rotate-180 text-black dark:text-white' : 'text-zinc-500'}`} />
                 </button>
                 {openFaq === idx && (
-                  <div className="px-6 pb-6 text-xs sm:text-sm text-zinc-400 leading-relaxed border-t border-white/5 pt-4">
+                  <div className="px-6 pb-6 text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed border-t border-black/10 dark:border-white/10 pt-4">
                     {faq.answer}
                   </div>
                 )}

@@ -236,12 +236,12 @@ const UpiPaymentModal = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-lg bg-[#07070a] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-[0_0_60px_rgba(56,189,248,0.2)] space-y-6 my-8 font-outfit">
+      <div className="relative w-full max-w-lg bg-white dark:bg-[#0e0e14] border border-black/15 dark:border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 my-8 font-outfit text-zinc-900 dark:text-white">
 
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-full bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-all cursor-pointer"
+          className="absolute top-5 right-5 p-2 rounded-full bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-all cursor-pointer"
           aria-label="Close modal"
         >
           <X className="w-5 h-5" />
@@ -255,42 +255,42 @@ const UpiPaymentModal = ({
             </div>
 
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold uppercase tracking-wider">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold uppercase tracking-wider">
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Verified by Payment Gateway</span>
               </div>
-              <h3 className="font-heading font-black text-2xl sm:text-3xl text-white tracking-tight">
+              <h3 className="font-heading font-black text-2xl sm:text-3xl text-zinc-900 dark:text-white tracking-tight">
                 PAYMENT SUCCESSFUL!
               </h3>
-              <p className="text-sm font-semibold text-emerald-400">
+              <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
                 Your payment has been verified successfully.
               </p>
-              <p className="text-xs text-zinc-300">
+              <p className="text-xs text-zinc-600 dark:text-zinc-300">
                 Your release upload is now unlocked.
               </p>
             </div>
 
-            <div className="max-w-xs mx-auto p-4 rounded-2xl bg-white/5 border border-white/10 text-left text-xs space-y-2 font-mono">
-              <div className="flex justify-between text-zinc-400">
+            <div className="max-w-xs mx-auto p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-left text-xs space-y-2 font-mono">
+              <div className="flex justify-between text-zinc-500 dark:text-zinc-400">
                 <span>Order ID:</span>
-                <span className="text-white font-bold">{order?.orderId || 'Confirmed'}</span>
+                <span className="text-zinc-900 dark:text-white font-bold">{order?.orderId || 'Confirmed'}</span>
               </div>
-              <div className="flex justify-between text-zinc-400">
+              <div className="flex justify-between text-zinc-500 dark:text-zinc-400">
                 <span>Amount Paid:</span>
-                <span className="text-emerald-400 font-bold">₹{amount}</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold">₹{amount}</span>
               </div>
-              <div className="flex justify-between text-zinc-400">
+              <div className="flex justify-between text-zinc-500 dark:text-zinc-400">
                 <span>Payment Status:</span>
-                <span className="text-emerald-400 font-bold">SUCCESS ✓</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold">SUCCESS ✓</span>
               </div>
-              <div className="flex justify-between text-zinc-400">
+              <div className="flex justify-between text-zinc-500 dark:text-zinc-400">
                 <span>Release Upload:</span>
-                <span className="text-emerald-400 font-bold">UNLOCKED 🔓</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-bold">UNLOCKED 🔓</span>
               </div>
             </div>
 
-            <p className="text-[11px] text-zinc-400 flex items-center justify-center gap-1.5">
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 flex items-center justify-center gap-1.5">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-500 dark:text-emerald-400" />
               <span>Redirecting you to the release upload console...</span>
             </p>
           </div>
@@ -299,36 +299,36 @@ const UpiPaymentModal = ({
           <div className="space-y-5">
             {/* Header */}
             <div>
-              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-sky-400 mb-1">
+              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 mb-1">
                 <ShieldCheck className="w-4 h-4" />
                 <span>Adventure Records • Automated UPI Gateway</span>
               </div>
-              <h2 className="font-heading font-black text-xl sm:text-2xl text-white tracking-tight">
+              <h2 className="font-heading font-black text-xl sm:text-2xl text-zinc-900 dark:text-white tracking-tight">
                 PAYMENT DETAILS
               </h2>
-              <p className="text-xs text-zinc-400 mt-0.5">
+              <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
                 Scan with any UPI app to pay. Your release unlocks automatically upon payment.
               </p>
             </div>
 
             {/* Amount & Plan Banner */}
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
+            <div className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 flex items-center justify-between">
               <div>
-                <span className="text-zinc-400 text-[10px] uppercase font-bold block">Amount to Pay</span>
-                <span className="font-heading font-black text-3xl text-emerald-400">₹{amount}</span>
-                <span className="text-[10px] text-zinc-400 block mt-0.5">{title || 'Distribution Plan'}</span>
+                <span className="text-zinc-600 dark:text-zinc-400 text-[10px] uppercase font-bold block">Amount to Pay</span>
+                <span className="font-heading font-black text-3xl text-emerald-600 dark:text-emerald-400">₹{amount}</span>
+                <span className="text-[10px] text-zinc-600 dark:text-zinc-400 block mt-0.5">{title || 'Distribution Plan'}</span>
               </div>
               <div className="text-right">
-                <span className="text-zinc-500 text-[10px] uppercase font-bold block">Order ID</span>
-                <span className="font-mono text-xs text-sky-400 font-bold select-all">
+                <span className="text-zinc-500 dark:text-zinc-400 text-[10px] uppercase font-bold block">Order ID</span>
+                <span className="font-mono text-xs text-sky-600 dark:text-sky-400 font-bold select-all">
                   {loadingOrder ? 'Generating...' : (order?.orderId || 'Active')}
                 </span>
-                <span className="text-[10px] text-emerald-400 block mt-0.5 font-semibold">100% Royalty Retention</span>
+                <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block mt-0.5 font-semibold">100% Royalty Retention</span>
               </div>
             </div>
 
             {/* Dynamic UPI QR Code Section */}
-            <div className="p-5 rounded-2xl bg-white text-black text-center space-y-3.5 shadow-2xl relative">
+            <div className="upi-qr-card p-5 rounded-2xl bg-white text-black text-center space-y-3.5 shadow-2xl relative border border-zinc-200">
               <p className="text-xs font-bold uppercase tracking-wider text-zinc-800">
                 Scan QR with any UPI app to complete payment.
               </p>
@@ -397,39 +397,39 @@ const UpiPaymentModal = ({
             <div className="grid grid-cols-3 gap-2">
               <a
                 href={upiDeepLink}
-                className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-center text-xs font-bold text-white transition-all flex flex-col items-center gap-1 cursor-pointer"
+                className="p-2.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 border border-black/10 dark:border-white/10 text-center text-xs font-bold text-zinc-900 dark:text-white transition-all flex flex-col items-center gap-1 cursor-pointer"
               >
-                <Smartphone className="w-4 h-4 text-emerald-400" />
+                <Smartphone className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 <span>Google Pay</span>
               </a>
               <a
                 href={upiDeepLink}
-                className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-center text-xs font-bold text-white transition-all flex flex-col items-center gap-1 cursor-pointer"
+                className="p-2.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 border border-black/10 dark:border-white/10 text-center text-xs font-bold text-zinc-900 dark:text-white transition-all flex flex-col items-center gap-1 cursor-pointer"
               >
-                <Smartphone className="w-4 h-4 text-sky-400" />
+                <Smartphone className="w-4 h-4 text-sky-600 dark:text-sky-400" />
                 <span>PhonePe</span>
               </a>
               <a
                 href={upiDeepLink}
-                className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-center text-xs font-bold text-white transition-all flex flex-col items-center gap-1 cursor-pointer"
+                className="p-2.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 border border-black/10 dark:border-white/10 text-center text-xs font-bold text-zinc-900 dark:text-white transition-all flex flex-col items-center gap-1 cursor-pointer"
               >
-                <Smartphone className="w-4 h-4 text-indigo-400" />
+                <Smartphone className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 <span>Paytm / UPI</span>
               </a>
             </div>
 
             {/* Errors */}
             {(orderError || (paymentFailed && failureReason)) && (
-              <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2.5">
+              <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs flex items-center gap-2.5">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{orderError || failureReason}</span>
               </div>
             )}
 
             {/* ── AUTOMATIC WAITING STATUS INDICATOR ── */}
-            <div className="p-4 rounded-2xl bg-white/5 border border-sky-500/20 text-center">
-              <div className="flex items-center justify-center gap-2.5 text-sky-400 text-xs font-bold tracking-wide">
-                <Loader2 className="w-4 h-4 animate-spin text-sky-400" />
+            <div className="p-4 rounded-2xl bg-sky-500/10 dark:bg-sky-500/10 border border-sky-500/30 text-center">
+              <div className="flex items-center justify-center gap-2.5 text-sky-600 dark:text-sky-400 text-xs font-bold tracking-wide">
+                <Loader2 className="w-4 h-4 animate-spin text-sky-600 dark:text-sky-400" />
                 <span>Waiting for payment confirmation...</span>
               </div>
             </div>

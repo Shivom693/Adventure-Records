@@ -8,6 +8,30 @@ export default {
   theme: {
     extend: {
       colors: {
+        background: 'var(--bg-primary)',
+        foreground: 'var(--text-primary)',
+        card: {
+          DEFAULT: 'var(--bg-card)',
+          foreground: 'var(--text-primary)',
+        },
+        popover: {
+          DEFAULT: 'var(--bg-card)',
+          foreground: 'var(--text-primary)',
+        },
+        primary: {
+          DEFAULT: 'var(--btn-primary-bg)',
+          foreground: 'var(--btn-primary-text)',
+        },
+        secondary: {
+          DEFAULT: 'var(--btn-secondary-bg)',
+          foreground: 'var(--btn-secondary-text)',
+        },
+        muted: {
+          DEFAULT: 'var(--bg-surface)',
+          foreground: 'var(--text-muted)',
+        },
+        border: 'var(--border-default)',
+        input: 'var(--border-input)',
         brand: {
           dark: '#0c0b1a',
           darker: '#080714',

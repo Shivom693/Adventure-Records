@@ -653,7 +653,7 @@ const UploadRelease = () => {
                 </div>
                 <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-white transition-all duration-300"
+                    className="h-full bg-emerald-500 transition-all duration-300"
                     style={{ width: `${uploadProgress}%` }} 
                   />
                 </div>

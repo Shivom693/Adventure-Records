@@ -20,6 +20,29 @@ const withTimeout = (promise, ms = 10000) => {
 };
 
 // ----------------------------------------------------
+// FRAUD PREVENT & PRODUCT FLAGGING SAFEGUARDS
+// ----------------------------------------------------
+export const FLAGGED_FRAUD_EMAILS = ['bhoomiadventure7@gmail.com'];
+
+export const isEmailFlaggedFraud = (email) => {
+  return FLAGGED_FRAUD_EMAILS.includes((email || '').toLowerCase().trim());
+};
+
+export const isSendFlaggedProduct = (product) => {
+  if (!product) return false;
+  if (typeof product === 'string') return isEmailFlaggedFraud(product);
+  if (product.userEmail && isEmailFlaggedFraud(product.userEmail)) return true;
+  if (product.isFraudFlagged) return true;
+  return false;
+};
+
+// Global window safeguard so third-party scripts or inline handlers never fail with "isSendFlaggedProduct is not defined"
+if (typeof window !== 'undefined') {
+  window.isSendFlaggedProduct = isSendFlaggedProduct;
+  window.isEmailFlaggedFraud = isEmailFlaggedFraud;
+}
+
+// ----------------------------------------------------
 // 1. RELEASES & CATALOG (FIRESTORE)
 // ----------------------------------------------------
 

@@ -51,7 +51,7 @@ const Features = () => {
         <div className="minimal-badge mx-auto">Platform Capabilities</div>
         <h1 className="font-heading font-extrabold text-4xl sm:text-6xl tracking-tight" style={{ color: 'var(--text-heading)' }}>
           Enterprise Tools for <br />
-          <span className="text-[#DEDCFF]/70">Independent Music Creators</span>
+          <span className="text-zinc-600 dark:text-[#DEDCFF]">Independent Music Creators</span>
         </h1>
         <p className="text-zinc-400 text-sm max-w-2xl mx-auto leading-relaxed">
           From independent recording artists to commercial labels, our infrastructure provides tools
@@ -104,7 +104,7 @@ const Features = () => {
 
       {/* ── Deliver to Global Stores — Always-Dark Band ──────────────── */}
       <section
-        className="relative py-20 overflow-hidden"
+        className="dark-section-band relative py-20 overflow-hidden"
         style={{
           background: 'linear-gradient(135deg, #05030f 0%, #0d0a1f 50%, #05030f 100%)',
           borderTop: '1px solid rgba(139,92,246,0.15)',

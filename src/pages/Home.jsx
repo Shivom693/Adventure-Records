@@ -316,7 +316,7 @@ const Home = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative">
             {processSteps.map((st, idx) => (
               <div key={idx} className="space-y-4 relative">
-                <span className="font-heading font-black text-4xl text-[#53527D]/50 block">
+                <span className="font-heading font-black text-4xl text-zinc-400 dark:text-[#53527D]/70 block">
                   {st.step}
                 </span>
                 <h3 className="font-heading font-bold text-xl text-white">

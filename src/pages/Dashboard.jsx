@@ -357,7 +357,7 @@ const Dashboard = () => {
             >
               {sub.label}
               {activeSubTab === sub.id && (
-                <span className="absolute bottom-0 left-0 w-full h-[2px] bg-white rounded-full" />
+                <span className="absolute bottom-0 left-0 w-full h-[2px] bg-black dark:bg-white rounded-full" />
               )}
             </button>
           ))}
