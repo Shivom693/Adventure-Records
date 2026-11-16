@@ -437,8 +437,13 @@ const Dashboard = () => {
                       <div className="space-y-1 flex-grow truncate">
                         <h4 className="font-heading font-bold text-base text-white truncate">{rel.releaseTitle}</h4>
                         <p className="text-zinc-400 text-xs">{rel.primaryArtist} • {rel.releaseType}</p>
-                        <div className="flex items-center gap-2 pt-1 text-[11px] text-zinc-500 font-mono">
+                        <div className="flex items-center flex-wrap gap-2 pt-1 text-[11px] text-zinc-500 font-mono">
                           <span>UPC: {rel.upc || 'Not assigned'}</span>
+                          {(rel.audioDriveLink || rel.audioUrl || (rel.tracks && rel.tracks[0]?.audioUrl)) && (
+                            <span className="text-emerald-400 font-sans text-[10px] bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 font-bold">
+                              Drive Audio Attached ✓
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>

@@ -4,7 +4,8 @@ import {
   ShieldAlert, Settings, BadgeAlert, CheckCircle, RefreshCw, 
   User as UserIcon, ListMusic, CreditCard, ChevronRight, XCircle,
   Sparkles, Bot, FileText, Check, AlertTriangle, Eye, ShieldCheck,
-  UserCheck, AlertCircle, MessageSquare, ExternalLink, Paperclip, Zap
+  UserCheck, AlertCircle, MessageSquare, ExternalLink, Paperclip, Zap,
+  Copy, Music, Image as ImageIcon
 } from 'lucide-react';
 import { auth, db } from '../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -37,6 +38,65 @@ const AdminPanel = () => {
   const [paymentReason, setPaymentReason] = useState('');
   const [submittingPaymentAction, setSubmittingPaymentAction] = useState(false);
   const [retryingTicketId, setRetryingTicketId] = useState(null);
+  const [copiedLinkMap, setCopiedLinkMap] = useState({});
+
+  // Helper to ensure URL opens with protocol in new tab
+  const normalizeDriveUrl = (url) => {
+    if (!url || typeof url !== 'string') return '';
+    const trimmed = url.trim();
+    if (!trimmed) return '';
+    if (/^https?:\/\//i.test(trimmed)) {
+      return trimmed;
+    }
+    return `https://${trimmed}`;
+  };
+
+  // Helper to copy links with visual feedback
+  const handleCopyLink = async (key, text) => {
+    if (!text) return;
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopiedLinkMap(prev => ({ ...prev, [key]: true }));
+      setTimeout(() => {
+        setCopiedLinkMap(prev => ({ ...prev, [key]: false }));
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy link:', err);
+    }
+  };
+
+  // Helper to extract audio and artwork Drive links consistently across versions
+  const getDriveLinkData = (rel) => {
+    if (!rel) return { audioLink: '', artworkLink: '' };
+    
+    // Check all potential variations of audio Drive link
+    const audioLink = (
+      rel.audioDriveLink || 
+      rel.audioUrl || 
+      rel.googleDriveLink || 
+      (rel.tracks && Array.isArray(rel.tracks) && (rel.tracks[0]?.audioDriveLink || rel.tracks[0]?.audioUrl)) || 
+      ''
+    ).trim();
+
+    // Check all potential variations of artwork link
+    const artworkLink = (
+      rel.artworkDriveLink || 
+      rel.artworkUrl || 
+      rel.coverArtUrl || 
+      ''
+    ).trim();
+
+    return { audioLink, artworkLink };
+  };
 
   const handleRetryEmail = async (ticket) => {
     const tId = ticket.ticketId || ticket.id;
@@ -442,59 +502,252 @@ const AdminPanel = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {releases.map((rel, idx) => (
-                  <div key={idx} className="p-5 rounded-2xl bg-white/5 border border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex items-start gap-4">
-                      <img 
-                        src={rel.artworkUrl || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=200&auto=format&fit=crop'}
-                        alt={rel.releaseTitle}
-                        onError={(e) => {
-                          e.target.src = 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=200&auto=format&fit=crop';
-                        }}
-                        className="w-16 h-16 rounded-xl object-cover shrink-0 border border-white/10 shadow-md"
-                      />
-                      <div className="space-y-1">
-                        <h4 className="font-heading font-bold text-base text-white">{rel.releaseTitle}</h4>
-                        <p className="text-zinc-400 text-xs">{rel.primaryArtist} • {rel.genre} • {rel.releaseType}</p>
-                        <p className="text-[10px] text-zinc-500 font-mono">
-                          Payment: <span className={rel.paymentStatus === 'paid' ? 'text-emerald-400 font-bold' : 'text-[#DEDCFF]'}>{rel.paymentStatus || 'unpaid'}</span> • UPC: {rel.upc || 'Not assigned'}
-                        </p>
+                {releases.map((rel, idx) => {
+                  const { audioLink, artworkLink } = getDriveLinkData(rel);
+                  const releaseTitle = rel.releaseTitle || rel.title || 'Untitled Release';
+                  const artistName = rel.primaryArtist || rel.artistName || 'Unknown Artist';
+
+                  return (
+                    <div key={idx} className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-4 hover:border-white/20 transition-all">
+                      {/* Top Header Row: Artwork, Title, Artist, Metadata, Status, Actions */}
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex items-start gap-4">
+                          <img 
+                            src={rel.artworkUrl || artworkLink || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=200&auto=format&fit=crop'}
+                            alt={releaseTitle}
+                            onError={(e) => {
+                              e.target.src = 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=200&auto=format&fit=crop';
+                            }}
+                            className="w-16 h-16 rounded-xl object-cover shrink-0 border border-white/10 shadow-md"
+                          />
+                          <div className="space-y-1">
+                            <h4 className="font-heading font-bold text-base text-white">{releaseTitle}</h4>
+                            <p className="text-zinc-400 text-xs">{artistName} • {rel.genre || 'Pop'} • {rel.releaseType || 'Single'}</p>
+                            <p className="text-[10px] text-zinc-500 font-mono">
+                              Payment: <span className={rel.paymentStatus === 'paid' ? 'text-emerald-400 font-bold' : 'text-[#DEDCFF]'}>{rel.paymentStatus || 'unpaid'}</span> • UPC: {rel.upc || 'Not assigned'}
+                            </p>
+                            {rel.userEmail && (
+                              <p className="text-[10px] text-zinc-400">
+                                Artist: <span className="text-white font-medium">{rel.userEmail}</span>
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 border-t border-white/10 pt-3 md:border-none md:pt-0">
+                          <span className={`text-[10px] font-bold uppercase px-3 py-1 rounded-full ${
+                            rel.status === 'approved' || rel.status === 'distributed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' :
+                            rel.status === 'rejected' ? 'bg-red-500/10 text-red-400 border border-red-500/30' :
+                            rel.status === 'changes_required' ? 'bg-[#585589]/20 text-[#DEDCFF] border border-[#585589]/40' :
+                            'bg-white/10 text-zinc-300 border border-white/20'
+                          }`}>
+                            {rel.status?.replace('_', ' ')}
+                          </span>
+
+                          <button
+                            onClick={() => { setSelectedRelease(rel); setReviewAction('approved'); }}
+                            className="px-3.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[11px] font-bold uppercase border border-emerald-500/30 transition-colors"
+                          >
+                            Approve
+                          </button>
+
+                          <button
+                            onClick={() => { setSelectedRelease(rel); setReviewAction('changes_required'); }}
+                            className="px-3.5 py-1.5 rounded-lg bg-[#585589]/20 hover:bg-[#585589]/30 text-[#DEDCFF] text-[11px] font-bold uppercase border border-[#585589]/40 transition-colors"
+                          >
+                            Request Changes
+                          </button>
+
+                          <button
+                            onClick={() => { setSelectedRelease(rel); setReviewAction('rejected'); }}
+                            className="px-3.5 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[11px] font-bold uppercase border border-red-500/30 transition-colors"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Dedicated Google Drive Submission Files Box */}
+                      <div className="p-4 rounded-xl bg-black/40 border border-white/10 space-y-3">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span className="text-[11px] font-bold uppercase tracking-wider text-white">Google Drive Submission Files</span>
+                          </div>
+                          <span className="text-[10px] text-zinc-400 font-mono">
+                            {audioLink ? 'Audio Attached ✓' : 'No Audio Link'}
+                          </span>
+                        </div>
+
+                        {/* Audio File Drive Link */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-semibold text-zinc-300 flex items-center gap-1.5">
+                              <Music className="w-3.5 h-3.5 text-emerald-400" />
+                              Audio File (Master / Track):
+                            </span>
+                            {audioLink ? (
+                              <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
+                                Drive Link Available
+                              </span>
+                            ) : (
+                              <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono">
+                                Missing Link
+                              </span>
+                            )}
+                          </div>
+
+                          {audioLink ? (
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-lg bg-white/5 border border-white/10">
+                              <div className="flex-1 min-w-0 pr-2">
+                                <p className="text-[11px] font-mono text-zinc-300 break-all select-all hover:text-white transition-colors" title={audioLink}>
+                                  {audioLink}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <a
+                                  href={normalizeDriveUrl(audioLink)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-black text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                                  title="Open audio file in Google Drive in a new tab"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                  <span>Open Drive Link</span>
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyLink(`audio_${rel.id || idx}`, audioLink)}
+                                  className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 transition-all border border-white/15"
+                                  title="Copy audio Drive URL"
+                                >
+                                  {copiedLinkMap[`audio_${rel.id || idx}`] ? (
+                                    <>
+                                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                      <span className="text-emerald-400">Copied!</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="w-3.5 h-3.5" />
+                                      <span>Copy Link</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20 text-amber-300 text-xs flex items-center gap-2">
+                              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                              <span>No Google Drive audio link provided for this release.</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Artwork File Drive Link */}
+                        {artworkLink && (
+                          <div className="space-y-1.5 pt-1">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="font-semibold text-zinc-300 flex items-center gap-1.5">
+                                <ImageIcon className="w-3.5 h-3.5 text-indigo-400" />
+                                Cover Artwork Link:
+                              </span>
+                              <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-mono">
+                                Artwork Ready
+                              </span>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-lg bg-white/5 border border-white/10">
+                              <div className="flex-1 min-w-0 pr-2">
+                                <p className="text-[11px] font-mono text-zinc-300 break-all select-all hover:text-white transition-colors" title={artworkLink}>
+                                  {artworkLink}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <a
+                                  href={normalizeDriveUrl(artworkLink)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 transition-all border border-white/15"
+                                  title="Open cover artwork link in a new tab"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                  <span>Open Artwork</span>
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyLink(`art_${rel.id || idx}`, artworkLink)}
+                                  className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 transition-all border border-white/15"
+                                  title="Copy artwork URL"
+                                >
+                                  {copiedLinkMap[`art_${rel.id || idx}`] ? (
+                                    <>
+                                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                      <span className="text-emerald-400">Copied!</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="w-3.5 h-3.5" />
+                                      <span>Copy Link</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Multi-Track Breakdown (for EP / Album) */}
+                        {Array.isArray(rel.tracks) && rel.tracks.length > 1 && (
+                          <div className="pt-2 border-t border-white/10 space-y-2">
+                            <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider block">
+                              Track Files Breakdown ({rel.tracks.length} Tracks):
+                            </span>
+                            <div className="space-y-1.5">
+                              {rel.tracks.map((trk, tIdx) => {
+                                const trkAudio = trk.audioDriveLink || trk.audioUrl || '';
+                                return (
+                                  <div key={tIdx} className="p-2 rounded-lg bg-black/30 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                                    <div className="min-w-0 flex-1">
+                                      <span className="font-medium text-white">Track {tIdx + 1}: {trk.title || releaseTitle}</span>
+                                      {trk.isrc && <span className="text-[10px] text-zinc-500 ml-2 font-mono">ISRC: {trk.isrc}</span>}
+                                      {trkAudio && (
+                                        <p className="text-[10px] font-mono text-zinc-400 break-all select-all mt-0.5">{trkAudio}</p>
+                                      )}
+                                    </div>
+                                    {trkAudio && (
+                                      <div className="flex items-center gap-2 shrink-0">
+                                        <a
+                                          href={normalizeDriveUrl(trkAudio)}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="px-2.5 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-semibold flex items-center gap-1"
+                                        >
+                                          <ExternalLink className="w-3 h-3" />
+                                          Open
+                                        </a>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleCopyLink(`trk_${rel.id || idx}_${tIdx}`, trkAudio)}
+                                          className="px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 text-zinc-300 border border-white/10 text-[11px] font-semibold flex items-center gap-1"
+                                        >
+                                          {copiedLinkMap[`trk_${rel.id || idx}_${tIdx}`] ? (
+                                            <Check className="w-3 h-3 text-emerald-400" />
+                                          ) : (
+                                            <Copy className="w-3 h-3" />
+                                          )}
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-3 border-t border-white/10 pt-3 md:border-none md:pt-0">
-                      <span className={`text-[10px] font-bold uppercase px-3 py-1 rounded-full ${
-                        rel.status === 'approved' || rel.status === 'distributed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' :
-                        rel.status === 'rejected' ? 'bg-red-500/10 text-red-400 border border-red-500/30' :
-                        rel.status === 'changes_required' ? 'bg-[#585589]/20 text-[#DEDCFF] border border-[#585589]/40' :
-                        'bg-white/10 text-zinc-300 border border-white/20'
-                      }`}>
-                        {rel.status?.replace('_', ' ')}
-                      </span>
-
-                      <button
-                        onClick={() => { setSelectedRelease(rel); setReviewAction('approved'); }}
-                        className="px-3.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[11px] font-bold uppercase border border-emerald-500/30"
-                      >
-                        Approve
-                      </button>
-
-                      <button
-                        onClick={() => { setSelectedRelease(rel); setReviewAction('changes_required'); }}
-                        className="px-3.5 py-1.5 rounded-lg bg-[#585589]/20 hover:bg-[#585589]/30 text-[#DEDCFF] text-[11px] font-bold uppercase border border-[#585589]/40"
-                      >
-                        Request Changes
-                      </button>
-
-                      <button
-                        onClick={() => { setSelectedRelease(rel); setReviewAction('rejected'); }}
-                        className="px-3.5 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[11px] font-bold uppercase border border-red-500/30"
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -661,12 +914,173 @@ const AdminPanel = () => {
 
       {/* Release Review Modal */}
       {selectedRelease && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 font-outfit">
-          <div className="w-full max-w-md minimal-card rounded-3xl p-8 bg-[#0d0d12] border-white/15 space-y-6">
-            <div>
-              <h3 className="font-heading font-bold text-xl text-white">Review Release</h3>
-              <p className="text-zinc-400 text-xs mt-1">{selectedRelease.releaseTitle} by {selectedRelease.primaryArtist}</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 font-outfit overflow-y-auto">
+          <div className="w-full max-w-lg minimal-card rounded-3xl p-8 bg-[#0d0d12] border-white/15 space-y-6 my-auto max-h-[92vh] overflow-y-auto">
+            <div className="flex items-start gap-4 pb-3 border-b border-white/10">
+              <img 
+                src={selectedRelease.artworkUrl || selectedRelease.artworkDriveLink || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=200&auto=format&fit=crop'}
+                alt={selectedRelease.releaseTitle || selectedRelease.title}
+                onError={(e) => {
+                  e.target.src = 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=200&auto=format&fit=crop';
+                }}
+                className="w-14 h-14 rounded-xl object-cover shrink-0 border border-white/10 shadow-md"
+              />
+              <div className="min-w-0 flex-1">
+                <h3 className="font-heading font-bold text-lg text-white truncate">
+                  {selectedRelease.releaseTitle || selectedRelease.title}
+                </h3>
+                <p className="text-zinc-400 text-xs">
+                  By <span className="text-white font-medium">{selectedRelease.primaryArtist || selectedRelease.artistName}</span>
+                </p>
+                <p className="text-[10px] text-zinc-500 font-mono mt-0.5">
+                  {selectedRelease.genre || 'Pop'} • {selectedRelease.releaseType || 'Single'} • UPC: {selectedRelease.upc || 'Not assigned'}
+                </p>
+              </div>
             </div>
+
+            {/* Google Drive Submission Files Box in Modal */}
+            {(() => {
+              const { audioLink, artworkLink } = getDriveLinkData(selectedRelease);
+              return (
+                <div className="p-4 rounded-2xl bg-black/50 border border-white/10 space-y-3">
+                  <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                    Submitted Verification Files
+                  </h4>
+
+                  {/* Audio Master File Drive Link */}
+                  <div className="space-y-1.5">
+                    <span className="text-[11px] font-semibold text-zinc-400 flex items-center gap-1.5">
+                      <Music className="w-3 h-3 text-emerald-400" /> Audio Master File:
+                    </span>
+                    {audioLink ? (
+                      <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 space-y-2">
+                        <p className="text-[10px] font-mono text-zinc-300 break-all select-all hover:text-white transition-colors" title={audioLink}>
+                          {audioLink}
+                        </p>
+                        <div className="flex gap-2">
+                          <a
+                            href={normalizeDriveUrl(audioLink)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 py-2 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-black text-xs font-bold flex items-center justify-center gap-1.5 transition-all text-center shadow-sm"
+                            title="Open Google Drive audio file in a new tab"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            <span>Open Audio in Google Drive</span>
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyLink(`modal_audio_${selectedRelease.id || 'curr'}`, audioLink)}
+                            className="py-2 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1 border border-white/15"
+                            title="Copy audio Drive URL"
+                          >
+                            {copiedLinkMap[`modal_audio_${selectedRelease.id || 'curr'}`] ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                <span className="text-emerald-400">Copied!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5" />
+                                <span>Copy Link</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <span>No Audio Drive link submitted for this release.</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Cover Artwork File Link */}
+                  {artworkLink && (
+                    <div className="space-y-1.5 pt-1">
+                      <span className="text-[11px] font-semibold text-zinc-400 flex items-center gap-1.5">
+                        <ImageIcon className="w-3 h-3 text-indigo-400" /> Cover Artwork File:
+                      </span>
+                      <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 space-y-2">
+                        <p className="text-[10px] font-mono text-zinc-300 break-all select-all hover:text-white transition-colors" title={artworkLink}>
+                          {artworkLink}
+                        </p>
+                        <div className="flex gap-2">
+                          <a
+                            href={normalizeDriveUrl(artworkLink)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 py-1.5 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center justify-center gap-1.5 border border-white/15 transition-all text-center"
+                            title="Open artwork file in a new tab"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            <span>Open Artwork Link</span>
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyLink(`modal_art_${selectedRelease.id || 'curr'}`, artworkLink)}
+                            className="py-1.5 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1 border border-white/15"
+                            title="Copy artwork URL"
+                          >
+                            {copiedLinkMap[`modal_art_${selectedRelease.id || 'curr'}`] ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                <span className="text-emerald-400">Copied!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5" />
+                                <span>Copy Link</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Multi-Track Breakdown in Modal (if EP/Album) */}
+                  {Array.isArray(selectedRelease.tracks) && selectedRelease.tracks.length > 1 && (
+                    <div className="pt-2 border-t border-white/10 space-y-1.5">
+                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block">
+                        Included Tracks ({selectedRelease.tracks.length}):
+                      </span>
+                      <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
+                        {selectedRelease.tracks.map((trk, tIdx) => {
+                          const trkAudio = trk.audioDriveLink || trk.audioUrl || '';
+                          return (
+                            <div key={tIdx} className="p-2 rounded bg-black/40 border border-white/5 flex items-center justify-between gap-2 text-[11px]">
+                              <span className="text-white truncate">Track {tIdx + 1}: {trk.title}</span>
+                              {trkAudio && (
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <a
+                                    href={normalizeDriveUrl(trkAudio)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-bold"
+                                  >
+                                    Open
+                                  </a>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyLink(`modal_trk_${tIdx}`, trkAudio)}
+                                    className="px-2 py-0.5 rounded bg-white/5 text-zinc-300 text-[10px]"
+                                  >
+                                    {copiedLinkMap[`modal_trk_${tIdx}`] ? 'Copied' : 'Copy'}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             <form onSubmit={handleReviewSubmit} className="space-y-4">
               <div>
