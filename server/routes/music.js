@@ -106,47 +106,79 @@ const uploadVerify = multer({
 // 1. CREATE A NEW RELEASE (Artists / Labels)
 router.post('/releases', authenticateToken, cpUpload, async (req, res) => {
   try {
-    const { title, artistName, releaseDate, upc, isrc, tracks: tracksJSON } = req.body;
+    const { 
+      title, 
+      artistName, 
+      releaseDate, 
+      upc, 
+      isrc, 
+      coverArtUrl, 
+      artworkUrl, 
+      artworkDriveLink, 
+      audioUrl, 
+      audioDriveLink, 
+      googleDriveLink,
+      tracks: tracksJSON 
+    } = req.body;
 
     if (!title || !artistName) {
       return res.status(400).json({ message: 'Title and Artist Name are required.' });
     }
 
-    const coverArtFile = req.files['coverArt'] ? req.files['coverArt'][0] : null;
-    const audioFiles = req.files['audio'] || [];
+    const coverArtFile = req.files && req.files['coverArt'] ? req.files['coverArt'][0] : null;
+    const audioFiles = (req.files && req.files['audio']) || [];
 
-    if (!coverArtFile) {
-      return res.status(400).json({ message: 'Cover artwork is required.' });
+    const resolvedArtworkLink = (artworkDriveLink || artworkUrl || coverArtUrl || (coverArtFile ? `/uploads/${coverArtFile.filename}` : '')).trim();
+    const resolvedAudioLink = (audioDriveLink || audioUrl || googleDriveLink || '').trim();
+
+    if (!coverArtFile && !resolvedArtworkLink) {
+      return res.status(400).json({ message: 'Cover artwork or Google Drive artwork link is required.' });
     }
 
     let tracks = [];
     if (tracksJSON) {
       try {
-        tracks = JSON.parse(tracksJSON);
+        tracks = typeof tracksJSON === 'string' ? JSON.parse(tracksJSON) : tracksJSON;
       } catch (err) {
         return res.status(400).json({ message: 'Tracks metadata must be valid JSON.' });
       }
     }
 
-    // Map audio files to tracks
-    // In our upload system, if there's only one track or files match sequentially
-    tracks = tracks.map((track, index) => {
-      const file = audioFiles[index] || audioFiles[0] || null;
-      return {
-        ...track,
-        audioPath: file ? `/uploads/${file.filename}` : '',
-        audioUrl: file ? `/uploads/${file.filename}` : '',
-        isrc: track.isrc || isrc || 'AR-' + Math.floor(Math.random() * 1e8)
-      };
-    });
+    // Map audio files or drive links to tracks
+    if (!tracks || tracks.length === 0) {
+      tracks = [{
+        title,
+        audioPath: audioFiles[0] ? `/uploads/${audioFiles[0].filename}` : '',
+        audioUrl: audioFiles[0] ? `/uploads/${audioFiles[0].filename}` : resolvedAudioLink,
+        audioDriveLink: resolvedAudioLink,
+        isrc: isrc || 'AR-' + Math.floor(Math.random() * 1e8)
+      }];
+    } else {
+      tracks = tracks.map((track, index) => {
+        const file = audioFiles[index] || audioFiles[0] || null;
+        const trackAudioLink = track.audioDriveLink || track.audioUrl || resolvedAudioLink;
+        return {
+          ...track,
+          audioPath: file ? `/uploads/${file.filename}` : '',
+          audioUrl: file ? `/uploads/${file.filename}` : trackAudioLink,
+          audioDriveLink: trackAudioLink,
+          isrc: track.isrc || isrc || 'AR-' + Math.floor(Math.random() * 1e8)
+        };
+      });
+    }
 
     const newRelease = await db.releases.create({
       title,
       artistName,
       releaseDate: releaseDate || new Date().toISOString().split('T')[0],
       upc: upc || 'UPC-' + Math.floor(Math.random() * 1e12),
-      coverArtPath: `/uploads/${coverArtFile.filename}`,
-      coverArtUrl: `/uploads/${coverArtFile.filename}`,
+      coverArtPath: coverArtFile ? `/uploads/${coverArtFile.filename}` : '',
+      coverArtUrl: resolvedArtworkLink,
+      artworkUrl: resolvedArtworkLink,
+      artworkDriveLink: resolvedArtworkLink,
+      audioUrl: resolvedAudioLink || (tracks[0] && tracks[0].audioUrl) || '',
+      audioDriveLink: resolvedAudioLink || (tracks[0] && tracks[0].audioDriveLink) || '',
+      googleDriveLink: resolvedAudioLink || resolvedArtworkLink,
       status: 'Pending',
       userId: req.user._id || req.user.id,
       tracks
