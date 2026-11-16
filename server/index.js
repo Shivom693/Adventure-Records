@@ -260,8 +260,26 @@ app.post('/api/send-otp', authenticateToken, async (req, res) => {
 
 // New Song Uploaded Email Notification Endpoint (requires authentication)
 app.post('/api/notify-upload', authenticateToken, async (req, res) => {
-  const { releaseTitle, primaryArtist, featuringArtists, releaseType, genre, language, releaseDate, artworkUrl, tracks, userEmail } = req.body;
+  const { 
+    releaseTitle, 
+    primaryArtist, 
+    featuringArtists, 
+    releaseType, 
+    genre, 
+    language, 
+    releaseDate, 
+    artworkUrl, 
+    artworkDriveLink,
+    audioUrl,
+    audioDriveLink,
+    googleDriveLink,
+    tracks, 
+    userEmail 
+  } = req.body;
   const adminEmail = process.env.ADMIN_EMAIL || 'adventureof693@gmail.com';
+
+  const resolvedAudioLink = audioDriveLink || audioUrl || googleDriveLink || (tracks && tracks[0] && (tracks[0].audioDriveLink || tracks[0].audioUrl)) || '';
+  const resolvedArtworkLink = artworkDriveLink || artworkUrl || '';
 
   // Validate the notified email matches the authenticated user
   if (userEmail && req.user.email !== userEmail) {
@@ -270,6 +288,8 @@ app.post('/api/notify-upload', authenticateToken, async (req, res) => {
 
   console.log(`\n=================================================`);
   console.log(`🎵 [NEW SONG UPLOADED] ${releaseTitle} by ${primaryArtist}`);
+  if (resolvedAudioLink) console.log(`🔗 [AUDIO DRIVE LINK]: ${resolvedAudioLink}`);
+  if (resolvedArtworkLink) console.log(`🔗 [ARTWORK LINK]: ${resolvedArtworkLink}`);
   console.log(`=================================================\n`);
 
   const emailUser = process.env.EMAIL_USER;
@@ -286,8 +306,16 @@ app.post('/api/notify-upload', authenticateToken, async (req, res) => {
       });
 
       const trackListHtml = Array.isArray(tracks) && tracks.length > 0
-        ? tracks.map((t, idx) => `<li style="margin-bottom: 6px;"><strong>Track ${idx + 1}:</strong> ${t.title || releaseTitle} ${t.isrc ? `(ISRC: ${t.isrc})` : ''}</li>`).join('')
-        : `<li>${releaseTitle}</li>`;
+        ? tracks.map((t, idx) => {
+            const trkAudio = t.audioDriveLink || t.audioUrl || resolvedAudioLink;
+            return `
+              <li style="margin-bottom: 8px;">
+                <strong>Track ${idx + 1}:</strong> ${t.title || releaseTitle} ${t.isrc ? `(ISRC: ${t.isrc})` : ''}
+                ${trkAudio ? `<br/><a href="${trkAudio}" target="_blank" style="color: #38bdf8; font-size: 11px; word-break: break-all;">🔗 Open Track Drive Audio →</a>` : ''}
+              </li>
+            `;
+          }).join('')
+        : `<li>${releaseTitle} ${resolvedAudioLink ? `<br/><a href="${resolvedAudioLink}" target="_blank" style="color: #38bdf8; font-size: 11px;">🔗 Open Audio Drive Link</a>` : ''}</li>`;
 
       await transporter.sendMail({
         from: `"Adventure Records Curation" <${emailUser}>`,
@@ -309,6 +337,27 @@ app.post('/api/notify-upload', authenticateToken, async (req, res) => {
               <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Uploader Email:</td><td style="color: #ffffff;"><a href="mailto:${userEmail}" style="color: #38bdf8;">${userEmail || 'Artist'}</a></td></tr>
               <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Submitted At:</td><td style="color: #ffffff;">${new Date().toLocaleString()}</td></tr>
             </table>
+
+            <!-- Direct Google Drive Links in Email -->
+            <div style="background-color: #18181b; border: 1px solid #3f3f46; border-radius: 8px; padding: 14px; margin-bottom: 20px;">
+              <h4 style="margin: 0 0 10px 0; color: #10b981; font-size: 13px; text-transform: uppercase;">Google Drive Submission Links:</h4>
+              
+              <div style="margin-bottom: 12px;">
+                <span style="color: #a1a1aa; font-size: 12px; font-weight: bold;">🎵 Audio Master File:</span><br/>
+                ${resolvedAudioLink ? `
+                  <a href="${resolvedAudioLink}" target="_blank" style="display: inline-block; margin-top: 4px; background-color: #10b981; color: #000000; font-weight: bold; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 12px;">Open Audio Drive Link ↗</a>
+                  <p style="margin: 4px 0 0 0; font-size: 11px; color: #a1a1aa; word-break: break-all;">${resolvedAudioLink}</p>
+                ` : `<span style="color: #f59e0b; font-size: 12px;">⚠️ No Audio Drive link provided</span>`}
+              </div>
+
+              ${resolvedArtworkLink ? `
+                <div style="margin-top: 10px; border-top: 1px solid #27272a; padding-top: 10px;">
+                  <span style="color: #a1a1aa; font-size: 12px; font-weight: bold;">🖼️ Cover Artwork:</span><br/>
+                  <a href="${resolvedArtworkLink}" target="_blank" style="display: inline-block; margin-top: 4px; background-color: #3f3f46; color: #ffffff; font-weight: bold; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 12px;">Open Artwork Link ↗</a>
+                  <p style="margin: 4px 0 0 0; font-size: 11px; color: #a1a1aa; word-break: break-all;">${resolvedArtworkLink}</p>
+                </div>
+              ` : ''}
+            </div>
 
             <div style="background-color: #18181b; border: 1px solid #3f3f46; border-radius: 8px; padding: 14px; margin-bottom: 20px;">
               <h4 style="margin: 0 0 8px 0; color: #eab308; font-size: 13px; text-transform: uppercase;">Tracks List:</h4>
