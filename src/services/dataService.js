@@ -58,11 +58,56 @@ export async function fetchUserReleases(userId) {
         collection(db, 'releases'),
         where('userId', '==', userId)
       );
-      const querySnapshot = await withTimeout(getDocs(q), 1500);
+      const querySnapshot = await withTimeout(getDocs(q), 3000);
       const releases = [];
       querySnapshot.forEach((docSnap) => {
         releases.push({ id: docSnap.id, ...docSnap.data() });
       });
+
+      // Backward compatibility: fetch user tracks to enrich releases lacking audio links
+      try {
+        const tq = query(
+          collection(db, 'tracks'),
+          where('userId', '==', userId)
+        );
+        const tracksSnap = await withTimeout(getDocs(tq), 3000);
+        const tracksByRelease = {};
+        tracksSnap.forEach(tSnap => {
+          const tData = tSnap.data();
+          const relId = tData.releaseId;
+          if (relId) {
+            if (!tracksByRelease[relId]) tracksByRelease[relId] = [];
+            tracksByRelease[relId].push({ id: tSnap.id, ...tData });
+          }
+        });
+
+        for (const rel of releases) {
+          const attachedTracks = tracksByRelease[rel.id] || [];
+          if (!rel.tracks || !Array.isArray(rel.tracks) || rel.tracks.length === 0) {
+            rel.tracks = attachedTracks;
+          }
+          if (!rel.audioDriveLink && !rel.audioUrl) {
+            const firstTrackAudio = attachedTracks[0]?.audioDriveLink || attachedTracks[0]?.audioUrl || '';
+            if (firstTrackAudio) {
+              rel.audioDriveLink = firstTrackAudio;
+              rel.audioUrl = firstTrackAudio;
+            }
+          } else if (!rel.audioDriveLink && rel.audioUrl) {
+            rel.audioDriveLink = rel.audioUrl;
+          } else if (!rel.audioUrl && rel.audioDriveLink) {
+            rel.audioUrl = rel.audioDriveLink;
+          }
+          if (!rel.artworkDriveLink && rel.artworkUrl) {
+            rel.artworkDriveLink = rel.artworkUrl;
+          }
+          if (!rel.googleDriveLink) {
+            rel.googleDriveLink = rel.audioDriveLink || rel.audioUrl || rel.artworkDriveLink || '';
+          }
+        }
+      } catch (trackErr) {
+        // Fallback gracefully without breaking release list
+      }
+
       // Sort by newest first
       releases.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
       return releases;

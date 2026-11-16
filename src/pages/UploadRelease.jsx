@@ -173,12 +173,28 @@ const UploadRelease = () => {
     if (!audioDriveLink.trim()) newErrors.audio = 'Google Drive link for audio file is required.';
     if (!artworkDriveLink.trim()) newErrors.artwork = 'Google Drive link for cover artwork is required.';
 
-    // Validate Google Drive links
-    if (audioDriveLink.trim() && !audioDriveLink.includes('drive.google.com') && !audioDriveLink.includes('docs.google.com')) {
-      newErrors.audio = 'Please enter a valid Google Drive sharing link.';
+    // Validate Google Drive links with broad support for all sharing formats
+    const isValidDriveLink = (link) => {
+      if (!link) return false;
+      const lower = link.toLowerCase().trim();
+      return (
+        lower.includes('drive.google.com') ||
+        lower.includes('docs.google.com') ||
+        lower.includes('drive.usercontent.google.com') ||
+        lower.includes('google.com/drive') ||
+        lower.includes('g.co/drive') ||
+        lower.includes('/file/d/') ||
+        lower.includes('open?id=') ||
+        lower.includes('uc?id=') ||
+        lower.includes('id=')
+      );
+    };
+
+    if (audioDriveLink.trim() && !isValidDriveLink(audioDriveLink)) {
+      newErrors.audio = 'Please enter a valid Google Drive sharing link (e.g. https://drive.google.com/file/d/...).';
     }
-    if (artworkDriveLink.trim() && !artworkDriveLink.includes('drive.google.com') && !artworkDriveLink.includes('docs.google.com')) {
-      newErrors.artwork = 'Please enter a valid Google Drive sharing link.';
+    if (artworkDriveLink.trim() && !isValidDriveLink(artworkDriveLink)) {
+      newErrors.artwork = 'Please enter a valid Google Drive sharing link (e.g. https://drive.google.com/file/d/...).';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -205,7 +221,7 @@ const UploadRelease = () => {
     try {
       const tempReleaseId = 'rel_' + Date.now();
 
-      // Use Drive links directly
+      // Use Drive links directly without modifying the original URL
       const artworkUrl = artworkDriveLink.trim();
       const audioUrl = audioDriveLink.trim();
       setUploadProgress(50);
@@ -219,6 +235,7 @@ const UploadRelease = () => {
         releaseTitle: formData.title.trim(),
         releaseType: formData.releaseType,
         primaryArtist: primaryArtistName,
+        artistName: primaryArtistName,
         featuringArtists: formData.featuringArtists.trim(),
         genre: formData.genre,
         language: formData.language,
@@ -230,11 +247,16 @@ const UploadRelease = () => {
         cLine: formData.cLine.trim() || `${new Date().getFullYear()} Adventure Records`,
         upc: formData.upc.trim() || 'Not assigned',
         artworkUrl,
+        artworkDriveLink: artworkUrl,
+        audioUrl,
+        audioDriveLink: audioUrl,
+        googleDriveLink: audioUrl,
         tracks: [
           {
             title: formData.title.trim(),
             version: 'Original',
             audioUrl,
+            audioDriveLink: audioUrl,
             duration: 0,
             isrc: formData.isrc.trim() || 'Not assigned',
             featuredArtists: formData.featuringArtists.trim(),
