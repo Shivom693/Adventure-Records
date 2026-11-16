@@ -139,6 +139,7 @@ export async function createFirestoreRelease(releaseData) {
     releaseTitle,
     releaseType,
     primaryArtist,
+    artistName,
     featuringArtists,
     genre,
     language,
@@ -151,22 +152,50 @@ export async function createFirestoreRelease(releaseData) {
     cLine,
     upc,
     artworkUrl,
+    artworkDriveLink,
+    audioUrl,
+    audioDriveLink,
+    googleDriveLink,
     tracks
   } = releaseData;
 
+  const resolvedArtist = (primaryArtist || artistName || '').trim();
+
   // Protect against Firestore 1MB document limit (truncate oversized base64 data URLs if any)
-  let cleanArtworkUrl = artworkUrl || '';
+  let cleanArtworkUrl = (artworkDriveLink || artworkUrl || '').trim();
   if (cleanArtworkUrl.length > 500000) {
     cleanArtworkUrl = 'local_artwork_' + Date.now() + '.jpg';
   }
 
+  let cleanAudioUrl = (audioDriveLink || audioUrl || (tracks && tracks[0]?.audioDriveLink) || (tracks && tracks[0]?.audioUrl) || '').trim();
+  if (cleanAudioUrl.length > 500000) {
+    cleanAudioUrl = 'local_audio_' + Date.now() + '.mp3';
+  }
+
   let cleanTracks = Array.isArray(tracks) ? tracks.map(t => {
-    let aUrl = t.audioUrl || '';
+    let aUrl = (t.audioDriveLink || t.audioUrl || cleanAudioUrl || '').trim();
     if (aUrl.length > 500000) {
       aUrl = 'local_audio_' + Date.now() + '.mp3';
     }
-    return { ...t, audioUrl: aUrl };
+    return { 
+      ...t, 
+      audioUrl: aUrl,
+      audioDriveLink: aUrl
+    };
   }) : [];
+
+  if (cleanTracks.length === 0 && cleanAudioUrl) {
+    cleanTracks = [{
+      title: releaseTitle,
+      version: 'Original',
+      audioUrl: cleanAudioUrl,
+      audioDriveLink: cleanAudioUrl,
+      duration: 0,
+      isrc: 'Not assigned',
+      featuredArtists: featuringArtists || '',
+      explicit: Boolean(explicitContent)
+    }];
+  }
 
   let userEmailStr = '';
   try {
@@ -178,10 +207,11 @@ export async function createFirestoreRelease(releaseData) {
 
   const realRelease = {
     userId,
+    userEmail: userEmailStr,
     title: releaseTitle,
-    artistName: primaryArtist,
+    artistName: resolvedArtist,
     releaseTitle,
-    primaryArtist,
+    primaryArtist: resolvedArtist,
     releaseType: releaseType || 'Single',
     featuringArtists: featuringArtists || '',
     genre: genre || 'Pop',
@@ -189,12 +219,17 @@ export async function createFirestoreRelease(releaseData) {
     releaseDate,
     digitalReleaseDate: digitalReleaseDate || releaseDate,
     explicitContent: Boolean(explicitContent),
-    copyrightOwner: copyrightOwner || primaryArtist,
+    copyrightOwner: copyrightOwner || resolvedArtist,
     copyrightYear: copyrightYear || new Date().getFullYear().toString(),
     pLine: pLine || `${copyrightYear || new Date().getFullYear()} Adventure Records`,
     cLine: cLine || `${copyrightYear || new Date().getFullYear()} Adventure Records`,
     upc: upc || 'Not assigned',
     artworkUrl: cleanArtworkUrl,
+    artworkDriveLink: cleanArtworkUrl,
+    audioUrl: cleanAudioUrl,
+    audioDriveLink: cleanAudioUrl,
+    googleDriveLink: (googleDriveLink || cleanAudioUrl || cleanArtworkUrl || '').trim(),
+    tracks: cleanTracks,
     status: 'submitted',
     paymentStatus: isFreeVipAccount ? 'paid' : 'pending_verification',
     uploadUnlocked: isFreeVipAccount ? true : false,
@@ -217,14 +252,15 @@ export async function createFirestoreRelease(releaseData) {
             userId,
             title: track.title || releaseTitle,
             version: track.version || 'Original',
-            audioUrl: track.audioUrl || '',
+            audioUrl: track.audioUrl || cleanAudioUrl || '',
+            audioDriveLink: track.audioDriveLink || track.audioUrl || cleanAudioUrl || '',
             duration: track.duration || 0,
             isrc: track.isrc || 'Not assigned',
-            primaryArtist,
+            primaryArtist: resolvedArtist,
             featuredArtists: track.featuredArtists || '',
-            composer: track.composer || primaryArtist,
-            lyricist: track.lyricist || primaryArtist,
-            producer: track.producer || primaryArtist,
+            composer: track.composer || resolvedArtist,
+            lyricist: track.lyricist || resolvedArtist,
+            producer: track.producer || resolvedArtist,
             explicit: Boolean(track.explicit),
             createdAt: new Date().toISOString()
           }), 3000).catch(e => console.warn('Track save timeout/warning:', e.message));
@@ -240,13 +276,17 @@ export async function createFirestoreRelease(releaseData) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             releaseTitle,
-            primaryArtist,
+            primaryArtist: resolvedArtist,
             featuringArtists,
             releaseType,
             genre,
             language,
             releaseDate,
             artworkUrl: cleanArtworkUrl,
+            artworkDriveLink: cleanArtworkUrl,
+            audioUrl: cleanAudioUrl,
+            audioDriveLink: cleanAudioUrl,
+            googleDriveLink: (googleDriveLink || cleanAudioUrl || cleanArtworkUrl || '').trim(),
             tracks: cleanTracks,
             userEmail: uEmail
           })
@@ -278,13 +318,17 @@ export async function createFirestoreRelease(releaseData) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             releaseTitle,
-            primaryArtist,
+            primaryArtist: resolvedArtist,
             featuringArtists,
             releaseType,
             genre,
             language,
             releaseDate,
             artworkUrl: cleanArtworkUrl,
+            artworkDriveLink: cleanArtworkUrl,
+            audioUrl: cleanAudioUrl,
+            audioDriveLink: cleanAudioUrl,
+            googleDriveLink: (googleDriveLink || cleanAudioUrl || cleanArtworkUrl || '').trim(),
             tracks: cleanTracks,
             userEmail: u.email || 'Artist User'
           })
@@ -613,12 +657,62 @@ export async function fetchAllReleasesAdmin() {
   if (db) {
     try {
       const q = collection(db, 'releases');
-      const snapshot = await withTimeout(getDocs(q), 1500);
+      const snapshot = await withTimeout(getDocs(q), 3000);
       const releases = [];
       snapshot.forEach(docSnap => releases.push({ id: docSnap.id, ...docSnap.data() }));
+
+      // Backward compatibility: fetch all tracks to enrich releases lacking audio links
+      try {
+        const tracksSnap = await withTimeout(getDocs(collection(db, 'tracks')), 3000);
+        const tracksByRelease = {};
+        tracksSnap.forEach(tSnap => {
+          const tData = tSnap.data();
+          const relId = tData.releaseId;
+          if (relId) {
+            if (!tracksByRelease[relId]) tracksByRelease[relId] = [];
+            tracksByRelease[relId].push({ id: tSnap.id, ...tData });
+          }
+        });
+
+        // Enrich each release with tracks & Drive links
+        for (const rel of releases) {
+          const attachedTracks = tracksByRelease[rel.id] || [];
+          if (!rel.tracks || !Array.isArray(rel.tracks) || rel.tracks.length === 0) {
+            rel.tracks = attachedTracks;
+          }
+
+          // Backfill audioDriveLink and audioUrl
+          if (!rel.audioDriveLink && !rel.audioUrl) {
+            const firstTrackAudio = attachedTracks[0]?.audioDriveLink || attachedTracks[0]?.audioUrl || '';
+            if (firstTrackAudio) {
+              rel.audioDriveLink = firstTrackAudio;
+              rel.audioUrl = firstTrackAudio;
+            }
+          } else if (!rel.audioDriveLink && rel.audioUrl) {
+            rel.audioDriveLink = rel.audioUrl;
+          } else if (!rel.audioUrl && rel.audioDriveLink) {
+            rel.audioUrl = rel.audioDriveLink;
+          }
+
+          // Backfill artworkDriveLink
+          if (!rel.artworkDriveLink && rel.artworkUrl) {
+            rel.artworkDriveLink = rel.artworkUrl;
+          }
+
+          // Backfill googleDriveLink
+          if (!rel.googleDriveLink) {
+            rel.googleDriveLink = rel.audioDriveLink || rel.audioUrl || rel.artworkDriveLink || '';
+          }
+        }
+      } catch (trackErr) {
+        console.warn('Tracks fetch warning in fetchAllReleasesAdmin:', trackErr.message);
+      }
+
       releases.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
       return releases;
-    } catch (e) {}
+    } catch (e) {
+      console.error('Error in fetchAllReleasesAdmin:', e);
+    }
   }
   return [];
 }
