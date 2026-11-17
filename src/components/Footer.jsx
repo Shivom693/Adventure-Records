@@ -146,7 +146,7 @@ const Footer = () => {
             <p>© 2026 Adventure Records. All rights reserved.</p>
             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 text-[10px] font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              Live Platform
+              Live Sync Platform
             </span>
           </div>
           

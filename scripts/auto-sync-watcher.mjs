@@ -143,7 +143,6 @@ let debounceTimer = null;
 // The main build and deployment pipeline
 async function executeDeployment() {
   if (isDeploying) {
-    // Flag that new changes occurred while deploying; will re-run automatically
     log('A deployment is currently in progress. Queuing newly saved changes...', 'WARN');
     return;
   }
@@ -169,7 +168,10 @@ async function executeDeployment() {
 
   try {
     log(`Triggering auto-deployment for ${currentBatch.files.length} changed file(s):`);
-    currentBatch.files.forEach(f => log(`   → ${path.relative(ROOT_DIR, f)}`));
+    currentBatch.files.forEach(f => {
+      const rel = path.relative(ROOT_DIR, f).split(path.sep).join('/');
+      log(`   → ${rel}`);
+    });
 
     // ──────────────────────────────────────────────────────────
     // 1. FRONTEND BUILD & DEPLOYMENT
@@ -192,7 +194,7 @@ async function executeDeployment() {
 
       log(`Deploying frontend bundle to Firebase Hosting (${FIREBASE_PROJECT})...`, 'DEPLOY');
       try {
-        const deployResult = await runProcess('firebase', ['deploy', '--only', 'hosting', '--project', FIREBASE_PROJECT], ROOT_DIR);
+        await runProcess('firebase', ['deploy', '--only', 'hosting', '--project', FIREBASE_PROJECT], ROOT_DIR);
         log('Firebase Hosting deployment completed successfully!', 'SUCCESS');
         updateState({ lastHostingDeploy: new Date().toISOString() });
       } catch (deployErr) {
@@ -230,7 +232,7 @@ async function executeDeployment() {
     if (currentBatch.backend) {
       log('Backend changes detected. Running automated payment & API test suite...', 'BUILD');
       try {
-        const testRes = await runProcess('node', ['server/test_automated_payments.js'], ROOT_DIR);
+        await runProcess('node', ['server/test_automated_payments.js'], ROOT_DIR);
         log('Automated backend payment test suite passed (10/10 tests OK).', 'SUCCESS');
         updateState({ lastBackendTestStatus: 'passed' });
 
@@ -243,7 +245,6 @@ async function executeDeployment() {
           log('Backend changes pushed to origin/main (Render cloud auto-deploy triggered).', 'SUCCESS');
           updateState({ lastBackendDeploy: new Date().toISOString() });
         } catch (gitErr) {
-          // If no git changes were staged or already up to date, that's fine
           log(`Backend git sync notice: ${gitErr.message.split('\n')[0]}`, 'INFO');
         }
 
@@ -287,21 +288,21 @@ async function executeDeployment() {
 
 // Queue file change
 function handleFileChange(filePath) {
-  const normPath = filePath.replace(/\\/g, '/');
+  const relPath = path.relative(ROOT_DIR, filePath).split(path.sep).join('/');
 
   // Strict Exclusions (to prevent infinite loops, secret leaks, or churn)
   if (
-    normPath.includes('/node_modules/') ||
-    normPath.includes('/dist/') ||
-    normPath.includes('/.firebase/') ||
-    normPath.includes('/.git/') ||
-    normPath.endsWith('.pid') ||
-    normPath.endsWith('.log') ||
-    normPath.endsWith('.live-sync-state.json') ||
-    normPath.includes('/server/uploads/') ||
-    normPath.endsWith('~') ||
-    normPath.endsWith('.tmp') ||
-    normPath.includes('.env') // Never trigger on or publish secrets
+    relPath.includes('node_modules/') ||
+    relPath.includes('dist/') ||
+    relPath.includes('.firebase/') ||
+    relPath.includes('.git/') ||
+    relPath.endsWith('.pid') ||
+    relPath.endsWith('.log') ||
+    relPath.endsWith('.live-sync-state.json') ||
+    relPath.includes('server/uploads/') ||
+    relPath.endsWith('~') ||
+    relPath.endsWith('.tmp') ||
+    relPath.includes('.env') // Never trigger on or publish secrets
   ) {
     return;
   }
@@ -310,26 +311,26 @@ function handleFileChange(filePath) {
   let isRelevant = false;
 
   if (
-    normPath.startsWith('src/') ||
-    normPath.startsWith('public/') ||
-    normPath === 'index.html' ||
-    normPath === 'vite.config.js' ||
-    normPath === 'tailwind.config.js' ||
-    normPath === 'postcss.config.js'
+    relPath.startsWith('src/') ||
+    relPath.startsWith('public/') ||
+    relPath === 'index.html' ||
+    relPath === 'vite.config.js' ||
+    relPath === 'tailwind.config.js' ||
+    relPath === 'postcss.config.js'
   ) {
     pendingChanges.frontend = true;
     isRelevant = true;
   }
 
-  if (normPath.startsWith('server/')) {
+  if (relPath.startsWith('server/')) {
     pendingChanges.backend = true;
     isRelevant = true;
   }
 
   if (
-    normPath === 'firestore.rules' ||
-    normPath === 'storage.rules' ||
-    normPath === 'firebase.json'
+    relPath === 'firestore.rules' ||
+    relPath === 'storage.rules' ||
+    relPath === 'firebase.json'
   ) {
     pendingChanges.rules = true;
     isRelevant = true;
@@ -337,7 +338,7 @@ function handleFileChange(filePath) {
 
   if (isRelevant) {
     pendingChanges.files.add(filePath);
-    log(`Detected saved change: ${path.relative(ROOT_DIR, filePath)}`);
+    log(`Detected saved change: ${relPath}`);
 
     // Reset debounce timer
     clearTimeout(debounceTimer);
@@ -377,10 +378,22 @@ function initialize() {
     firebaseProject: FIREBASE_PROJECT
   });
 
+  const watchTargets = [
+    path.join(ROOT_DIR, 'src'),
+    path.join(ROOT_DIR, 'public'),
+    path.join(ROOT_DIR, 'server'),
+    path.join(ROOT_DIR, 'index.html'),
+    path.join(ROOT_DIR, 'vite.config.js'),
+    path.join(ROOT_DIR, 'tailwind.config.js'),
+    path.join(ROOT_DIR, 'postcss.config.js'),
+    path.join(ROOT_DIR, 'firebase.json'),
+    path.join(ROOT_DIR, 'firestore.rules'),
+    path.join(ROOT_DIR, 'storage.rules')
+  ];
+
   // Start chokidar watcher
-  const watcher = chokidar.watch(ROOT_DIR, {
+  const watcher = chokidar.watch(watchTargets, {
     ignored: [
-      /(^|[/\\])\../,            // ignore dotfiles
       '**/node_modules/**',
       '**/dist/**',
       '**/.firebase/**',
