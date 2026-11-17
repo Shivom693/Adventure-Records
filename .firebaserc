@@ -1,5 +1,18 @@
 {
   "projects": {
     "default": "music-b2696"
-  }
+  },
+  "targets": {
+    "music-b2696": {
+      "hosting": {
+        "old-site": [
+          "music-b2696"
+        ],
+        "adventure-records": [
+          "adventurerecords"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
