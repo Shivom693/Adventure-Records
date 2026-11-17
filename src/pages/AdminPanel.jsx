@@ -5,7 +5,7 @@ import {
   User as UserIcon, ListMusic, CreditCard, ChevronRight, XCircle,
   Sparkles, Bot, FileText, Check, AlertTriangle, Eye, ShieldCheck,
   UserCheck, AlertCircle, MessageSquare, ExternalLink, Paperclip, Zap,
-  Copy, Music, Image as ImageIcon
+  Copy, Music, Image as ImageIcon, Clock
 } from 'lucide-react';
 import { auth, db } from '../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
