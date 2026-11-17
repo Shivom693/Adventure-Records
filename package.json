@@ -12,7 +12,11 @@
     "server": "node server/index.js",
     "server:dev": "node server/index.js",
     "start": "node server/index.js",
-    "test": "node server/test_suite.js"
+    "test": "node server/test_suite.js",
+    "sync:watch": "node scripts/auto-sync-watcher.mjs",
+    "sync:start": "node scripts/start-sync.mjs",
+    "sync:stop": "node scripts/stop-sync.mjs",
+    "sync:status": "node scripts/status-sync.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.21.0",

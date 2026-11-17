@@ -30,6 +30,11 @@ server/uploads/
 # Node binary folder & local automation scripts
 node/
 
+# Live Sync Daemon runtime
+.live-sync.pid
+.live-sync.log
+.live-sync-state.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

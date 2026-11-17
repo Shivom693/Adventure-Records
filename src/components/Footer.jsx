@@ -142,7 +142,13 @@ const Footer = () => {
         {/* Bottom Strip: Copyright & Social Icons */}
         <div className="border-t border-black/15 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#050315]/70">
 
-          <p>© 2026 Adventure Records. All rights reserved.</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p>© 2026 Adventure Records. All rights reserved.</p>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 text-[10px] font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              Live Platform
+            </span>
+          </div>
           
           <div className="flex items-center gap-3">
             <a 
