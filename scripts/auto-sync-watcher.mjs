@@ -239,11 +239,16 @@ async function executeDeployment() {
         // Auto-commit and push backend updates so cloud provider (Render) automatically deploys
         log('Syncing verified backend changes to origin/main for cloud hosting...', 'DEPLOY');
         try {
-          await runProcess('git', ['add', 'server'], ROOT_DIR);
-          await runProcess('git', ['commit', '-m', `chore(backend): auto-deploy backend updates ${new Date().toISOString()}`], ROOT_DIR);
-          await runProcess('git', ['push', 'origin', 'main'], ROOT_DIR);
-          log('Backend changes pushed to origin/main (Render cloud auto-deploy triggered).', 'SUCCESS');
-          updateState({ lastBackendDeploy: new Date().toISOString() });
+          const statusResult = await runProcess('git', ['status', '--porcelain', 'server'], ROOT_DIR);
+          if (statusResult.stdout.trim().length > 0) {
+            await runProcess('git', ['add', 'server'], ROOT_DIR);
+            await runProcess('git', ['commit', '-m', `chore(backend): auto-deploy backend updates ${new Date().toISOString()}`], ROOT_DIR);
+            await runProcess('git', ['push', 'origin', 'main'], ROOT_DIR);
+            log('Backend changes pushed to origin/main (Render cloud auto-deploy triggered).', 'SUCCESS');
+            updateState({ lastBackendDeploy: new Date().toISOString() });
+          } else {
+            log('No uncommitted backend code changes found to push.', 'INFO');
+          }
         } catch (gitErr) {
           log(`Backend git sync notice: ${gitErr.message.split('\n')[0]}`, 'INFO');
         }
@@ -300,6 +305,8 @@ function handleFileChange(filePath) {
     relPath.endsWith('.log') ||
     relPath.endsWith('.live-sync-state.json') ||
     relPath.includes('server/uploads/') ||
+    relPath.includes('server/secure_uploads/') ||
+    relPath.includes('server/data/') ||
     relPath.endsWith('~') ||
     relPath.endsWith('.tmp') ||
     relPath.includes('.env') // Never trigger on or publish secrets

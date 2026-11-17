@@ -34,20 +34,11 @@ console.log('🚀 [LIVE-SYNC] Starting automatic live deployment watcher in back
 const out = fs.openSync(LOG_FILE, 'a');
 const err = fs.openSync(LOG_FILE, 'a');
 
-let child;
-if (process.platform === 'win32') {
-  child = spawn('cmd.exe', ['/c', 'start', '/b', 'node', SCRIPT_PATH], {
-    cwd: ROOT_DIR,
-    detached: true,
-    stdio: 'ignore'
-  });
-} else {
-  child = spawn('node', [SCRIPT_PATH], {
-    cwd: ROOT_DIR,
-    detached: true,
-    stdio: ['ignore', out, err]
-  });
-}
+const child = spawn(process.execPath, [SCRIPT_PATH], {
+  cwd: ROOT_DIR,
+  detached: true,
+  stdio: ['ignore', out, err]
+});
 
 child.unref();
 
