@@ -15,18 +15,29 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   const location = useLocation();
   const { user, authLoading, isAuthenticated } = useAuth();
 
-  // 1. Wait until Firebase finishes restoring persistent auth state
-  if (authLoading) {
+  // Read activeUser fallback from localStorage if AuthContext hasn't synced yet (e.g. backend admin JWT)
+  let activeUser = user;
+  if (!activeUser) {
+    try {
+      const raw = localStorage.getItem('user');
+      if (raw) activeUser = JSON.parse(raw);
+    } catch (e) {}
+  }
+
+  const isUserAuthenticated = isAuthenticated || Boolean(activeUser);
+
+  // 1. Wait until auth finishes restoring persistent state (if no user in memory or storage)
+  if (authLoading && !activeUser) {
     return <FullPageSpinner />;
   }
 
-  // 2. Not authenticated -> Redirect to /login
-  if (!isAuthenticated || !user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+  // 2. Not authenticated -> Redirect to /admin-login (if adminOnly) or /login
+  if (!isUserAuthenticated || !activeUser) {
+    return <Navigate to={adminOnly ? "/admin-login" : "/login"} state={{ from: location }} replace />;
   }
 
-  // 3. Admin Route Check
-  if (adminOnly && user?.role !== 'Admin') {
+  // 3. Admin Route Check (allow role Admin or owner email)
+  if (adminOnly && activeUser?.role !== 'Admin' && activeUser?.email?.toLowerCase().trim() !== 'adventureof693@gmail.com') {
     return <Navigate to="/dashboard" replace />;
   }
 

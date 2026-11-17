@@ -134,10 +134,22 @@ export const AuthProvider = ({ children }) => {
           setUser(profile);
         } else {
           setFirebaseUser(null);
-          setUser(null);
-          localStorage.removeItem('user');
-          localStorage.removeItem('token');
-          sessionStorage.clear();
+          // Preserve valid backend REST authenticated sessions (e.g. Admin JWT login)
+          let storedUser = null;
+          try {
+            const raw = localStorage.getItem('user');
+            if (raw) storedUser = JSON.parse(raw);
+          } catch (e) {}
+
+          const token = localStorage.getItem('token');
+          if (storedUser && (storedUser.role === 'Admin' || storedUser.email?.toLowerCase().trim() === 'adventureof693@gmail.com' || (token && !token.startsWith('firebase-')))) {
+            setUser(storedUser);
+          } else {
+            setUser(null);
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            sessionStorage.clear();
+          }
         }
         setAuthLoading(false);
       });
@@ -152,7 +164,20 @@ export const AuthProvider = ({ children }) => {
       setAuthLoading(false);
     }
 
-    return () => unsubscribe();
+    const handleAuthChange = () => {
+      try {
+        const raw = localStorage.getItem('user');
+        if (raw) {
+          setUser(JSON.parse(raw));
+        }
+      } catch (e) {}
+    };
+    window.addEventListener('auth-change', handleAuthChange);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('auth-change', handleAuthChange);
+    };
   }, []);
 
   // Email / Password Login

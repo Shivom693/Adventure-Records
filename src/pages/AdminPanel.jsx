@@ -17,6 +17,7 @@ import {
 } from '../services/dataService';
 
 const AdminPanel = () => {
+  const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
   const [releases, setReleases] = useState([]);
   const [tickets, setTickets] = useState([]);
@@ -118,96 +119,101 @@ const AdminPanel = () => {
   };
 
   const loadAdminData = async () => {
-    const storedUserStr = localStorage.getItem('user');
-    const authUser = auth?.currentUser;
+    try {
+      const storedUserStr = localStorage.getItem('user');
+      const authUser = auth?.currentUser;
 
-    if (!storedUserStr && !authUser) {
-      navigate('/login');
-      return;
-    }
+      if (!storedUserStr && !authUser) {
+        navigate('/admin-login');
+        return;
+      }
 
-    let parsedUser = null;
-    if (storedUserStr) {
-      try { parsedUser = JSON.parse(storedUserStr); } catch (e) {}
-    }
-    if (!parsedUser && authUser) {
-      parsedUser = {
-        uid: authUser.uid,
-        email: authUser.email,
-        artistName: authUser.displayName || 'Owner Console',
-        role: authUser.email === 'adventureof693@gmail.com' ? 'Admin' : 'Artist'
-      };
-    }
+      let parsedUser = null;
+      if (storedUserStr) {
+        try { parsedUser = JSON.parse(storedUserStr); } catch (e) {}
+      }
+      if (!parsedUser && authUser) {
+        parsedUser = {
+          uid: authUser.uid,
+          email: authUser.email,
+          artistName: authUser.displayName || 'Owner Console',
+          role: authUser.email === 'adventureof693@gmail.com' ? 'Admin' : 'Artist'
+        };
+      }
 
-    setCurrentUser(parsedUser);
+      setCurrentUser(parsedUser);
 
-    if (parsedUser.role !== 'Admin' && parsedUser.email !== 'adventureof693@gmail.com') {
-      setError('Access Denied. Owner credentials required.');
-      setLoading(false);
-      return;
-    }
+      if (!parsedUser || (parsedUser.role !== 'Admin' && parsedUser.email !== 'adventureof693@gmail.com')) {
+        setError('Access Denied. Owner credentials required.');
+        setLoading(false);
+        return;
+      }
 
-    // 1. Fetch real gateway payments from Firestore & Gateway API
-    const allPayments = await fetchAllPaymentsAdmin();
-    // Automatically mark bhoomiadventure7@gmail.com as FAKE / REJECTED in Firestore & UI
-    for (const pay of allPayments) {
-      if (pay.userEmail && pay.userEmail.toLowerCase().trim() === 'bhoomiadventure7@gmail.com') {
-        pay.status = 'rejected';
-        pay.rejectedReason = 'Fake payment detected - account flagged by Owner';
-        pay.isFraudFlagged = true;
-        if (db && pay.id) {
-          try {
-            await updateDoc(doc(db, 'payments', pay.id), {
-              status: 'rejected',
-              rejectedReason: 'Fake payment detected by Owner',
-              verifiedAt: null,
-              verifiedBy: null,
-              updatedAt: new Date().toISOString()
-            });
-            if (pay.paymentType === 'release' && pay.targetId) {
-              await updateDoc(doc(db, 'releases', pay.targetId), {
+      // 1. Fetch real gateway payments from Firestore & Gateway API
+      const allPayments = await fetchAllPaymentsAdmin();
+      // Automatically mark bhoomiadventure7@gmail.com as FAKE / REJECTED in Firestore & UI
+      for (const pay of allPayments) {
+        if (pay.userEmail && pay.userEmail.toLowerCase().trim() === 'bhoomiadventure7@gmail.com') {
+          pay.status = 'rejected';
+          pay.rejectedReason = 'Fake payment detected - account flagged by Owner';
+          pay.isFraudFlagged = true;
+          if (db && pay.id) {
+            try {
+              await updateDoc(doc(db, 'payments', pay.id), {
+                status: 'rejected',
+                rejectedReason: 'Fake payment detected by Owner',
+                verifiedAt: null,
+                verifiedBy: null,
+                updatedAt: new Date().toISOString()
+              });
+              if (pay.paymentType === 'release' && pay.targetId) {
+                await updateDoc(doc(db, 'releases', pay.targetId), {
+                  paymentStatus: 'rejected',
+                  status: 'rejected',
+                  rejectionReason: 'Fake payment detected by Owner.',
+                  uploadUnlocked: false,
+                  updatedAt: new Date().toISOString()
+                });
+              }
+            } catch (e) {}
+          }
+        }
+      }
+      setPayments(allPayments);
+
+      // 2. Fetch real releases from Firestore
+      const allReleases = await fetchAllReleasesAdmin();
+      // Auto-reject any releases submitted by bhoomiadventure7@gmail.com
+      for (const rel of allReleases) {
+        if (rel.userEmail && rel.userEmail.toLowerCase().trim() === 'bhoomiadventure7@gmail.com') {
+          rel.paymentStatus = 'rejected';
+          rel.status = 'rejected';
+          rel.rejectionReason = 'Fake payment detected by Owner.';
+          rel.uploadUnlocked = false;
+          if (db && rel.id) {
+            try {
+              await updateDoc(doc(db, 'releases', rel.id), {
                 paymentStatus: 'rejected',
                 status: 'rejected',
                 rejectionReason: 'Fake payment detected by Owner.',
                 uploadUnlocked: false,
                 updatedAt: new Date().toISOString()
               });
-            }
-          } catch (e) {}
+            } catch (e) {}
+          }
         }
       }
+      setReleases(allReleases);
+
+      // 3. Fetch real support tickets from Firestore
+      const allTickets = await fetchAllTicketsAdmin();
+      setTickets(allTickets);
+    } catch (err) {
+      console.error('Error loading admin portal data:', err);
+      setError('Unable to load admin records: ' + (err.message || 'Unknown network error'));
+    } finally {
+      setLoading(false);
     }
-    setPayments(allPayments);
-
-    // 2. Fetch real releases from Firestore
-    const allReleases = await fetchAllReleasesAdmin();
-    // Auto-reject any releases submitted by bhoomiadventure7@gmail.com
-    for (const rel of allReleases) {
-      if (rel.userEmail && rel.userEmail.toLowerCase().trim() === 'bhoomiadventure7@gmail.com') {
-        rel.paymentStatus = 'rejected';
-        rel.status = 'rejected';
-        rel.rejectionReason = 'Fake payment detected by Owner.';
-        rel.uploadUnlocked = false;
-        if (db && rel.id) {
-          try {
-            await updateDoc(doc(db, 'releases', rel.id), {
-              paymentStatus: 'rejected',
-              status: 'rejected',
-              rejectionReason: 'Fake payment detected by Owner.',
-              uploadUnlocked: false,
-              updatedAt: new Date().toISOString()
-            });
-          } catch (e) {}
-        }
-      }
-    }
-    setReleases(allReleases);
-
-    // 3. Fetch real support tickets from Firestore
-    const allTickets = await fetchAllTicketsAdmin();
-    setTickets(allTickets);
-
-    setLoading(false);
   };
 
   useEffect(() => {

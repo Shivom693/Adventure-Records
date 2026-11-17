@@ -10,6 +10,7 @@ import Chatbot from './components/Chatbot';
 import CookieConsentBanner from './components/CookieConsentBanner';
 import ProtectedRoute from './components/ProtectedRoute';
 import ScrollToTop from './components/ScrollToTop';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Immediate Load for Instant Home Page Rendering
 import Home from './pages/Home';
@@ -86,7 +87,8 @@ function App() {
 
         {/* Main Routed Content with Accessibility Landmark & Suspense Fallback */}
         <main id="main-content" tabIndex={-1} className="flex-grow outline-none">
-          <Suspense fallback={<PageLoader />}>
+          <ErrorBoundary>
+            <Suspense fallback={<PageLoader />}>
 
             <Routes>
               <Route path="/" element={<Home />} />
@@ -170,6 +172,7 @@ function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Suspense>
+          </ErrorBoundary>
         </main>
 
         {/* Global Floating AI Assistant */}
