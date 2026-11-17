@@ -304,9 +304,9 @@ function handleFileChange(filePath) {
     relPath.endsWith('.pid') ||
     relPath.endsWith('.log') ||
     relPath.endsWith('.live-sync-state.json') ||
-    relPath.includes('server/uploads/') ||
-    relPath.includes('server/secure_uploads/') ||
-    relPath.includes('server/data/') ||
+    relPath.includes('server/uploads') ||
+    relPath.includes('server/secure_uploads') ||
+    relPath.includes('server/data') ||
     relPath.endsWith('~') ||
     relPath.endsWith('.tmp') ||
     relPath.includes('.env') // Never trigger on or publish secrets

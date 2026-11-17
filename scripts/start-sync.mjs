@@ -31,13 +31,11 @@ if (fs.existsSync(PID_FILE)) {
 
 console.log('🚀 [LIVE-SYNC] Starting automatic live deployment watcher in background...');
 
-const out = fs.openSync(LOG_FILE, 'a');
-const err = fs.openSync(LOG_FILE, 'a');
-
 const child = spawn(process.execPath, [SCRIPT_PATH], {
   cwd: ROOT_DIR,
   detached: true,
-  stdio: ['ignore', out, err]
+  stdio: 'ignore',
+  windowsHide: true
 });
 
 child.unref();
