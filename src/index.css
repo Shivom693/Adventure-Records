@@ -533,8 +533,31 @@
 .light .bg-zinc-900 *,
 .light .bg-zinc-950,
 .light .bg-zinc-950 *,
+.light .glass-panel,
+.light .glass-panel *,
+.light .artist-card,
+.light .artist-card *,
+.light .photo-overlay,
+.light .photo-overlay *,
 .light .btn-primary,
 .light .btn-primary * {
+  color: #ffffff !important;
+}
+
+.light .glass-panel p,
+.light .artist-card p {
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+.light .glass-panel .text-\[\#DEDCFF\],
+.light .artist-card .text-\[\#DEDCFF\],
+.light .photo-overlay .text-\[\#DEDCFF\] {
+  color: #DEDCFF !important;
+}
+
+.light .photo-overlay h3,
+.light .photo-overlay span,
+.light .photo-overlay p {
   color: #ffffff !important;
 }
 
