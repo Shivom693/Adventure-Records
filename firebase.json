@@ -8,6 +8,23 @@
         "**/.*",
         "**/node_modules/**"
       ],
+      "redirects": [
+        {
+          "source": "/",
+          "destination": "https://adventurerecords.web.app/",
+          "type": 301
+        },
+        {
+          "source": "/index.html",
+          "destination": "https://adventurerecords.web.app/",
+          "type": 301
+        },
+        {
+          "source": "/:path*",
+          "destination": "https://adventurerecords.web.app/:path",
+          "type": 301
+        }
+      ],
       "headers": [
         {
           "source": "**",
