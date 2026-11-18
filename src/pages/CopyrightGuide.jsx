@@ -22,8 +22,8 @@ const CopyrightGuide = () => {
   const [openFaq, setOpenFaq] = useState(null);
 
   const breadcrumbs = [
-    { name: 'Home', url: 'https://music-b2696.web.app/' },
-    { name: 'Copyright Guide', url: 'https://music-b2696.web.app/copyright' }
+    { name: 'Home', url: 'https://adventurerecords.web.app/' },
+    { name: 'Copyright Guide', url: 'https://adventurerecords.web.app/copyright' }
   ];
 
   const faqSchema = {
@@ -53,10 +53,10 @@ const CopyrightGuide = () => {
       'name': 'Adventure Records',
       'logo': {
         '@type': 'ImageObject',
-        'url': 'https://music-b2696.web.app/logo.png'
+        'url': 'https://adventurerecords.web.app/logo.png'
       }
     },
-    'mainEntityOfPage': 'https://music-b2696.web.app/copyright'
+    'mainEntityOfPage': 'https://adventurerecords.web.app/copyright'
   };
 
   return (
@@ -65,7 +65,7 @@ const CopyrightGuide = () => {
       <SeoHead
         title="Music Copyright & Master Ownership Guide | Adventure Records"
         description="Learn how music copyright works for independent artists. Retain 100% of your master rights, compositions, beat licensing & royalty payouts with Adventure Records."
-        canonicalUrl="https://music-b2696.web.app/copyright"
+        canonicalUrl="https://adventurerecords.web.app/copyright"
         structuredData={[articleSchema, faqSchema]}
         breadcrumbs={breadcrumbs}
       />

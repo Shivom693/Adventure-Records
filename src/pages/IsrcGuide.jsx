@@ -22,8 +22,8 @@ const IsrcGuide = () => {
   const [openFaq, setOpenFaq] = useState(null);
 
   const breadcrumbs = [
-    { name: 'Home', url: 'https://music-b2696.web.app/' },
-    { name: 'ISRC Guide', url: 'https://music-b2696.web.app/isrc' }
+    { name: 'Home', url: 'https://adventurerecords.web.app/' },
+    { name: 'ISRC Guide', url: 'https://adventurerecords.web.app/isrc' }
   ];
 
   const faqSchema = {
@@ -53,10 +53,10 @@ const IsrcGuide = () => {
       'name': 'Adventure Records',
       'logo': {
         '@type': 'ImageObject',
-        'url': 'https://music-b2696.web.app/logo.png'
+        'url': 'https://adventurerecords.web.app/logo.png'
       }
     },
-    'mainEntityOfPage': 'https://music-b2696.web.app/isrc'
+    'mainEntityOfPage': 'https://adventurerecords.web.app/isrc'
   };
 
   return (
@@ -65,7 +65,7 @@ const IsrcGuide = () => {
       <SeoHead
         title="What is an ISRC Code? Music Distribution Guide | Adventure Records"
         description="Complete guide to International Standard Recording Codes (ISRC). Learn how ISRCs track streaming royalties, play counts, and how to get free ISRCs."
-        canonicalUrl="https://music-b2696.web.app/isrc"
+        canonicalUrl="https://adventurerecords.web.app/isrc"
         structuredData={[articleSchema, faqSchema]}
         breadcrumbs={breadcrumbs}
       />

@@ -56,8 +56,8 @@ const resourcesList = [
 
 const Resources = () => {
   const breadcrumbs = [
-    { name: 'Home', url: 'https://music-b2696.web.app/' },
-    { name: 'Resources', url: 'https://music-b2696.web.app/resources' }
+    { name: 'Home', url: 'https://adventurerecords.web.app/' },
+    { name: 'Resources', url: 'https://adventurerecords.web.app/resources' }
   ];
 
   return (
@@ -66,7 +66,7 @@ const Resources = () => {
       <SeoHead
         title="Music Distribution Resources & Guides | Adventure Records"
         description="Comprehensive guides on music distribution, ISRC codes, UPC barcodes, music copyright, and release strategies for independent artists."
-        canonicalUrl="https://music-b2696.web.app/resources"
+        canonicalUrl="https://adventurerecords.web.app/resources"
         breadcrumbs={breadcrumbs}
       />
 

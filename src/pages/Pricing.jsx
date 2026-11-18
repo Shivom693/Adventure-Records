@@ -85,8 +85,8 @@ const Pricing = () => {
   const [openFaq, setOpenFaq] = useState(null);
 
   const breadcrumbs = [
-    { name: 'Home', url: 'https://music-b2696.web.app/' },
-    { name: 'Pricing', url: 'https://music-b2696.web.app/pricing' }
+    { name: 'Home', url: 'https://adventurerecords.web.app/' },
+    { name: 'Pricing', url: 'https://adventurerecords.web.app/pricing' }
   ];
 
   return (
@@ -95,7 +95,7 @@ const Pricing = () => {
       <SeoHead
         title="Music Distribution Pricing | Single ₹100, EP ₹500, Album ₹1,000 | Adventure Records"
         description="Transparent one-time release pricing for independent music distribution. Single ₹100, EP ₹500, Album ₹1,000 with 0% royalty commission and zero annual fees."
-        canonicalUrl="https://music-b2696.web.app/pricing"
+        canonicalUrl="https://adventurerecords.web.app/pricing"
         breadcrumbs={breadcrumbs}
       />
 

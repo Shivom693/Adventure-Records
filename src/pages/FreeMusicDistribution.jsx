@@ -33,8 +33,8 @@ const FreeMusicDistribution = () => {
   const [openFaq, setOpenFaq] = useState(null);
 
   const breadcrumbs = [
-    { name: 'Home', url: 'https://music-b2696.web.app/' },
-    { name: 'Free Music Distribution Guide', url: 'https://music-b2696.web.app/free-music-distribution' }
+    { name: 'Home', url: 'https://adventurerecords.web.app/' },
+    { name: 'Free Music Distribution Guide', url: 'https://adventurerecords.web.app/free-music-distribution' }
   ];
 
   const faqSchema = {
@@ -64,10 +64,10 @@ const FreeMusicDistribution = () => {
       'name': 'Adventure Records',
       'logo': {
         '@type': 'ImageObject',
-        'url': 'https://music-b2696.web.app/logo.png'
+        'url': 'https://adventurerecords.web.app/logo.png'
       }
     },
-    'mainEntityOfPage': 'https://music-b2696.web.app/free-music-distribution'
+    'mainEntityOfPage': 'https://adventurerecords.web.app/free-music-distribution'
   };
 
   return (
@@ -76,7 +76,7 @@ const FreeMusicDistribution = () => {
       <SeoHead
         title="Free Music Distribution Guide for Independent Artists | Adventure Records"
         description="Learn how free music distribution works, what artists should know about ISRC, UPC, metadata, royalties and release delivery, with practical guidance from Adventure Records."
-        canonicalUrl="https://music-b2696.web.app/free-music-distribution"
+        canonicalUrl="https://adventurerecords.web.app/free-music-distribution"
         structuredData={[articleSchema, faqSchema]}
         breadcrumbs={breadcrumbs}
       />

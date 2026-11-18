@@ -7,8 +7,8 @@ const SingleDistribution = () => {
   const [openFaq, setOpenFaq] = useState(null);
 
   const breadcrumbs = [
-    { name: 'Home', url: 'https://music-b2696.web.app/' },
-    { name: 'Single Distribution', url: 'https://music-b2696.web.app/single-distribution' }
+    { name: 'Home', url: 'https://adventurerecords.web.app/' },
+    { name: 'Single Distribution', url: 'https://adventurerecords.web.app/single-distribution' }
   ];
 
   const faqs = [
@@ -53,7 +53,7 @@ const SingleDistribution = () => {
       'priceCurrency': 'INR',
       'price': '100',
       'availability': 'https://schema.org/InStock',
-      'url': 'https://music-b2696.web.app/single-distribution'
+      'url': 'https://adventurerecords.web.app/single-distribution'
     }
   };
 
@@ -63,7 +63,7 @@ const SingleDistribution = () => {
       <SeoHead
         title="Single Music Distribution | ₹100 One-Time Fee | Adventure Records"
         description="Release your single track to Spotify, Apple Music, JioSaavn, Wynk & 150+ stores for a one-time ₹100 fee. Keep 100% of royalties and master rights."
-        canonicalUrl="https://music-b2696.web.app/single-distribution"
+        canonicalUrl="https://adventurerecords.web.app/single-distribution"
         structuredData={[productSchema, faqSchema]}
         breadcrumbs={breadcrumbs}
       />

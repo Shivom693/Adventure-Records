@@ -3,7 +3,7 @@
 > Adventure Records is a global music distribution platform and label services company empowering independent artists and record labels to release music across 150+ digital streaming services worldwide while keeping 100% of their royalties.
 
 ## Key Information
-- **Official Website**: https://music-b2696.web.app/
+- **Official Website**: https://adventurerecords.web.app/
 - **Founder**: Shiv Om Tripathi
 - **Official Contact**: adventureof693@gmail.com
 - **Official Phone / UPI ID**: +91-9691546208 (9691546208-3@ybl)
@@ -18,15 +18,15 @@
 Spotify, Apple Music, YouTube Music, Wynk Music, JioSaavn, Amazon Music, Tidal, Deezer, TikTok, Instagram Reels, Shazam, Pandor, and 150+ digital DSP stores.
 
 ## Essential Pages & Guides
-- [Home Page](https://music-b2696.web.app/)
-- [Music Distribution for Artists](https://music-b2696.web.app/music-distribution)
-- [Free & Paid Distribution Plans](https://music-b2696.web.app/pricing)
-- [Single Distribution Guide](https://music-b2696.web.app/single-distribution)
-- [EP Distribution Guide](https://music-b2696.web.app/ep-distribution)
-- [Album Distribution Guide](https://music-b2696.web.app/album-distribution)
-- [ISRC Code Guide](https://music-b2696.web.app/isrc)
-- [UPC Barcode Guide](https://music-b2696.web.app/upc)
-- [Copyright & Rights Protection Guide](https://music-b2696.web.app/copyright)
-- [About Adventure Records](https://music-b2696.web.app/about)
-- [Independent Artists Directory](https://music-b2696.web.app/artists)
-- [Record Labels Partnering](https://music-b2696.web.app/labels)
+- [Home Page](https://adventurerecords.web.app/)
+- [Music Distribution for Artists](https://adventurerecords.web.app/music-distribution)
+- [Free & Paid Distribution Plans](https://adventurerecords.web.app/pricing)
+- [Single Distribution Guide](https://adventurerecords.web.app/single-distribution)
+- [EP Distribution Guide](https://adventurerecords.web.app/ep-distribution)
+- [Album Distribution Guide](https://adventurerecords.web.app/album-distribution)
+- [ISRC Code Guide](https://adventurerecords.web.app/isrc)
+- [UPC Barcode Guide](https://adventurerecords.web.app/upc)
+- [Copyright & Rights Protection Guide](https://adventurerecords.web.app/copyright)
+- [About Adventure Records](https://adventurerecords.web.app/about)
+- [Independent Artists Directory](https://adventurerecords.web.app/artists)
+- [Record Labels Partnering](https://adventurerecords.web.app/labels)

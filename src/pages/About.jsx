@@ -46,8 +46,8 @@ const roadmapMilestones = [
 
 const About = () => {
   const breadcrumbs = [
-    { name: 'Home', url: 'https://music-b2696.web.app/' },
-    { name: 'About Us', url: 'https://music-b2696.web.app/about' }
+    { name: 'Home', url: 'https://adventurerecords.web.app/' },
+    { name: 'About Us', url: 'https://adventurerecords.web.app/about' }
   ];
 
   return (
@@ -56,7 +56,7 @@ const About = () => {
       <SeoHead
         title="About Adventure Records | Music Distribution & Release Management"
         description="Learn about Adventure Records: our mission to empower independent music creators with fast store delivery, 100% royalty payouts, and transparent pricing."
-        canonicalUrl="https://music-b2696.web.app/about"
+        canonicalUrl="https://adventurerecords.web.app/about"
         breadcrumbs={breadcrumbs}
       />
       

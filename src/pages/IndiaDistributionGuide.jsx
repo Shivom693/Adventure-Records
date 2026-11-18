@@ -22,8 +22,8 @@ const IndiaDistributionGuide = () => {
   const [openFaq, setOpenFaq] = useState(null);
 
   const breadcrumbs = [
-    { name: 'Home', url: 'https://music-b2696.web.app/' },
-    { name: 'Music Distribution India', url: 'https://music-b2696.web.app/music-distribution-india' }
+    { name: 'Home', url: 'https://adventurerecords.web.app/' },
+    { name: 'Music Distribution India', url: 'https://adventurerecords.web.app/music-distribution-india' }
   ];
 
   const faqSchema = {
@@ -53,10 +53,10 @@ const IndiaDistributionGuide = () => {
       'name': 'Adventure Records',
       'logo': {
         '@type': 'ImageObject',
-        'url': 'https://music-b2696.web.app/logo.png'
+        'url': 'https://adventurerecords.web.app/logo.png'
       }
     },
-    'mainEntityOfPage': 'https://music-b2696.web.app/music-distribution-india'
+    'mainEntityOfPage': 'https://adventurerecords.web.app/music-distribution-india'
   };
 
   return (
@@ -65,7 +65,7 @@ const IndiaDistributionGuide = () => {
       <SeoHead
         title="Music Distribution India | Release Music to JioSaavn, Wynk & Spotify | Adventure Records"
         description="Empowering Indian independent artists with direct release to JioSaavn, Wynk, Gaana, Spotify & Apple Music. INR pricing & seamless UPI payments."
-        canonicalUrl="https://music-b2696.web.app/music-distribution-india"
+        canonicalUrl="https://adventurerecords.web.app/music-distribution-india"
         structuredData={[articleSchema, faqSchema]}
         breadcrumbs={breadcrumbs}
       />

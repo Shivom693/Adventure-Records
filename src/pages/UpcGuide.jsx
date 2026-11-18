@@ -22,8 +22,8 @@ const UpcGuide = () => {
   const [openFaq, setOpenFaq] = useState(null);
 
   const breadcrumbs = [
-    { name: 'Home', url: 'https://music-b2696.web.app/' },
-    { name: 'UPC Guide', url: 'https://music-b2696.web.app/upc' }
+    { name: 'Home', url: 'https://adventurerecords.web.app/' },
+    { name: 'UPC Guide', url: 'https://adventurerecords.web.app/upc' }
   ];
 
   const faqSchema = {
@@ -53,10 +53,10 @@ const UpcGuide = () => {
       'name': 'Adventure Records',
       'logo': {
         '@type': 'ImageObject',
-        'url': 'https://music-b2696.web.app/logo.png'
+        'url': 'https://adventurerecords.web.app/logo.png'
       }
     },
-    'mainEntityOfPage': 'https://music-b2696.web.app/upc'
+    'mainEntityOfPage': 'https://adventurerecords.web.app/upc'
   };
 
   return (
@@ -65,7 +65,7 @@ const UpcGuide = () => {
       <SeoHead
         title="What is a UPC Barcode in Music Distribution? | Adventure Records"
         description="Comprehensive guide to Universal Product Codes (UPC/EAN). Learn how UPC barcodes track single, EP, and album releases across digital service providers."
-        canonicalUrl="https://music-b2696.web.app/upc"
+        canonicalUrl="https://adventurerecords.web.app/upc"
         structuredData={[articleSchema, faqSchema]}
         breadcrumbs={breadcrumbs}
       />

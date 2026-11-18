@@ -26,8 +26,8 @@ const MusicDistribution = () => {
   const [openFaq, setOpenFaq] = useState(null);
 
   const breadcrumbs = [
-    { name: 'Home', url: 'https://music-b2696.web.app/' },
-    { name: 'Music Distribution', url: 'https://music-b2696.web.app/music-distribution' }
+    { name: 'Home', url: 'https://adventurerecords.web.app/' },
+    { name: 'Music Distribution', url: 'https://adventurerecords.web.app/music-distribution' }
   ];
 
   const faqSchema = {
@@ -57,10 +57,10 @@ const MusicDistribution = () => {
       'name': 'Adventure Records',
       'logo': {
         '@type': 'ImageObject',
-        'url': 'https://music-b2696.web.app/logo.png'
+        'url': 'https://adventurerecords.web.app/logo.png'
       }
     },
-    'mainEntityOfPage': 'https://music-b2696.web.app/music-distribution'
+    'mainEntityOfPage': 'https://adventurerecords.web.app/music-distribution'
   };
 
   return (
@@ -69,7 +69,7 @@ const MusicDistribution = () => {
       <SeoHead
         title="Music Distribution for Independent Artists | Adventure Records"
         description="Distribute your music worldwide to Spotify, Apple Music, JioSaavn, Wynk & 150+ stores with Adventure Records. Keep 100% of your earnings."
-        canonicalUrl="https://music-b2696.web.app/music-distribution"
+        canonicalUrl="https://adventurerecords.web.app/music-distribution"
         structuredData={[articleSchema, faqSchema]}
         breadcrumbs={breadcrumbs}
       />

@@ -162,20 +162,29 @@ const Home = () => {
   const orgSchema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
+    '@id': 'https://adventurerecords.web.app/#organization',
     'name': 'Adventure Records',
-    'url': 'https://music-b2696.web.app/',
-    'logo': 'https://music-b2696.web.app/logo.png',
-    'sameAs': []
+    'alternateName': 'Adventure Records Music Distribution',
+    'url': 'https://adventurerecords.web.app/',
+    'logo': 'https://adventurerecords.web.app/logo.png',
+    'sameAs': [
+      'https://www.instagram.com/adventurerecods693/',
+      'https://www.linkedin.com/in/shiv-om-tripathi-4219ba414/',
+      'https://www.youtube.com/@AdventureRecord693',
+      'https://x.com/51274Shivom'
+    ]
   };
 
   const websiteSchema = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
+    '@id': 'https://adventurerecords.web.app/#website',
     'name': 'Adventure Records',
-    'url': 'https://music-b2696.web.app/',
+    'alternateName': 'Adventure Records Music Distribution',
+    'url': 'https://adventurerecords.web.app/',
     'potentialAction': {
       '@type': 'SearchAction',
-      'target': 'https://music-b2696.web.app/resources?q={search_term_string}',
+      'target': 'https://adventurerecords.web.app/resources?q={search_term_string}',
       'query-input': 'required name=search_term_string'
     }
   };
@@ -197,9 +206,9 @@ const Home = () => {
     <div className="relative pt-12 overflow-x-hidden min-h-screen bg-white text-[#050315] font-outfit">
       
       <SeoHead
-        title="Adventure Records | Music Distribution for Artists"
+        title="Adventure Records – Official Music Distribution Platform"
         description="Music distribution and release management for independent artists. Distribute your singles, EPs, and albums to Spotify, Apple Music, JioSaavn, Wynk & 150+ stores."
-        canonicalUrl="https://music-b2696.web.app/"
+        canonicalUrl="https://adventurerecords.web.app/"
         structuredData={[orgSchema, websiteSchema, faqSchema]}
       />
 

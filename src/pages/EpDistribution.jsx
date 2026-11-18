@@ -7,8 +7,8 @@ const EpDistribution = () => {
   const [openFaq, setOpenFaq] = useState(null);
 
   const breadcrumbs = [
-    { name: 'Home', url: 'https://music-b2696.web.app/' },
-    { name: 'EP Distribution', url: 'https://music-b2696.web.app/ep-distribution' }
+    { name: 'Home', url: 'https://adventurerecords.web.app/' },
+    { name: 'EP Distribution', url: 'https://adventurerecords.web.app/ep-distribution' }
   ];
 
   const faqs = [
@@ -53,7 +53,7 @@ const EpDistribution = () => {
       'priceCurrency': 'INR',
       'price': '500',
       'availability': 'https://schema.org/InStock',
-      'url': 'https://music-b2696.web.app/ep-distribution'
+      'url': 'https://adventurerecords.web.app/ep-distribution'
     }
   };
 
@@ -63,7 +63,7 @@ const EpDistribution = () => {
       <SeoHead
         title="EP Music Distribution | ₹500 One-Time Fee | Adventure Records"
         description="Release your EP (2-6 tracks) to Spotify, Apple Music, JioSaavn, Wynk & 150+ stores for a one-time ₹500 fee. Free ISRC/UPC & 100% royalty payout."
-        canonicalUrl="https://music-b2696.web.app/ep-distribution"
+        canonicalUrl="https://adventurerecords.web.app/ep-distribution"
         structuredData={[productSchema, faqSchema]}
         breadcrumbs={breadcrumbs}
       />

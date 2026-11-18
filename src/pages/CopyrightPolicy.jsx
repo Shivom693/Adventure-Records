@@ -159,7 +159,7 @@ const CopyrightPolicy = () => {
             <div className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-2">
               <p className="font-bold text-white">Adventure Records</p>
               <p className="text-zinc-300">Email: <a href="mailto:adventureof693@gmail.com" className="text-white underline">adventureof693@gmail.com</a></p>
-              <p className="text-zinc-300">Website: <a href="https://music-b2696.web.app" className="text-white underline">https://music-b2696.web.app</a></p>
+              <p className="text-zinc-300">Website: <a href="https://adventurerecords.web.app" className="text-white underline">https://adventurerecords.web.app</a></p>
             </div>
           </section>
 
