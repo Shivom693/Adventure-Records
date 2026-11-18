@@ -58,7 +58,7 @@ const Artists = () => {
           <Sparkles className="w-4 h-4 text-[#DEDCFF]" /> Empowering Independent Creators
         </div>
         <h1 className="font-heading font-black text-4xl sm:text-6xl text-white tracking-tight">
-          Built for <span className="bg-gradient-to-r from-[#DEDCFF] via-white to-[#585589] bg-clip-text text-transparent">Independent Artists</span>
+          Built for <span className="bg-gradient-to-r dark:from-[#DEDCFF] dark:via-white dark:to-[#585589] from-[#4338ca] via-[#6366f1] to-[#3b82f6] bg-clip-text text-transparent">Independent Artists</span>
         </h1>
         <p className="text-zinc-400 text-base max-w-2xl mx-auto leading-relaxed">
           From bedroom producers to headlining festival acts, Adventure Records gives you professional distribution tools without taking a cut of your royalties.
@@ -81,11 +81,11 @@ const Artists = () => {
               <CardComponent
                 key={idx}
                 {...cardProps}
-                className={`glass-panel glass-panel-hover rounded-3xl overflow-hidden border border-white/10 flex flex-col justify-between transition-all duration-300 ${
+                className={`artist-card glass-panel glass-panel-hover rounded-3xl overflow-hidden border border-white/10 flex flex-col justify-between transition-all duration-300 ${
                   artist.spotifyUrl ? 'hover:border-[#585589]/60 hover:shadow-[0_0_30px_rgba(88,85,137,0.25)] cursor-pointer group' : ''
                 }`}
               >
-                <div className="relative h-64 overflow-hidden">
+                <div className="relative h-64 overflow-hidden photo-overlay">
                   <img
                     src={artist.image}
                     alt={artist.name}
@@ -96,31 +96,53 @@ const Artists = () => {
                       }
                     }}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-transparent to-transparent" />
-                  <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+                  {/* Rich dark gradient overlay guarantees 100% text readability over photo in any theme */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent pointer-events-none" />
+                  
+                  <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between z-10">
                     <div>
-                      <h3 className="font-heading font-bold text-xl text-white flex items-center gap-1.5 group-hover:text-[#DEDCFF] transition-colors">
+                      <h3 
+                        style={{ color: '#ffffff' }}
+                        className="font-heading font-extrabold text-xl text-white flex items-center gap-1.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]"
+                      >
                         {artist.name}
                         {artist.spotifyUrl && (
-                          <span className="text-[10px] text-[#DEDCFF] font-medium px-2 py-0.5 rounded-full bg-[#585589]/30 border border-[#585589]/40 ml-1">
+                          <span 
+                            style={{ color: '#DEDCFF', backgroundColor: 'rgba(88, 85, 137, 0.45)', borderColor: 'rgba(222, 220, 255, 0.3)' }}
+                            className="text-[10px] font-medium px-2 py-0.5 rounded-full border ml-1 shadow-sm"
+                          >
                             Spotify ↗
                           </span>
                         )}
                       </h3>
-                      <p className="text-xs text-[#DEDCFF] font-medium">{artist.genre}</p>
+                      <p 
+                        style={{ color: 'rgba(255, 255, 255, 0.9)' }}
+                        className="text-xs font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] mt-0.5"
+                      >
+                        {artist.genre}
+                      </p>
                     </div>
-                    <span className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-xs font-bold text-white">
+                    <span 
+                      style={{ color: '#ffffff', backgroundColor: 'rgba(0, 0, 0, 0.75)', borderColor: 'rgba(255, 255, 255, 0.25)' }}
+                      className="px-3 py-1 rounded-full backdrop-blur-md border text-xs font-bold shrink-0 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
+                    >
                       {artist.streams} Streams
                     </span>
                   </div>
                 </div>
                 <div className="p-6 space-y-4">
-                  <p className="text-zinc-300 text-xs leading-relaxed italic">
+                  <p 
+                    style={{ color: 'rgba(255, 255, 255, 0.88)' }}
+                    className="text-xs leading-relaxed italic"
+                  >
                     "{artist.quote}"
                   </p>
                   {artist.spotifyUrl && (
                     <div className="pt-2">
-                      <span className="inline-flex items-center gap-2 text-[#DEDCFF] text-xs font-semibold group-hover:underline">
+                      <span 
+                        style={{ color: '#DEDCFF' }}
+                        className="inline-flex items-center gap-2 text-xs font-semibold group-hover:underline"
+                      >
                         Listen on Spotify ↗
                       </span>
                     </div>
