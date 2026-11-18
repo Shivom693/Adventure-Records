@@ -4,9 +4,9 @@ import { useEffect } from 'react';
  * Adventure Records — Dynamic SEO & Structured Data Head Manager
  */
 const SeoHead = ({ 
-  title = 'Adventure Records | Music Distribution for Artists',
+  title = 'Adventure Records – Official Music Distribution Platform',
   description = 'Music distribution and release management for independent artists. Release singles, EPs, and albums with transparent pricing and 0% royalty commission.',
-  canonicalUrl = 'https://music-b2696.web.app/',
+  canonicalUrl = 'https://adventurerecords.web.app/',
   ogType = 'website',
   structuredData = null,
   breadcrumbs = []
@@ -55,21 +55,24 @@ const SeoHead = ({
     const defaultOrgSchema = {
       '@context': 'https://schema.org',
       '@type': 'Organization',
+      '@id': 'https://adventurerecords.web.app/#organization',
       'name': 'Adventure Records',
       'alternateName': 'Adventure Records Music Distribution',
-      'url': 'https://music-b2696.web.app/',
-      'logo': 'https://music-b2696.web.app/logo.png',
+      'url': 'https://adventurerecords.web.app/',
+      'logo': 'https://adventurerecords.web.app/logo.png',
       'description': 'Independent music distribution platform helping artists release, manage, and monetize their music globally.'
     };
 
     const defaultSiteSchema = {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
+      '@id': 'https://adventurerecords.web.app/#website',
       'name': 'Adventure Records',
-      'url': 'https://music-b2696.web.app/',
+      'alternateName': 'Adventure Records Music Distribution',
+      'url': 'https://adventurerecords.web.app/',
       'potentialAction': {
         '@type': 'SearchAction',
-        'target': 'https://music-b2696.web.app/resources?q={search_term_string}',
+        'target': 'https://adventurerecords.web.app/resources?q={search_term_string}',
         'query-input': 'required name=search_term_string'
       }
     };
@@ -89,12 +92,18 @@ const SeoHead = ({
       };
     }
 
-    // Combine schemas
+    // Combine schemas with automatic deduplication (prevent duplicate WebSite / Organization schemas)
+    const extraSchemas = structuredData 
+      ? (Array.isArray(structuredData) ? structuredData : [structuredData]) 
+      : [];
+    const hasOrg = extraSchemas.some(s => s && s['@type'] === 'Organization');
+    const hasSite = extraSchemas.some(s => s && s['@type'] === 'WebSite');
+
     const schemasToInject = [
-      defaultOrgSchema,
-      defaultSiteSchema,
+      ...(hasOrg ? [] : [defaultOrgSchema]),
+      ...(hasSite ? [] : [defaultSiteSchema]),
       ...(breadcrumbSchema ? [breadcrumbSchema] : []),
-      ...(structuredData ? (Array.isArray(structuredData) ? structuredData : [structuredData]) : [])
+      ...extraSchemas
     ];
 
     // Remove old injected script
