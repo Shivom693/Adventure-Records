@@ -203,7 +203,7 @@ const Home = () => {
   };
 
   return (
-    <div className="relative pt-12 overflow-x-hidden min-h-screen bg-white text-[#050315] font-outfit">
+    <div className="relative pt-12 overflow-x-hidden min-h-screen bg-white dark:bg-[#0a0a0c] text-[#050315] dark:text-white font-outfit">
       
       <SeoHead
         title="Adventure Records – Official Music Distribution Platform"
@@ -219,20 +219,20 @@ const Home = () => {
           {/* Left Content */}
           <div className="lg:col-span-7 space-y-8 text-center lg:text-left z-10">
             <div className="space-y-3">
-              <p className="text-xs sm:text-sm uppercase tracking-[0.3em] font-extrabold text-[#050315] bg-black/5 border border-black/15 px-4 py-1.5 rounded-full w-fit mx-auto lg:mx-0 shadow-sm flex items-center gap-2">
-                <Disc className="w-4 h-4 animate-spin-slow text-black" />
+              <p className="text-xs sm:text-sm uppercase tracking-[0.3em] font-extrabold text-[#050315] dark:text-white bg-black/5 dark:bg-white/5 border border-black/15 dark:border-white/10 px-4 py-1.5 rounded-full w-fit mx-auto lg:mx-0 shadow-sm flex items-center gap-2">
+                <Disc className="w-4 h-4 animate-spin-slow text-black dark:text-white" />
                 ADVENTURE RECORDS
               </p>
               <div className="minimal-badge">
-                <Sparkles className="w-3.5 h-3.5 text-[#050315]" /> Professional Music Distribution
+                <Sparkles className="w-3.5 h-3.5 text-[#050315] dark:text-[#DEDCFF]" /> Professional Music Distribution
               </div>
             </div>
 
-            <h1 className="font-heading font-black text-5xl sm:text-7xl lg:text-8xl tracking-tight leading-[1.04] text-[#050315]">
+            <h1 className="font-heading font-black text-5xl sm:text-7xl lg:text-8xl tracking-tight leading-[1.04] text-[#050315] dark:text-white">
               Adventure Records
             </h1>
 
-            <p className="text-[#050315]/80 text-base sm:text-xl max-w-xl leading-relaxed mx-auto lg:mx-0 font-normal">
+            <p className="text-[#050315]/80 dark:text-zinc-300 text-base sm:text-xl max-w-xl leading-relaxed mx-auto lg:mx-0 font-normal">
               Music distribution and release management for independent artists.
             </p>
 

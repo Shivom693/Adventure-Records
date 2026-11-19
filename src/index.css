@@ -597,6 +597,18 @@
 .dark .text-\[\#050315\] {
   color: #ffffff !important;
 }
+.dark .text-\[\#050315\]\/90,
+.dark .text-\[\#050315\]\/80,
+.dark .text-\[\#050315\]\/70,
+.dark .text-\[\#050315\]\/60 {
+  color: #cbd5e1 !important;
+}
+.dark [class*="text-[#050315]/"]:not([class*="dark:text-"]) {
+  color: #cbd5e1 !important;
+}
+.dark [class*="text-[#050315]"]:not([class*="text-[#050315]/"]):not([class*="dark:text-"]) {
+  color: #ffffff !important;
+}
 .dark .text-zinc-600 {
   color: #94a3b8 !important;
 }
