@@ -14,7 +14,7 @@ const BrandLogo = ({ variant = 'navbar', showText = true, className = '', onClic
         <span className={`font-heading font-black tracking-tight text-[#050315] dark:text-white transition-colors ${isAuth ? 'text-2xl sm:text-3xl' : 'text-xl sm:text-2xl'}`}>
           ADVENTURE <span className="text-[#050315] dark:text-white">RECORDS</span>
         </span>
-        <span className={`font-semibold tracking-widest text-[#050315]/80 dark:text-white/80 uppercase -mt-1 ${isAuth ? 'text-[11px]' : 'text-[9px]'}`}>
+        <span className={`font-semibold tracking-widest text-zinc-500 dark:text-zinc-400 uppercase -mt-1 ${isAuth ? 'text-[11px]' : 'text-[9px]'}`}>
           Music Distribution
         </span>
       </div>

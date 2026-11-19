@@ -30,7 +30,7 @@ const Footer = () => {
           {/* Column 1: Brand Info */}
           <div className="lg:col-span-1 space-y-4">
             <BrandLogo variant="footer" onClick={scrollToTop} />
-            <p className="text-[#050315]/80 dark:text-zinc-400 text-xs leading-relaxed">
+            <p className="text-zinc-600 dark:text-zinc-400 text-xs leading-relaxed">
               A modern music distribution platform helping independent artists and labels release, manage, and monetize their music globally.
             </p>
           </div>
@@ -41,11 +41,11 @@ const Footer = () => {
               Distribution
             </h4>
             <ul className="space-y-2.5 text-xs">
-              <li><Link to="/#how-it-works" onClick={() => scrollToSection('how-it-works')} className="text-[#050315]/80 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">How It Works</Link></li>
-              <li><Link to="/pricing" onClick={scrollToTop} className="text-[#050315]/80 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Pricing</Link></li>
-              <li><Link to="/distribution" onClick={scrollToTop} className="text-[#050315]/80 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Distribution Network</Link></li>
-              <li><Link to="/artists" onClick={scrollToTop} className="text-[#050315]/80 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Artists</Link></li>
-              <li><Link to="/labels" onClick={scrollToTop} className="text-[#050315]/80 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Labels</Link></li>
+              <li><Link to="/#how-it-works" onClick={() => scrollToSection('how-it-works')} className="text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">How It Works</Link></li>
+              <li><Link to="/pricing" onClick={scrollToTop} className="text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Pricing</Link></li>
+              <li><Link to="/distribution" onClick={scrollToTop} className="text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Distribution Network</Link></li>
+              <li><Link to="/artists" onClick={scrollToTop} className="text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Artists</Link></li>
+              <li><Link to="/labels" onClick={scrollToTop} className="text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Labels</Link></li>
             </ul>
           </div>
 
@@ -55,13 +55,13 @@ const Footer = () => {
               Resources & Guides
             </h4>
             <ul className="space-y-2 text-xs">
-              <li><Link to="/free-music-distribution" onClick={scrollToTop} className="text-[#050315]/80 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Free Distribution Guide</Link></li>
-              <li><Link to="/music-distribution" onClick={scrollToTop} className="text-[#050315]/80 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Music Distribution</Link></li>
-              <li><Link to="/music-distribution-for-artists" onClick={scrollToTop} className="text-[#050315]/80 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Artist Guide</Link></li>
-              <li><Link to="/music-distribution-india" onClick={scrollToTop} className="text-[#050315]/80 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Distribution India</Link></li>
-              <li><Link to="/isrc" onClick={scrollToTop} className="text-[#050315]/80 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">ISRC Code Guide</Link></li>
-              <li><Link to="/upc" onClick={scrollToTop} className="text-[#050315]/80 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">UPC Barcode Guide</Link></li>
-              <li><Link to="/copyright" onClick={scrollToTop} className="text-[#050315]/80 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Copyright & Ownership</Link></li>
+              <li><Link to="/free-music-distribution" onClick={scrollToTop} className="text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Free Distribution Guide</Link></li>
+              <li><Link to="/music-distribution" onClick={scrollToTop} className="text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Music Distribution</Link></li>
+              <li><Link to="/music-distribution-for-artists" onClick={scrollToTop} className="text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Artist Guide</Link></li>
+              <li><Link to="/music-distribution-india" onClick={scrollToTop} className="text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Distribution India</Link></li>
+              <li><Link to="/isrc" onClick={scrollToTop} className="text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">ISRC Code Guide</Link></li>
+              <li><Link to="/upc" onClick={scrollToTop} className="text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">UPC Barcode Guide</Link></li>
+              <li><Link to="/copyright" onClick={scrollToTop} className="text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Copyright & Ownership</Link></li>
             </ul>
           </div>
 
@@ -71,8 +71,8 @@ const Footer = () => {
               Company
             </h4>
             <ul className="space-y-2.5 text-xs">
-              <li><Link to="/about" onClick={scrollToTop} className="text-[#050315]/80 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">About Us</Link></li>
-              <li><Link to="/contact" onClick={scrollToTop} className="text-[#050315]/80 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Contact</Link></li>
+              <li><Link to="/about" onClick={scrollToTop} className="text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">About Us</Link></li>
+              <li><Link to="/contact" onClick={scrollToTop} className="text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Contact</Link></li>
               <li><Link to="/admin-login" onClick={scrollToTop} className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-bold transition-colors">Admin Console</Link></li>
             </ul>
           </div>
@@ -83,20 +83,20 @@ const Footer = () => {
               Legal & Compliance
             </h4>
             <ul className="space-y-2.5 text-xs">
-              <li><Link to="/terms-of-use" onClick={scrollToTop} className="text-[#050315]/80 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Terms of Use</Link></li>
-              <li><Link to="/privacy-policy" onClick={scrollToTop} className="text-[#050315]/80 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Privacy Policy</Link></li>
+              <li><Link to="/terms-of-use" onClick={scrollToTop} className="text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Terms of Use</Link></li>
+              <li><Link to="/privacy-policy" onClick={scrollToTop} className="text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Privacy Policy</Link></li>
               <li>
                 <button 
                   type="button" 
                   onClick={triggerCookieSettingsModal} 
-                  className="text-[#050315]/80 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors text-left flex items-center gap-1 font-medium"
+                  className="text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors text-left flex items-center gap-1 font-medium"
                 >
-                  <Cookie className="w-3.5 h-3.5 text-black dark:text-zinc-400 shrink-0" /> Cookie Settings
+                  <Cookie className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-400 shrink-0" /> Cookie Settings
                 </button>
               </li>
-              <li><Link to="/copyright-policy" onClick={scrollToTop} className="text-[#050315]/80 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Copyright Policy</Link></li>
-              <li><Link to="/refund-policy" onClick={scrollToTop} className="text-[#050315]/80 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Refund Policy</Link></li>
-              <li><Link to="/content-policy" onClick={scrollToTop} className="text-[#050315]/80 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Content Policy</Link></li>
+              <li><Link to="/copyright-policy" onClick={scrollToTop} className="text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Copyright Policy</Link></li>
+              <li><Link to="/refund-policy" onClick={scrollToTop} className="text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Refund Policy</Link></li>
+              <li><Link to="/content-policy" onClick={scrollToTop} className="text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors">Content Policy</Link></li>
               <li><Link to="/privacy-policy" onClick={scrollToTop} className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-bold flex items-center gap-1"><ShieldCheck className="w-3.5 h-3.5 inline shrink-0 text-emerald-600 dark:text-emerald-400" /> DPDP Act 2023 Compliance</Link></li>
             </ul>
           </div>
@@ -111,12 +111,12 @@ const Footer = () => {
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                   <ShieldCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> DPDP Act 2023 Compliant
                 </span>
-                <span className="text-xs text-[#050315]/80 dark:text-zinc-400 font-medium">Digital Personal Data Protection Act, India</span>
+                <span className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">Digital Personal Data Protection Act, India</span>
               </div>
               <h3 className="text-sm font-bold text-[#050315] dark:text-white tracking-wide">
                 Your Data Protection & Digital Rights Guaranteed
               </h3>
-              <p className="text-xs text-[#050315]/80 dark:text-zinc-400 leading-relaxed">
+              <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
                 Adventure Records strictly complies with India's DPDP Act, 2023. You have full rights as a Data Principal to access, correct, erase your data, or revoke consent at any time. For privacy queries or Data Protection Officer contact: <a href="mailto:adventureof693@gmail.com" className="text-[#050315] dark:text-emerald-400 hover:underline font-bold">adventureof693@gmail.com</a>.
               </p>
             </div>
@@ -140,7 +140,7 @@ const Footer = () => {
         </div>
 
         {/* Bottom Strip: Copyright & Social Icons */}
-        <div className="border-t border-black/15 dark:border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#050315]/70 dark:text-zinc-400">
+        <div className="border-t border-black/15 dark:border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-zinc-600 dark:text-zinc-400">
 
           <div className="flex items-center gap-2 flex-wrap">
             <p>© 2026 Adventure Records. All rights reserved.</p>
@@ -155,7 +155,7 @@ const Footer = () => {
               href="https://www.instagram.com/adventurerecods693/" 
               target="_blank" 
               rel="noopener noreferrer" 
-              className="p-2 rounded-xl bg-black/5 dark:bg-white/5 border border-black/15 dark:border-white/10 hover:border-black dark:hover:border-white/30 hover:bg-black/10 dark:hover:bg-white/10 text-[#050315] dark:text-zinc-300 dark:hover:text-white transition-all" 
+              className="p-2 rounded-xl bg-black/5 dark:bg-white/5 border border-black/15 dark:border-white/10 hover:border-black dark:hover:border-white/30 hover:bg-black/10 dark:hover:bg-white/10 text-black dark:text-zinc-300 dark:hover:text-white transition-all" 
               title="Instagram" 
               aria-label="Instagram"
             >
