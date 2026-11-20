@@ -294,8 +294,7 @@ const AdminPanel = () => {
   if (loading) {
     return (
       <div className="pt-32 flex flex-col items-center justify-center min-h-[500px] text-zinc-100 font-outfit">
-        <div className="w-8 h-8 rounded-full border-2 border-t-red-500 border-zinc-800 animate-spin mb-4" />
-        <span className="font-heading font-semibold text-zinc-500 text-xs tracking-widest uppercase">Booting Owner Console...</span>
+        <div className="w-8 h-8 rounded-full border-2 border-t-red-500 border-zinc-800 animate-spin" />
       </div>
     );
   }
