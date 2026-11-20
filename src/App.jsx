@@ -54,8 +54,7 @@ const CopyrightGuide = lazy(() => import('./pages/CopyrightGuide'));
 // High Performance Lightweight Fallback Loader
 const PageLoader = () => (
   <div className="pt-32 flex flex-col items-center justify-center min-h-[400px] text-zinc-100 font-outfit">
-    <div className="w-8 h-8 rounded-full border-2 border-t-red-500 border-zinc-800 animate-spin mb-3" />
-    <span className="font-heading font-semibold text-zinc-500 text-xs tracking-widest uppercase">Loading Adventure Records...</span>
+    <div className="w-8 h-8 rounded-full border-2 border-t-[#585589] border-zinc-800 animate-spin" />
   </div>
 );
 

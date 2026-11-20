@@ -4,10 +4,7 @@ import { useAuth } from '../context/AuthContext';
 
 const FullPageSpinner = () => (
   <div className="pt-32 flex flex-col items-center justify-center min-h-[70vh] text-zinc-100 font-outfit">
-    <div className="w-10 h-10 rounded-full border-3 border-t-[#585589] border-zinc-800 animate-spin mb-4" />
-    <span className="font-heading font-semibold text-zinc-400 text-xs tracking-widest uppercase animate-pulse">
-      Restoring session...
-    </span>
+    <div className="w-10 h-10 rounded-full border-3 border-t-[#585589] border-zinc-800 animate-spin" />
   </div>
 );
 
