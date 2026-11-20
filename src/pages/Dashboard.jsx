@@ -227,8 +227,7 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div className="pt-32 flex flex-col items-center justify-center min-h-[500px] text-zinc-100 font-outfit">
-        <div className="w-8 h-8 rounded-full border-2 border-t-white border-zinc-800 animate-spin mb-4" />
-        <span className="font-heading font-semibold text-zinc-400 text-xs tracking-widest uppercase">Connecting Real Firestore Catalog...</span>
+        <div className="w-8 h-8 rounded-full border-2 border-t-white border-zinc-800 animate-spin" />
       </div>
     );
   }
