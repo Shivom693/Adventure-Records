@@ -11,6 +11,7 @@ import analyticsRoutes from './routes/analytics.js';
 import chatbotRoutes from './routes/chatbot.js';
 import ticketRoutes from './routes/tickets.js';
 import paymentRoutes from './routes/payments.js';
+import razorpayRoutes from './routes/razorpay.js';
 
 dotenv.config();
 
@@ -67,7 +68,7 @@ app.use((req, res, next) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   res.setHeader('Content-Security-Policy', [
     "default-src 'self'",
-    "script-src 'self' https://apis.google.com https://www.gstatic.com",
+    "script-src 'self' https://apis.google.com https://www.gstatic.com https://checkout.razorpay.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: https: blob:",
@@ -194,6 +195,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/razorpay', razorpayRoutes);
 
 // Direct OTP Endpoint (High Reliability with Real SMTP Email Dispatch)
 // Requires authentication — the OTP is read from the user's record, never from the request body
