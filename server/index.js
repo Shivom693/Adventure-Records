@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import dotenv from 'dotenv';
@@ -17,10 +17,10 @@ dotenv.config();
 
 // Global Crash Prevention & Process Resilience
 process.on('uncaughtException', (err) => {
-  console.error('⚠️ High-Traffic Handler: Uncaught Exception:', err.stack || err);
+  console.error('âš ï¸ High-Traffic Handler: Uncaught Exception:', err.stack || err);
 });
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('⚠️ High-Traffic Handler: Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('âš ï¸ High-Traffic Handler: Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
 const __filename = fileURLToPath(import.meta.url);
@@ -72,7 +72,7 @@ app.use((req, res, next) => {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: https: blob:",
-    "connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.firebaseapp.com wss://*.firebaseio.com " + (process.env.ALLOWED_ORIGINS || 'http://localhost:5173'),
+    "connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.firebaseapp.com wss://*.firebaseio.com https://api.razorpay.com https://lumberjack.razorpay.com " + (process.env.ALLOWED_ORIGINS || 'http://localhost:5173'),
     "frame-src https://accounts.google.com https://*.firebaseapp.com",
     "object-src 'none'",
     "base-uri 'self'",
@@ -198,7 +198,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/razorpay', razorpayRoutes);
 
 // Direct OTP Endpoint (High Reliability with Real SMTP Email Dispatch)
-// Requires authentication — the OTP is read from the user's record, never from the request body
+// Requires authentication â€” the OTP is read from the user's record, never from the request body
 app.post('/api/send-otp', authenticateToken, async (req, res) => {
   const { email } = req.body;
   if (!email) {
@@ -212,10 +212,10 @@ app.post('/api/send-otp', authenticateToken, async (req, res) => {
 
   const isDevMode = process.env.NODE_ENV !== 'production';
   if (isDevMode) {
-    console.log(`📬 [SERVER OTP DISPATCH] Verification code requested for ${email}`);
+    console.log(`ðŸ“¬ [SERVER OTP DISPATCH] Verification code requested for ${email}`);
   }
 
-  // Look up the OTP from DB — never trust the client to supply it
+  // Look up the OTP from DB â€” never trust the client to supply it
   const { db } = await import('./db/dbFallback.js');
   const user = await db.users.findOne({ email });
   if (!user || !user.otpCode) {
@@ -251,9 +251,9 @@ app.post('/api/send-otp', authenticateToken, async (req, res) => {
           </div>
         `
       });
-      console.log(`✅ [REAL EMAIL DISPATCHED] Verification code sent to ${email}`);
+      console.log(`âœ… [REAL EMAIL DISPATCHED] Verification code sent to ${email}`);
     } catch (mailErr) {
-      console.error(`❌ [SMTP MAIL ERROR] Failed to send email to ${email}:`, mailErr.message);
+      console.error(`âŒ [SMTP MAIL ERROR] Failed to send email to ${email}:`, mailErr.message);
     }
   }
 
@@ -289,9 +289,9 @@ app.post('/api/notify-upload', authenticateToken, async (req, res) => {
   }
 
   console.log(`\n=================================================`);
-  console.log(`🎵 [NEW SONG UPLOADED] ${releaseTitle} by ${primaryArtist}`);
-  if (resolvedAudioLink) console.log(`🔗 [AUDIO DRIVE LINK]: ${resolvedAudioLink}`);
-  if (resolvedArtworkLink) console.log(`🔗 [ARTWORK LINK]: ${resolvedArtworkLink}`);
+  console.log(`ðŸŽµ [NEW SONG UPLOADED] ${releaseTitle} by ${primaryArtist}`);
+  if (resolvedAudioLink) console.log(`ðŸ”— [AUDIO DRIVE LINK]: ${resolvedAudioLink}`);
+  if (resolvedArtworkLink) console.log(`ðŸ”— [ARTWORK LINK]: ${resolvedArtworkLink}`);
   console.log(`=================================================\n`);
 
   const emailUser = process.env.EMAIL_USER;
@@ -313,25 +313,25 @@ app.post('/api/notify-upload', authenticateToken, async (req, res) => {
             return `
               <li style="margin-bottom: 8px;">
                 <strong>Track ${idx + 1}:</strong> ${t.title || releaseTitle} ${t.isrc ? `(ISRC: ${t.isrc})` : ''}
-                ${trkAudio ? `<br/><a href="${trkAudio}" target="_blank" style="color: #38bdf8; font-size: 11px; word-break: break-all;">🔗 Open Track Drive Audio →</a>` : ''}
+                ${trkAudio ? `<br/><a href="${trkAudio}" target="_blank" style="color: #38bdf8; font-size: 11px; word-break: break-all;">ðŸ”— Open Track Drive Audio â†’</a>` : ''}
               </li>
             `;
           }).join('')
-        : `<li>${releaseTitle} ${resolvedAudioLink ? `<br/><a href="${resolvedAudioLink}" target="_blank" style="color: #38bdf8; font-size: 11px;">🔗 Open Audio Drive Link</a>` : ''}</li>`;
+        : `<li>${releaseTitle} ${resolvedAudioLink ? `<br/><a href="${resolvedAudioLink}" target="_blank" style="color: #38bdf8; font-size: 11px;">ðŸ”— Open Audio Drive Link</a>` : ''}</li>`;
 
       await transporter.sendMail({
         from: `"Adventure Records Curation" <${emailUser}>`,
         to: adminEmail,
-        subject: `🎵 [New Song Uploaded] ${releaseTitle} - ${primaryArtist}`,
+        subject: `ðŸŽµ [New Song Uploaded] ${releaseTitle} - ${primaryArtist}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0d0d12; color: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #27272a;">
-            <h2 style="color: #eab308; text-align: center; margin-top: 0;">🎵 New Song Uploaded</h2>
+            <h2 style="color: #eab308; text-align: center; margin-top: 0;">ðŸŽµ New Song Uploaded</h2>
             <hr style="border: 0; border-top: 1px solid #27272a; margin: 16px 0;" />
 
             <div style="margin-bottom: 20px;">
               <h3 style="margin: 0 0 4px 0; color: #ffffff; font-size: 20px;">${releaseTitle}</h3>
               <p style="margin: 0; color: #a1a1aa; font-size: 14px;">By <strong>${primaryArtist}</strong> ${featuringArtists ? `(ft. ${featuringArtists})` : ''}</p>
-              <p style="margin: 6px 0 0 0; color: #71717a; font-size: 12px;">Type: ${releaseType || 'Single'} • Genre: ${genre || 'Pop'} • Language: ${language || 'Hindi'}</p>
+              <p style="margin: 6px 0 0 0; color: #71717a; font-size: 12px;">Type: ${releaseType || 'Single'} â€¢ Genre: ${genre || 'Pop'} â€¢ Language: ${language || 'Hindi'}</p>
             </div>
 
             <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #d4d4d8; margin-bottom: 20px;">
@@ -345,17 +345,17 @@ app.post('/api/notify-upload', authenticateToken, async (req, res) => {
               <h4 style="margin: 0 0 10px 0; color: #10b981; font-size: 13px; text-transform: uppercase;">Google Drive Submission Links:</h4>
               
               <div style="margin-bottom: 12px;">
-                <span style="color: #a1a1aa; font-size: 12px; font-weight: bold;">🎵 Audio Master File:</span><br/>
+                <span style="color: #a1a1aa; font-size: 12px; font-weight: bold;">ðŸŽµ Audio Master File:</span><br/>
                 ${resolvedAudioLink ? `
-                  <a href="${resolvedAudioLink}" target="_blank" style="display: inline-block; margin-top: 4px; background-color: #10b981; color: #000000; font-weight: bold; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 12px;">Open Audio Drive Link ↗</a>
+                  <a href="${resolvedAudioLink}" target="_blank" style="display: inline-block; margin-top: 4px; background-color: #10b981; color: #000000; font-weight: bold; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 12px;">Open Audio Drive Link â†—</a>
                   <p style="margin: 4px 0 0 0; font-size: 11px; color: #a1a1aa; word-break: break-all;">${resolvedAudioLink}</p>
-                ` : `<span style="color: #f59e0b; font-size: 12px;">⚠️ No Audio Drive link provided</span>`}
+                ` : `<span style="color: #f59e0b; font-size: 12px;">âš ï¸ No Audio Drive link provided</span>`}
               </div>
 
               ${resolvedArtworkLink ? `
                 <div style="margin-top: 10px; border-top: 1px solid #27272a; padding-top: 10px;">
-                  <span style="color: #a1a1aa; font-size: 12px; font-weight: bold;">🖼️ Cover Artwork:</span><br/>
-                  <a href="${resolvedArtworkLink}" target="_blank" style="display: inline-block; margin-top: 4px; background-color: #3f3f46; color: #ffffff; font-weight: bold; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 12px;">Open Artwork Link ↗</a>
+                  <span style="color: #a1a1aa; font-size: 12px; font-weight: bold;">ðŸ–¼ï¸ Cover Artwork:</span><br/>
+                  <a href="${resolvedArtworkLink}" target="_blank" style="display: inline-block; margin-top: 4px; background-color: #3f3f46; color: #ffffff; font-weight: bold; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 12px;">Open Artwork Link â†—</a>
                   <p style="margin: 4px 0 0 0; font-size: 11px; color: #a1a1aa; word-break: break-all;">${resolvedArtworkLink}</p>
                 </div>
               ` : ''}
@@ -369,25 +369,25 @@ app.post('/api/notify-upload', authenticateToken, async (req, res) => {
             </div>
 
             <div style="text-align: center; margin-top: 24px;">
-              <a href="${process.env.ADMIN_PANEL_URL || 'http://localhost:5173'}/admin" style="display: inline-block; background-color: #eab308; color: #000000; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 13px;">Review Release in Admin Panel →</a>
+              <a href="${process.env.ADMIN_PANEL_URL || 'http://localhost:5173'}/admin" style="display: inline-block; background-color: #eab308; color: #000000; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 13px;">Review Release in Admin Panel â†’</a>
             </div>
 
             <div style="margin-top: 24px; font-size: 11px; color: #71717a; text-align: center;">
-              Adventure Records Ingestion Desk • Sent automatically to ${adminEmail}
+              Adventure Records Ingestion Desk â€¢ Sent automatically to ${adminEmail}
             </div>
           </div>
         `
       });
-      console.log(`✅ [SONG UPLOAD EMAIL DISPATCHED] Sent to ${adminEmail}`);
+      console.log(`âœ… [SONG UPLOAD EMAIL DISPATCHED] Sent to ${adminEmail}`);
     } catch (err) {
-      console.error(`❌ [SMTP SONG UPLOAD ERROR]:`, err.message);
+      console.error(`âŒ [SMTP SONG UPLOAD ERROR]:`, err.message);
     }
   }
 
   res.status(200).json({ success: true, message: 'Upload notification email sent.' });
 });
 
-// 1. New Payment Verification Submitted Notification (To admin — requires authentication)
+// 1. New Payment Verification Submitted Notification (To admin â€” requires authentication)
 app.post('/api/notify-payment-submitted', authenticateToken, async (req, res) => {
   const { paymentType, targetTitle, amount, utr, upiApp, userEmail, merchantUpiId } = req.body;
   const adminEmail = process.env.ADMIN_EMAIL || 'adventureof693@gmail.com';
@@ -398,7 +398,7 @@ app.post('/api/notify-payment-submitted', authenticateToken, async (req, res) =>
   }
 
   console.log(`\n=================================================`);
-  console.log(`💳 [NEW UPI PAYMENT SUBMITTED] UTR: ${utr} | Amount: ₹${amount}`);
+  console.log(`ðŸ’³ [NEW UPI PAYMENT SUBMITTED] UTR: ${utr} | Amount: â‚¹${amount}`);
   console.log(`=================================================\n`);
 
   const emailUser = process.env.EMAIL_USER;
@@ -414,15 +414,15 @@ app.post('/api/notify-payment-submitted', authenticateToken, async (req, res) =>
       await transporter.sendMail({
         from: `"Adventure Records Payments" <${emailUser}>`,
         to: adminEmail,
-        subject: `💳 [New UPI Payment Verification Submitted] UTR: ${utr} (₹${amount})`,
+        subject: `ðŸ’³ [New UPI Payment Verification Submitted] UTR: ${utr} (â‚¹${amount})`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0d0d12; color: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #27272a;">
-            <h2 style="color: #38bdf8; text-align: center; margin-top: 0;">💳 Payment Verification Submitted</h2>
+            <h2 style="color: #38bdf8; text-align: center; margin-top: 0;">ðŸ’³ Payment Verification Submitted</h2>
             <hr style="border: 0; border-top: 1px solid #27272a; margin: 16px 0;" />
             <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #d4d4d8; margin-bottom: 20px;">
               <tr><td style="padding: 6px 0; font-weight: bold; width: 140px; color: #a1a1aa;">Payment Type:</td><td style="color: #ffffff; text-transform: uppercase;">${paymentType}</td></tr>
               <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Release / Plan:</td><td style="color: #ffffff;">${targetTitle || 'Platform Distribution'}</td></tr>
-              <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Amount Paid:</td><td style="color: #4ade80; font-weight: bold; font-size: 16px;">₹${amount}</td></tr>
+              <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Amount Paid:</td><td style="color: #4ade80; font-weight: bold; font-size: 16px;">â‚¹${amount}</td></tr>
               <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">UTR / Trans ID:</td><td style="color: #facc15; font-family: monospace; font-size: 16px;">${utr}</td></tr>
               <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">UPI App Used:</td><td style="color: #ffffff;">${upiApp || 'UPI'}</td></tr>
               <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Receiver UPI:</td><td style="color: #ffffff;">${merchantUpiId || '9691546208-3@ybl'}</td></tr>
@@ -430,14 +430,14 @@ app.post('/api/notify-payment-submitted', authenticateToken, async (req, res) =>
               <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Submitted At:</td><td style="color: #ffffff;">${new Date().toLocaleString()}</td></tr>
             </table>
             <div style="text-align: center; margin-top: 24px;">
-              <a href="${process.env.ADMIN_PANEL_URL || 'http://localhost:5173'}/admin" style="display: inline-block; background-color: #38bdf8; color: #000000; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 13px;">Review & Verify in Admin Panel →</a>
+              <a href="${process.env.ADMIN_PANEL_URL || 'http://localhost:5173'}/admin" style="display: inline-block; background-color: #38bdf8; color: #000000; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 13px;">Review & Verify in Admin Panel â†’</a>
             </div>
           </div>
         `
       });
-      console.log(`✅ [PAYMENT NOTIFICATION SENT] Sent to ${adminEmail}`);
+      console.log(`âœ… [PAYMENT NOTIFICATION SENT] Sent to ${adminEmail}`);
     } catch (err) {
-      console.error(`❌ [SMTP PAYMENT NOTIFY ERROR]:`, err.message);
+      console.error(`âŒ [SMTP PAYMENT NOTIFY ERROR]:`, err.message);
     }
   }
 
@@ -466,8 +466,8 @@ app.post('/api/notify-payment-result', authenticateToken, async (req, res) => {
 
       const isVerified = status === 'verified';
       const subject = isVerified 
-        ? `✅ Payment Verified ✓ - ${targetTitle || 'Adventure Records'}`
-        : `❌ Payment Submission Update - ${targetTitle || 'Adventure Records'}`;
+        ? `âœ… Payment Verified âœ“ - ${targetTitle || 'Adventure Records'}`
+        : `âŒ Payment Submission Update - ${targetTitle || 'Adventure Records'}`;
 
       await transporter.sendMail({
         from: `"Adventure Records Billing" <${emailUser}>`,
@@ -476,22 +476,22 @@ app.post('/api/notify-payment-result', authenticateToken, async (req, res) => {
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0d0d12; color: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #27272a;">
             <h2 style="color: ${isVerified ? '#4ade80' : '#f87171'}; text-align: center; margin-top: 0;">
-              ${isVerified ? '✅ Payment Verified ✓' : '❌ Payment Verification Status'}
+              ${isVerified ? 'âœ… Payment Verified âœ“' : 'âŒ Payment Verification Status'}
             </h2>
             <hr style="border: 0; border-top: 1px solid #27272a; margin: 16px 0;" />
             <p style="color: #e4e4e7; font-size: 14px; line-height: 1.5;">
               ${isVerified 
-                ? `Great news! Your payment of <strong>₹${amount}</strong> (UTR: <code style="color: #facc15;">${utr}</code>) has been verified by our billing team. Your ${paymentType === 'release' ? 'release upload features' : 'subscription benefits'} are now fully unlocked!`
-                : `Your payment submission of <strong>₹${amount}</strong> (UTR: <code style="color: #facc15;">${utr}</code>) could not be verified. ${reason ? `Reason: ${reason}` : ''}`}
+                ? `Great news! Your payment of <strong>â‚¹${amount}</strong> (UTR: <code style="color: #facc15;">${utr}</code>) has been verified by our billing team. Your ${paymentType === 'release' ? 'release upload features' : 'subscription benefits'} are now fully unlocked!`
+                : `Your payment submission of <strong>â‚¹${amount}</strong> (UTR: <code style="color: #facc15;">${utr}</code>) could not be verified. ${reason ? `Reason: ${reason}` : ''}`}
             </p>
             <div style="margin-top: 24px; font-size: 11px; color: #71717a; text-align: center;">
-              Adventure Records Payment Desk • Sent to ${userEmail}
+              Adventure Records Payment Desk â€¢ Sent to ${userEmail}
             </div>
           </div>
         `
       });
     } catch (err) {
-      console.error(`❌ [SMTP PAYMENT RESULT ERROR]:`, err.message);
+      console.error(`âŒ [SMTP PAYMENT RESULT ERROR]:`, err.message);
     }
   }
 
@@ -512,7 +512,7 @@ app.get('/api/health', (req, res) => {
 const startServer = async () => {
   await connectDB();
   const server = app.listen(PORT, () => {
-    console.log(`🚀 Adventure Records High-Scale Server running on port ${PORT}`);
+    console.log(`ðŸš€ Adventure Records High-Scale Server running on port ${PORT}`);
   });
 
   // Keep-alive timeouts for zero-downtime high-traffic handling
@@ -523,3 +523,4 @@ const startServer = async () => {
 startServer().catch(err => {
   console.error('Failed to start server:', err);
 });
+
