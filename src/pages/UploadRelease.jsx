@@ -282,7 +282,7 @@ const UploadRelease = () => {
   };
 
   const handlePaymentModalSuccess = (payment) => {
-    if (payment?.status === 'SUCCESS' || payment?.status === 'verified') {
+    if (payment?.status === 'SUCCESS' || payment?.status === 'verified' || payment?.method === 'RAZORPAY') {
       setPaymentVerified(true);
       setPaymentPending(false);
     }

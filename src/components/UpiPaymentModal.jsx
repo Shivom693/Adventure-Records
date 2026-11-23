@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Copy, Smartphone, Check, AlertCircle, X, 
-  ShieldCheck, Clock, CheckCircle2, Loader2, ArrowRight, RefreshCw, Sparkles
+  ShieldCheck, Clock, CheckCircle2, Loader2, ArrowRight, RefreshCw, Sparkles,
+  CreditCard, QrCode, Zap
 } from 'lucide-react';
+import RazorpayCheckout from './RazorpayCheckout';
 import { createPaymentOrder, pollPaymentOrderStatus } from '../services/dataService';
 import { auth, db } from '../firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
@@ -29,6 +31,10 @@ const UpiPaymentModal = ({
   const [verifiedPayment, setVerifiedPayment] = useState(null);
   const [paymentFailed, setPaymentFailed] = useState(false);
   const [failureReason, setFailureReason] = useState('');
+
+  // Payment Method Selection ('razorpay' | 'upi_qr')
+  const [activePaymentTab, setActivePaymentTab] = useState('razorpay');
+  const [userInfo, setUserInfo] = useState({ userId: '', userEmail: '', customerName: '' });
 
   // UI state
   const [copied, setCopied] = useState(false);
@@ -71,6 +77,12 @@ const UpiPaymentModal = ({
       setLoadingOrder(false);
       return;
     }
+
+    setUserInfo({
+      userId: userId || 'artist',
+      userEmail: userEmail || 'artist@adventurerecords.com',
+      customerName: customerName || ''
+    });
 
     try {
       const orderRes = await createPaymentOrder({
@@ -327,96 +339,169 @@ const UpiPaymentModal = ({
               </div>
             </div>
 
-            {/* Dynamic UPI QR Code Section */}
-            <div className="upi-qr-card p-5 rounded-2xl bg-white text-black text-center space-y-3.5 shadow-2xl relative border border-zinc-200">
-              <p className="text-xs font-bold uppercase tracking-wider text-zinc-800">
-                Scan QR with any UPI app to complete payment.
-              </p>
+            {/* Payment Method Switcher Tabs */}
+            <div className="grid grid-cols-2 gap-2 p-1.5 bg-black/5 dark:bg-white/5 rounded-2xl border border-black/10 dark:border-white/10">
+              <button
+                type="button"
+                onClick={() => setActivePaymentTab('razorpay')}
+                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activePaymentTab === 'razorpay'
+                    ? 'bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-md shadow-sky-500/20'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                }`}
+              >
+                <CreditCard className="w-4 h-4" />
+                <span>Pay Online (Razorpay)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActivePaymentTab('upi_qr')}
+                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activePaymentTab === 'upi_qr'
+                    ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-md'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                }`}
+              >
+                <QrCode className="w-4 h-4" />
+                <span>Scan UPI QR</span>
+              </button>
+            </div>
 
-              {/* Dynamic QR image */}
-              <div className="relative inline-block">
-                {loadingOrder ? (
-                  <div className="w-56 h-56 mx-auto flex flex-col items-center justify-center border-2 border-dashed border-zinc-300 rounded-2xl bg-zinc-50 space-y-2">
-                    <Loader2 className="w-8 h-8 animate-spin text-sky-500" />
-                    <p className="text-xs font-semibold text-zinc-600">Generating Unique Dynamic QR...</p>
+            {/* TAB 1: RAZORPAY STANDARD WEB CHECKOUT */}
+            {activePaymentTab === 'razorpay' && (
+              <div className="p-6 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 space-y-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-sky-600 dark:text-sky-400">
+                    <Zap className="w-4 h-4" />
+                    <span>Instant Verification & Instant Unlock</span>
                   </div>
-                ) : qrExpired ? (
-                  <div className="w-56 h-56 mx-auto flex flex-col items-center justify-center border-2 border-dashed border-red-300 rounded-2xl bg-red-50 p-4 space-y-2">
-                    <AlertCircle className="w-8 h-8 text-red-500" />
-                    <p className="text-xs font-bold text-red-600">QR Session Expired</p>
-                    <p className="text-[10px] text-zinc-500">Each dynamic QR is valid for 10 minutes</p>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                    Pay securely using Cards, UPI (GPay/PhonePe/Paytm), Net Banking, or Wallets via Razorpay Standard Checkout.
+                  </p>
+                </div>
+
+                <RazorpayCheckout
+                  amountRupees={amount}
+                  userId={userInfo.userId}
+                  userEmail={userInfo.userEmail}
+                  customerName={userInfo.customerName}
+                  paymentType={paymentType}
+                  targetId={targetId}
+                  releaseTitle={title}
+                  onSuccess={(paymentData) => {
+                    handlePaymentConfirmed({
+                      ...paymentData,
+                      status: 'SUCCESS',
+                      amount
+                    });
+                  }}
+                />
+              </div>
+            )}
+
+            {/* TAB 2: DYNAMIC UPI QR SCANNER */}
+            {activePaymentTab === 'upi_qr' && (
+              <>
+                {/* Dynamic UPI QR Code Section */}
+                <div className="upi-qr-card p-5 rounded-2xl bg-white text-black text-center space-y-3.5 shadow-2xl relative border border-zinc-200">
+                  <p className="text-xs font-bold uppercase tracking-wider text-zinc-800">
+                    Scan QR with any UPI app to complete payment.
+                  </p>
+
+                  {/* Dynamic QR image */}
+                  <div className="relative inline-block">
+                    {loadingOrder ? (
+                      <div className="w-56 h-56 mx-auto flex flex-col items-center justify-center border-2 border-dashed border-zinc-300 rounded-2xl bg-zinc-50 space-y-2">
+                        <Loader2 className="w-8 h-8 animate-spin text-sky-500" />
+                        <p className="text-xs font-semibold text-zinc-600">Generating Unique Dynamic QR...</p>
+                      </div>
+                    ) : qrExpired ? (
+                      <div className="w-56 h-56 mx-auto flex flex-col items-center justify-center border-2 border-dashed border-red-300 rounded-2xl bg-red-50 p-4 space-y-2">
+                        <AlertCircle className="w-8 h-8 text-red-500" />
+                        <p className="text-xs font-bold text-red-600">QR Session Expired</p>
+                        <p className="text-[10px] text-zinc-500">Each dynamic QR is valid for 10 minutes</p>
+                        <button
+                          onClick={initializeOrder}
+                          className="mt-1 text-xs px-4 py-1.5 rounded-xl bg-red-500 text-white font-bold flex items-center gap-1.5 hover:bg-red-600 cursor-pointer transition-all"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          <span>Generate New QR</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="relative p-2 bg-white rounded-2xl border-2 border-zinc-200 shadow-md">
+                        <img
+                          src={qrCodeUrl}
+                          alt="Dynamic UPI QR Code"
+                          className="w-52 h-52 sm:w-56 sm:h-56 mx-auto object-contain"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Supported UPI Apps Pills */}
+                  <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1 text-[10px] font-bold text-zinc-700">
+                    <span className="px-2 py-0.5 rounded-md bg-zinc-100 border border-zinc-200">Google Pay</span>
+                    <span className="px-2 py-0.5 rounded-md bg-zinc-100 border border-zinc-200">PhonePe</span>
+                    <span className="px-2 py-0.5 rounded-md bg-zinc-100 border border-zinc-200">Paytm</span>
+                    <span className="px-2 py-0.5 rounded-md bg-zinc-100 border border-zinc-200">BHIM</span>
+                    <span className="px-2 py-0.5 rounded-md bg-zinc-100 border border-zinc-200">Cred</span>
+                  </div>
+
+                  {/* Merchant Details & Timer */}
+                  <div className="flex items-center justify-between text-[11px] text-zinc-700 font-semibold px-2 pt-1 border-t border-zinc-100">
+                    <span>Receiver: <strong className="font-mono text-zinc-900">{merchantUpi}</strong></span>
                     <button
-                      onClick={initializeOrder}
-                      className="mt-1 text-xs px-4 py-1.5 rounded-xl bg-red-500 text-white font-bold flex items-center gap-1.5 hover:bg-red-600 cursor-pointer transition-all"
+                      type="button"
+                      onClick={handleCopyUpi}
+                      className="text-sky-600 hover:text-sky-700 font-bold text-[11px] cursor-pointer"
                     >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                      <span>Generate New QR</span>
+                      {copied ? 'Copied ✓' : 'Copy UPI'}
                     </button>
                   </div>
-                ) : (
-                  <div className="relative p-2 bg-white rounded-2xl border-2 border-zinc-200 shadow-md">
-                    <img
-                      src={qrCodeUrl}
-                      alt="Dynamic UPI QR Code"
-                      className="w-52 h-52 sm:w-56 sm:h-56 mx-auto object-contain"
-                    />
-                  </div>
-                )}
-              </div>
 
-              {/* Supported UPI Apps Pills */}
-              <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1 text-[10px] font-bold text-zinc-700">
-                <span className="px-2 py-0.5 rounded-md bg-zinc-100 border border-zinc-200">Google Pay</span>
-                <span className="px-2 py-0.5 rounded-md bg-zinc-100 border border-zinc-200">PhonePe</span>
-                <span className="px-2 py-0.5 rounded-md bg-zinc-100 border border-zinc-200">Paytm</span>
-                <span className="px-2 py-0.5 rounded-md bg-zinc-100 border border-zinc-200">BHIM</span>
-                <span className="px-2 py-0.5 rounded-md bg-zinc-100 border border-zinc-200">Cred</span>
-              </div>
-
-              {/* Merchant Details & Timer */}
-              <div className="flex items-center justify-between text-[11px] text-zinc-700 font-semibold px-2 pt-1 border-t border-zinc-100">
-                <span>Receiver: <strong className="font-mono text-zinc-900">{merchantUpi}</strong></span>
-                <button
-                  type="button"
-                  onClick={handleCopyUpi}
-                  className="text-sky-600 hover:text-sky-700 font-bold text-[11px] cursor-pointer"
-                >
-                  {copied ? 'Copied ✓' : 'Copy UPI'}
-                </button>
-              </div>
-
-              {!qrExpired && !loadingOrder && (
-                <div className="flex items-center justify-center gap-1.5 text-[11px] text-zinc-500">
-                  <Clock className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Session valid for <span className="font-mono font-bold text-zinc-800">{Math.floor(qrTimeLeft / 60)}:{(qrTimeLeft % 60).toString().padStart(2, '0')}</span></span>
+                  {!qrExpired && !loadingOrder && (
+                    <div className="flex items-center justify-center gap-1.5 text-[11px] text-zinc-500">
+                      <Clock className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Session valid for <span className="font-mono font-bold text-zinc-800">{Math.floor(qrTimeLeft / 60)}:{(qrTimeLeft % 60).toString().padStart(2, '0')}</span></span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* Mobile UPI Direct App Links (If user is browsing on phone) */}
-            <div className="grid grid-cols-3 gap-2">
-              <a
-                href={upiDeepLink}
-                className="p-2.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 border border-black/10 dark:border-white/10 text-center text-xs font-bold text-zinc-900 dark:text-white transition-all flex flex-col items-center gap-1 cursor-pointer"
-              >
-                <Smartphone className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Google Pay</span>
-              </a>
-              <a
-                href={upiDeepLink}
-                className="p-2.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 border border-black/10 dark:border-white/10 text-center text-xs font-bold text-zinc-900 dark:text-white transition-all flex flex-col items-center gap-1 cursor-pointer"
-              >
-                <Smartphone className="w-4 h-4 text-sky-600 dark:text-sky-400" />
-                <span>PhonePe</span>
-              </a>
-              <a
-                href={upiDeepLink}
-                className="p-2.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 border border-black/10 dark:border-white/10 text-center text-xs font-bold text-zinc-900 dark:text-white transition-all flex flex-col items-center gap-1 cursor-pointer"
-              >
-                <Smartphone className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                <span>Paytm / UPI</span>
-              </a>
-            </div>
+                {/* Mobile UPI Direct App Links (If user is browsing on phone) */}
+                <div className="grid grid-cols-3 gap-2">
+                  <a
+                    href={upiDeepLink}
+                    className="p-2.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 border border-black/10 dark:border-white/10 text-center text-xs font-bold text-zinc-900 dark:text-white transition-all flex flex-col items-center gap-1 cursor-pointer"
+                  >
+                    <Smartphone className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Google Pay</span>
+                  </a>
+                  <a
+                    href={upiDeepLink}
+                    className="p-2.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 border border-black/10 dark:border-white/10 text-center text-xs font-bold text-zinc-900 dark:text-white transition-all flex flex-col items-center gap-1 cursor-pointer"
+                  >
+                    <Smartphone className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                    <span>PhonePe</span>
+                  </a>
+                  <a
+                    href={upiDeepLink}
+                    className="p-2.5 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 border border-black/10 dark:border-white/10 text-center text-xs font-bold text-zinc-900 dark:text-white transition-all flex flex-col items-center gap-1 cursor-pointer"
+                  >
+                    <Smartphone className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    <span>Paytm / UPI</span>
+                  </a>
+                </div>
+
+                {/* ── AUTOMATIC WAITING STATUS INDICATOR FOR UPI QR ── */}
+                <div className="p-4 rounded-2xl bg-sky-500/10 dark:bg-sky-500/10 border border-sky-500/30 text-center">
+                  <div className="flex items-center justify-center gap-2.5 text-sky-600 dark:text-sky-400 text-xs font-bold tracking-wide">
+                    <Loader2 className="w-4 h-4 animate-spin text-sky-600 dark:text-sky-400" />
+                    <span>Waiting for payment confirmation...</span>
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Errors */}
             {(orderError || (paymentFailed && failureReason)) && (
@@ -425,14 +510,6 @@ const UpiPaymentModal = ({
                 <span>{orderError || failureReason}</span>
               </div>
             )}
-
-            {/* ── AUTOMATIC WAITING STATUS INDICATOR ── */}
-            <div className="p-4 rounded-2xl bg-sky-500/10 dark:bg-sky-500/10 border border-sky-500/30 text-center">
-              <div className="flex items-center justify-center gap-2.5 text-sky-600 dark:text-sky-400 text-xs font-bold tracking-wide">
-                <Loader2 className="w-4 h-4 animate-spin text-sky-600 dark:text-sky-400" />
-                <span>Waiting for payment confirmation...</span>
-              </div>
-            </div>
 
           </div>
         )}

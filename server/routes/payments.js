@@ -123,6 +123,369 @@ const sendAdminPaymentAlertEmail = async (payment) => {
   }
 };
 
+const escHtml = (str) => {
+  if (typeof str !== 'string') return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
+const sanitizeHeader = (str) => {
+  if (typeof str !== 'string') return '';
+  return str.replace(/[\r\n\t]/g, ' ').trim();
+};
+
+// Server-side Fake UTR pattern detection
+export const detectFakeUtr = (utr, upiApp = '') => {
+  if (!utr || typeof utr !== 'string') return { isFake: true, reason: 'UTR is empty.' };
+  const u = utr.trim();
+
+  // Strict 12-digit numeric check
+  if (!/^\d{12}$/.test(u)) {
+    return { isFake: true, reason: 'UTR must be exactly 12 numeric digits.' };
+  }
+
+  // 1. All same digits
+  if (/^(\d)\1{11}$/.test(u)) {
+    return { isFake: true, reason: 'All 12 digits are identical.' };
+  }
+
+  // 2. Exact sequential / known fake list
+  const seqAsc  = '01234567890123456789012345678901234567890';
+  const seqDesc = '98765432109876543210987654321098765432109';
+  if (seqAsc.includes(u) || seqDesc.includes(u)) {
+    return { isFake: true, reason: 'Sequential or placeholder number pattern.' };
+  }
+
+  // 3. Long ascending or descending run (≥ 7 consecutive digits in order)
+  const digits = u.split('').map(Number);
+  let ascRun = 1, descRun = 1;
+  for (let i = 1; i < digits.length; i++) {
+    ascRun  = digits[i] === digits[i - 1] + 1 ? ascRun + 1 : 1;
+    descRun = digits[i] === digits[i - 1] - 1 ? descRun + 1 : 1;
+    if (ascRun >= 7 || descRun >= 7) {
+      return { isFake: true, reason: 'Long sequential run of digits detected.' };
+    }
+  }
+
+  // 4. Repeating block patterns: 121212121212, 123123123123, 456456456456
+  if (
+    /^(\d{2})\1{5}$/.test(u) ||
+    /^(\d{3})\1{3}$/.test(u) ||
+    /^(\d{4})\1{2}\d{4}$/.test(u) ||
+    /^(\d{6})\1$/.test(u)
+  ) {
+    return { isFake: true, reason: 'Repeating digit sequence pattern.' };
+  }
+
+  // 5. Common dummy / keyboard-mash list
+  const keyboardPatterns = [
+    '123456789987', '123456789876', '987654321012', '987654321123',
+    '123123123123', '121212121212', '112233445566',
+    '111222333444', '000111222333', '999888777666',
+    '123456654321', '112121212121', '100000000000',
+    '999999999999', '111111111112', '000000000001',
+    '123456789000', '000123456789', '111222333000',
+  ];
+  if (keyboardPatterns.includes(u)) {
+    return { isFake: true, reason: 'Commonly used test/dummy number detected.' };
+  }
+
+  // 6. Real Indian bank UTRs cannot start with 0
+  if (digits[0] === 0) {
+    return { isFake: true, reason: 'UTR cannot begin with digit 0.' };
+  }
+
+  // 7. Too many repeated single digits (>= 9 occurrences of same digit)
+  for (let d = 0; d <= 9; d++) {
+    const count = digits.filter(x => x === d).length;
+    if (count >= 9) {
+      return { isFake: true, reason: `Digit "${d}" appears ${count} times; invalid entropy.` };
+    }
+  }
+
+  // 8. Very low entropy check (≤ 2 unique digits)
+  if (new Set(digits).size <= 2) {
+    return { isFake: true, reason: 'Too few unique digits.' };
+  }
+
+  // 9. Mirrored / palindrome-style: first 6 mirror last 6 reversed
+  const reversed = u.split('').reverse().join('');
+  const palindromeOverlap = u.slice(0, 6) === reversed.slice(0, 6) ||
+                            u.slice(6)    === reversed.slice(6);
+  if (palindromeOverlap) {
+    return { isFake: true, reason: 'Mirrored or palindrome-style digit pattern detected.' };
+  }
+
+  return { isFake: false, reason: '' };
+};
+
+const sendAdminPaymentNotification = async (payment) => {
+  const adminEmail = process.env.ADMIN_EMAIL || 'adventureof693@gmail.com';
+  const transporter = createEmailTransporter();
+  const adminPanelUrl = (process.env.ADMIN_PANEL_URL || 'http://localhost:5173').replace(/\/$/, '');
+
+  const emailSubject = `💳 [Payment Submitted] UTR: ${payment.utr} (₹${payment.amount})`;
+  const emailHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0d0d12; color: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #27272a;">
+      <h2 style="color: #38bdf8; text-align: center; margin-top: 0;">💳 Payment Verification Submitted</h2>
+      <hr style="border: 0; border-top: 1px solid #27272a; margin: 16px 0;" />
+      
+      <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #d4d4d8; margin-bottom: 20px;">
+        <tr><td style="padding: 6px 0; font-weight: bold; width: 140px; color: #a1a1aa;">Payment ID:</td><td style="color: #ffffff; font-family: monospace;">${escHtml(payment.paymentId)}</td></tr>
+        <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Payment Type:</td><td style="color: #ffffff; text-transform: uppercase;">${escHtml(payment.paymentType)}</td></tr>
+        <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Release / Plan:</td><td style="color: #ffffff;">${escHtml(payment.releaseTitle || payment.planName || 'Distribution')}</td></tr>
+        <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Amount Paid:</td><td style="color: #4ade80; font-weight: bold; font-size: 16px;">₹${payment.amount}</td></tr>
+        <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">UTR / Trans ID:</td><td style="color: #facc15; font-family: monospace; font-size: 16px; font-weight: bold;">${escHtml(payment.utr)}</td></tr>
+        <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">UPI App:</td><td style="color: #ffffff;">${escHtml(payment.upiApp || 'UPI')}</td></tr>
+        <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Receiver UPI:</td><td style="color: #ffffff;">${escHtml(payment.merchantUpiId || '9691546208-3@ybl')}</td></tr>
+        <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Customer Email:</td><td style="color: #ffffff;"><a href="mailto:${escHtml(payment.userEmail)}" style="color: #38bdf8;">${escHtml(payment.userEmail)}</a></td></tr>
+        <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Submitted At:</td><td style="color: #ffffff;">${new Date().toLocaleString()}</td></tr>
+      </table>
+
+      <div style="text-align: center; margin-top: 24px;">
+        <a href="${adminPanelUrl}/admin" style="display: inline-block; background-color: #38bdf8; color: #000000; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 13px;">Review & Verify in Admin Panel →</a>
+      </div>
+
+      <div style="margin-top: 24px; font-size: 11px; color: #71717a; text-align: center;">
+        Adventure Records Payments Desk • Notification sent to ${adminEmail}
+      </div>
+    </div>
+  `;
+
+  if (transporter) {
+    try {
+      await transporter.sendMail({
+        from: `"Adventure Records Billing" <${process.env.EMAIL_USER}>`,
+        to: adminEmail,
+        subject: emailSubject,
+        html: emailHtml
+      });
+    } catch (e) {
+      console.error('SMTP Error:', e.message);
+    }
+  }
+};
+
+const sendCustomerPaymentResultEmail = async (payment, action, reasonNotes = '') => {
+  const transporter = createEmailTransporter();
+  if (!transporter || !payment.userEmail) return;
+
+  const isVerified = action === 'verified';
+  const targetTitle = payment.releaseTitle || payment.planName || 'Adventure Records';
+  const subject = isVerified 
+    ? `✅ Payment Verified ✓ - ${targetTitle}`
+    : `❌ Payment Verification Status Update - ${targetTitle}`;
+
+  const emailHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0d0d12; color: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #27272a;">
+      <h2 style="color: ${isVerified ? '#4ade80' : '#f87171'}; text-align: center; margin-top: 0;">
+        ${isVerified ? '✅ Payment Verified ✓' : '❌ Payment Verification Status'}
+      </h2>
+      <hr style="border: 0; border-top: 1px solid #27272a; margin: 16px 0;" />
+      
+      <p style="color: #e4e4e7; font-size: 14px; line-height: 1.6;">
+        ${isVerified 
+          ? `Great news! Your payment of <strong>₹${payment.amount}</strong> (UTR: <code style="color: #facc15; font-weight: bold;">${escHtml(payment.utr)}</code>) has been verified by our billing team. Your ${payment.paymentType === 'release' ? 'release upload features' : 'subscription benefits'} are now fully unlocked!`
+          : `Your payment submission of <strong>₹${payment.amount}</strong> (UTR: <code style="color: #facc15; font-weight: bold;">${escHtml(payment.utr)}</code>) could not be verified.`}
+      </p>
+
+      ${!isVerified && reasonNotes ? `
+        <div style="margin-top: 16px; padding: 14px; background-color: #18181b; border-left: 3px solid #f87171; border-radius: 8px;">
+          <p style="margin: 0; font-size: 12px; color: #a1a1aa; text-transform: uppercase; font-weight: bold;">Reason / Instructions:</p>
+          <p style="margin: 6px 0 0 0; font-size: 13px; color: #f4f4f5;">${escHtml(reasonNotes)}</p>
+        </div>
+      ` : ''}
+
+      <div style="margin-top: 24px; font-size: 11px; color: #71717a; text-align: center;">
+        Adventure Records Payment Desk • Sent to ${escHtml(payment.userEmail)}
+      </div>
+    </div>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: `"Adventure Records Billing" <${process.env.EMAIL_USER}>`,
+      to: payment.userEmail,
+      subject,
+      html: emailHtml
+    });
+  } catch (e) {
+    console.error('SMTP customer email error:', e.message);
+  }
+};
+
+// 0. SUBMIT PAYMENT FOR MANUAL UTR VERIFICATION
+router.post('/submit', authenticateToken, async (req, res) => {
+  const {
+    paymentType,
+    targetId,
+    releaseTitle,
+    planName,
+    amount,
+    utr,
+    upiApp,
+    screenshotUrl
+  } = req.body;
+
+  const userId = req.user.id || req.user._id || req.user.uid;
+  const userEmail = req.user.email;
+
+  if (!userId || !userEmail) {
+    return res.status(401).json({ message: 'User identification missing from authentication session.' });
+  }
+
+  const numAmount = Number(amount);
+  if (!numAmount || isNaN(numAmount) || numAmount <= 0) {
+    return res.status(400).json({ message: 'Invalid payment amount.' });
+  }
+
+  if (!utr || typeof utr !== 'string') {
+    return res.status(400).json({ message: '12-digit UTR / UPI Transaction Reference is required.' });
+  }
+  const cleanUtr = utr.trim();
+
+  const fakeCheck = detectFakeUtr(cleanUtr, upiApp);
+  if (fakeCheck.isFake) {
+    return res.status(400).json({
+      message: `Invalid or suspicious UTR: ${fakeCheck.reason}. Submitting false UTRs is a violation of our Terms of Service.`
+    });
+  }
+
+  try {
+    const existingPayment = await db.payments.findOne({ utr: cleanUtr });
+    if (existingPayment) {
+      return res.status(409).json({
+        message: 'This UTR / Transaction Reference has already been submitted or processed. Each payment transaction can only be used once.'
+      });
+    }
+
+    const paymentId = 'pay_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex');
+    const newPaymentRecord = {
+      paymentId,
+      orderId: paymentId,
+      userId,
+      userEmail,
+      paymentType: paymentType === 'subscription' ? 'subscription' : 'release',
+      targetId: targetId ? String(targetId) : null,
+      releaseTitle: sanitizeHeader(releaseTitle || ''),
+      planName: sanitizeHeader(planName || ''),
+      amount: numAmount,
+      currency: 'INR',
+      merchantUpiId: '9691546208-3@ybl',
+      merchantName: 'Adventure Records',
+      utr: cleanUtr,
+      upiApp: sanitizeHeader(upiApp || 'UPI App'),
+      screenshotUrl: screenshotUrl ? String(screenshotUrl) : '',
+      status: 'pending_verification',
+      auditLog: [
+        {
+          action: 'submitted',
+          performedBy: userEmail,
+          timestamp: new Date().toISOString(),
+          ip: req.ip || '',
+          notes: 'Customer submitted UPI payment verification.'
+        }
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const savedPayment = await db.payments.create(newPaymentRecord);
+
+    if (newPaymentRecord.paymentType === 'release' && targetId) {
+      try {
+        await db.releases.findByIdAndUpdate(targetId, {
+          paymentStatus: 'pending_verification',
+          uploadUnlocked: false,
+          updatedAt: new Date().toISOString()
+        });
+      } catch (e) {}
+    }
+
+    await sendAdminPaymentNotification(newPaymentRecord);
+
+    return res.status(201).json({
+      success: true,
+      message: 'Payment verification submitted successfully.',
+      payment: savedPayment
+    });
+  } catch (error) {
+    console.error('Error submitting payment verification:', error);
+    return res.status(500).json({ message: 'Server error processing payment verification.', error: error.message });
+  }
+});
+
+// 0.5 ADMIN VERIFY OR REJECT PAYMENT (Admin Only)
+router.post('/verify-admin', authenticateToken, async (req, res) => {
+  const adminEmail = process.env.ADMIN_EMAIL || 'adventureof693@gmail.com';
+  if (req.user.role !== 'Admin' && req.user.email !== adminEmail) {
+    return res.status(403).json({ message: 'Forbidden. Admin credentials required for payment verification.' });
+  }
+
+  const { paymentId, action, reasonNotes } = req.body;
+  if (!paymentId || !action || !['verified', 'rejected'].includes(action)) {
+    return res.status(400).json({ message: 'paymentId and valid action ("verified" or "rejected") are required.' });
+  }
+
+  try {
+    let payment = await db.payments.findOne({ paymentId }) || await db.payments.findById(paymentId);
+    if (!payment) {
+      payment = await db.payments.findOne({ orderId: paymentId });
+    }
+    if (!payment) {
+      return res.status(404).json({ message: 'Payment record not found.' });
+    }
+
+    const isVerified = action === 'verified';
+    const auditEntry = {
+      action,
+      performedBy: req.user.email,
+      timestamp: new Date().toISOString(),
+      ip: req.ip || '',
+      notes: reasonNotes || (isVerified ? 'Payment manually verified by admin.' : 'Payment rejected by admin.')
+    };
+
+    const currentAudit = Array.isArray(payment.auditLog) ? payment.auditLog : [];
+
+    const updatePayload = {
+      status: action,
+      verifiedAt: new Date().toISOString(),
+      verifiedBy: req.user.email,
+      rejectedReason: isVerified ? null : (reasonNotes || 'UTR could not be matched with bank statement.'),
+      auditLog: [...currentAudit, auditEntry],
+      updatedAt: new Date().toISOString()
+    };
+
+    const updatedPayment = await db.payments.findByIdAndUpdate(payment._id || payment.id, updatePayload);
+
+    if (payment.paymentType === 'release' && payment.targetId) {
+      try {
+        await db.releases.findByIdAndUpdate(payment.targetId, {
+          paymentStatus: isVerified ? 'paid' : 'rejected',
+          uploadUnlocked: isVerified,
+          rejectionReason: isVerified ? null : (reasonNotes || 'Payment rejected.'),
+          updatedAt: new Date().toISOString()
+        });
+      } catch (e) {}
+    }
+
+    await sendCustomerPaymentResultEmail(payment, action, reasonNotes);
+
+    return res.status(200).json({
+      success: true,
+      message: `Payment successfully marked as ${action}.`,
+      payment: updatedPayment
+    });
+  } catch (error) {
+    console.error('Error verifying payment (admin):', error);
+    return res.status(500).json({ message: 'Server error updating payment status.', error: error.message });
+  }
+});
+
 /**
  * 1. CREATE UNIQUE DYNAMIC UPI QR PAYMENT ORDER
  * POST /api/payments/create-order

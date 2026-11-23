@@ -13,6 +13,8 @@ process.env.JWT_SECRET = 'test_jwt_secret_key_for_adventure_records_verification
 process.env.ADMIN_EMAIL = 'adventureof693@gmail.com';
 process.env.ADMIN_PANEL_URL = 'http://localhost:5173/admin';
 process.env.PAYMENT_WEBHOOK_SECRET = 'test_webhook_secret_adventure_12345';
+process.env.RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || 'rzp_test_U3h4eknoTXNrE4';
+process.env.RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || 'J85YCWsLa2lZmrOm4tK9K45i';
 
 console.log('🧪 ========================================================');
 console.log('🧪 ADVENTURE RECORDS — AUTOMATED INTEGRATION TEST SUITE');
@@ -392,6 +394,88 @@ async function runTests() {
       })
     });
     assert(resNotifyArtist.status === 403, 'Regular users cannot forge /api/notify-payment-result (403 Forbidden)');
+  }
+
+  console.log('\n--- SUITE 7: RAZORPAY STANDARD WEB CHECKOUT ---');
+  {
+    const rzpSecret = process.env.RAZORPAY_KEY_SECRET || 'J85YCWsLa2lZmrOm4tK9K45i';
+
+    // 1. Minimum amount rejection (< 100 paise)
+    const resMin = await fetch(`${BASE_URL}/api/create-order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: 50, currency: 'INR' })
+    });
+    assert(resMin.status === 400, 'Rejects create-order below minimum 100 paise (400 Bad Request)');
+
+    // 2. Create Razorpay order (or verify auth error handling 401 as required by spec)
+    const resCreate = await fetch(`${BASE_URL}/api/create-order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: 10000,
+        currency: 'INR',
+        receipt: 'test_rcpt_' + Date.now(),
+        userId: 'test_user_suite',
+        userEmail: 'artist@adventurerecords.com',
+        releaseTitle: 'Suite Song'
+      })
+    });
+    assert(resCreate.status === 200 || resCreate.status === 401, 'Handles create-order (200 OK or 401 Auth Failure handled as specified)');
+    const orderData = await resCreate.json();
+
+    const rzpOrderId = orderData.order_id || 'order_test_' + Date.now();
+    const rzpPaymentId = 'pay_suite_' + Date.now();
+
+    // 3. Verify payment with missing fields
+    const resMissing = await fetch(`${BASE_URL}/api/verify-payment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order_id: rzpOrderId })
+    });
+    assert(resMissing.status === 400, 'Rejects verification when fields are missing (400 Bad Request)');
+
+    // 4. Verify payment with signature mismatch
+    const resBadSig = await fetch(`${BASE_URL}/api/verify-payment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        order_id: rzpOrderId,
+        payment_id: rzpPaymentId,
+        signature: 'invalid_forged_signature'
+      })
+    });
+    assert(resBadSig.status === 400, 'Rejects invalid signature (400 Bad Request, do NOT mark as paid)');
+
+    // 5. Verify payment with authentic HMAC-SHA256 signature
+    const validSignature = crypto
+      .createHmac('sha256', rzpSecret)
+      .update(`${rzpOrderId}|${rzpPaymentId}`)
+      .digest('hex');
+
+    const resGoodSig = await fetch(`${BASE_URL}/api/verify-payment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        razorpay_order_id: rzpOrderId,
+        razorpay_payment_id: rzpPaymentId,
+        razorpay_signature: validSignature,
+        amount: 10000,
+        userId: 'test_user_suite',
+        userEmail: 'artist@adventurerecords.com'
+      })
+    });
+    assert(resGoodSig.status === 200, 'Verifies valid signature successfully (200 OK)');
+    const goodData = await resGoodSig.json();
+    assert(goodData.success === true, 'Response reports success: true');
+
+    // 6. Namespaced endpoints support
+    const resNamespaced = await fetch(`${BASE_URL}/api/razorpay/create-order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: 10000, currency: 'INR' })
+    });
+    assert(resNamespaced.status === 200 || resNamespaced.status === 401, 'Namespaced /api/razorpay/create-order responds correctly (200 or 401)');
   }
 
   console.log('\n========================================================');

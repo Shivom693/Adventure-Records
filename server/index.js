@@ -196,6 +196,7 @@ app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/razorpay', razorpayRoutes);
+app.use('/api', razorpayRoutes);
 
 // Direct OTP Endpoint (High Reliability with Real SMTP Email Dispatch)
 // Requires authentication â€” the OTP is read from the user's record, never from the request body

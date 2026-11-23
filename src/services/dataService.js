@@ -1017,6 +1017,73 @@ export async function pollPaymentOrderStatus(orderId) {
 }
 
 /**
+ * ───────────────────────────────────────────────────────────
+ * RAZORPAY STANDARD WEB CHECKOUT INTEGRATION
+ * ───────────────────────────────────────────────────────────
+ */
+
+/**
+ * Create a Razorpay Order
+ * @param {object} params
+ * @param {number} params.amount - Amount in paise (minimum 100 paise)
+ * @param {string} [params.currency] - Default 'INR'
+ * @param {string} [params.receipt]
+ * @param {string} [params.userId]
+ * @param {string} [params.userEmail]
+ * @param {string} [params.customerName]
+ * @param {string} [params.paymentType]
+ * @param {string} [params.targetId]
+ * @param {string} [params.releaseTitle]
+ */
+export async function createRazorpayOrder(params) {
+  const { amount, currency = 'INR', receipt, userId, userEmail, customerName, paymentType, targetId, releaseTitle } = params;
+
+  const res = await fetch(`${API_URL}/api/create-order`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      amount: Number(amount),
+      currency,
+      receipt,
+      userId,
+      userEmail,
+      customerName,
+      paymentType,
+      targetId,
+      releaseTitle
+    })
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || data.error || 'Failed to create Razorpay order');
+  }
+  return data;
+}
+
+/**
+ * Verify Razorpay Signature Server-Side
+ * @param {object} params
+ * @param {string} params.razorpay_order_id
+ * @param {string} params.razorpay_payment_id
+ * @param {string} params.razorpay_signature
+ * @param {number} [params.amount]
+ */
+export async function verifyRazorpayPayment(params) {
+  const res = await fetch(`${API_URL}/api/verify-payment`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params)
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || data.error || 'Payment signature verification failed');
+  }
+  return data;
+}
+
+/**
  * Backwards Compatibility Wrappers for Legacy Calls
  */
 export async function submitUpiPaymentVerification(paymentData) {
