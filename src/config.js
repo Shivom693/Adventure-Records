@@ -24,7 +24,7 @@ const getApiUrl = () => {
     return envUrl;
   }
 
-  return 'https://adventure-music-backend.onrender.com';
+  return 'https://adventure-records-backend.vercel.app';
 };
 
 export const API_URL = getApiUrl();
