@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { db } from '../db/dbFallback.js';
+import { db, getWritableDir } from '../db/dbFallback.js';
 import { authenticateToken } from './auth.js';
 import {
   escHtml,
@@ -21,10 +21,7 @@ const __dirname = path.dirname(__filename);
 const router = express.Router();
 
 // Secure Uploads Directory (Restricted, not exposed via public static express middleware)
-const SECURE_UPLOADS_DIR = path.join(__dirname, '..', 'secure_uploads', 'tickets');
-if (!fs.existsSync(SECURE_UPLOADS_DIR)) {
-  fs.mkdirSync(SECURE_UPLOADS_DIR, { recursive: true });
-}
+const SECURE_UPLOADS_DIR = getWritableDir('secure_uploads', 'tickets');
 
 // Allowed MIME types and extensions
 const ALLOWED_MIME_TYPES = new Set([

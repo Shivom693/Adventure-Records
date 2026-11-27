@@ -1,4 +1,5 @@
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import mongoose from 'mongoose';
@@ -10,15 +11,27 @@ import '../models/Payment.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
+/** Resolve a writable directory (uses /tmp on serverless platforms like Vercel). */
+export const getWritableDir = (...segments) => {
+  const dir = process.env.VERCEL
+    ? path.join(os.tmpdir(), 'adventure-records', ...segments)
+    : path.join(__dirname, '..', ...segments);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  return dir;
+};
+
+const DATA_DIR = getWritableDir('data');
 
 // Check if MongoDB is connected
 let isMongoConnected = false;
 
 export const connectDB = async () => {
+  if (mongoose.connection.readyState === 1) {
+    isMongoConnected = true;
+    return true;
+  }
   const mongoUri = process.env.MONGODB_URI;
   if (!mongoUri) {
     console.log('⚠️  No MONGODB_URI found in env variables. Running in Local JSON File Database mode.');

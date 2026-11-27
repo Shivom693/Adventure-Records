@@ -3,7 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { db } from '../db/dbFallback.js';
+import { db, getWritableDir } from '../db/dbFallback.js';
 import { authenticateToken } from './auth.js';
 
 const router = express.Router();
@@ -11,10 +11,7 @@ const router = express.Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-}
+const UPLOADS_DIR = getWritableDir('uploads');
 
 // Multer storage config
 // Allowed file extensions whitelist

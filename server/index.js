@@ -3,7 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
-import { connectDB } from './db/dbFallback.js';
+import { connectDB, getWritableDir } from './db/dbFallback.js';
 import authRoutes, { authenticateToken } from './routes/auth.js';
 import musicRoutes from './routes/music.js';
 import analyticsRoutes from './routes/analytics.js';
@@ -198,8 +198,21 @@ const authRateLimiter = (req, res, next) => {
 
 app.use(['/api/auth/login', '/api/auth/admin-login', '/api/auth/signup', '/api/send-otp', '/api/auth/forgot-password', '/api/auth/reset-password', '/api/payments/submit', '/api/notify-payment-submitted'], authRateLimiter);
 
+// Ensure DB is initialized on first request (essential for serverless platforms like Vercel)
+let dbInitPromise = null;
+const ensureDb = () => {
+  if (!dbInitPromise) {
+    dbInitPromise = connectDB();
+  }
+  return dbInitPromise;
+};
+app.use(async (_req, _res, next) => {
+  await ensureDb();
+  next();
+});
+
 // Serve static uploaded files
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+app.use('/uploads', express.static(getWritableDir('uploads'), {
   maxAge: '1d',
   etag: true
 }));
@@ -506,9 +519,9 @@ app.get('/api/health', (req, res) => {
 
 // Connect Database & Start Server with High-Scale Socket Settings
 const startServer = async () => {
-  await connectDB();
+  await ensureDb();
   const server = app.listen(PORT, () => {
-    console.log(`ðŸš€ Adventure Records High-Scale Server running on port ${PORT}`);
+    console.log(`🚀 Adventure Records High-Scale Server running on port ${PORT}`);
   });
 
   // Keep-alive timeouts for zero-downtime high-traffic handling
@@ -516,7 +529,11 @@ const startServer = async () => {
   server.headersTimeout = 66000;
 };
 
-startServer().catch(err => {
-  console.error('Failed to start server:', err);
-});
+if (!process.env.VERCEL) {
+  startServer().catch(err => {
+    console.error('Failed to start server:', err);
+  });
+}
+
+export default app;
 
