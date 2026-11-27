@@ -181,7 +181,9 @@ router.post('/verify-payment', async (req, res) => {
       .digest('hex');
 
     // Signature mismatch: return 400, do NOT mark as paid
-    if (expectedSignature !== resolvedSignature) {
+    const expectedBuf = Buffer.from(expectedSignature, 'utf8');
+    const receivedBuf = Buffer.from(String(resolvedSignature), 'utf8');
+    if (expectedBuf.length !== receivedBuf.length || !crypto.timingSafeEqual(expectedBuf, receivedBuf)) {
       console.warn(`❌ [RAZORPAY SIGNATURE MISMATCH] order=${resolvedOrderId}, payment=${resolvedPaymentId}`);
       return res.status(400).json({
         success: false,

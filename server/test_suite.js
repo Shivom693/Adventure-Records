@@ -1,11 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const TEST_PORT = 5099;
 process.env.PORT = String(TEST_PORT);
@@ -13,8 +15,8 @@ process.env.JWT_SECRET = 'test_jwt_secret_key_for_adventure_records_verification
 process.env.ADMIN_EMAIL = 'adventureof693@gmail.com';
 process.env.ADMIN_PANEL_URL = 'http://localhost:5173/admin';
 process.env.PAYMENT_WEBHOOK_SECRET = 'test_webhook_secret_adventure_12345';
-process.env.RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || 'rzp_test_U3h4eknoTXNrE4';
-process.env.RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || 'J85YCWsLa2lZmrOm4tK9K45i';
+process.env.RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || 'rzp_test_ci_placeholder';
+process.env.RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || 'test_razorpay_secret_placeholder';
 process.env.SMTP_DRY_RUN = 'true';
 
 console.log('🧪 ========================================================');
@@ -399,7 +401,7 @@ async function runTests() {
 
   console.log('\n--- SUITE 7: RAZORPAY STANDARD WEB CHECKOUT ---');
   {
-    const rzpSecret = process.env.RAZORPAY_KEY_SECRET || 'J85YCWsLa2lZmrOm4tK9K45i';
+    const rzpSecret = process.env.RAZORPAY_KEY_SECRET;
 
     // 1. Minimum amount rejection (< 100 paise)
     const resMin = await fetch(`${BASE_URL}/api/create-order`, {
