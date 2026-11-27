@@ -300,7 +300,7 @@ const UploadRelease = () => {
             Create New Release
           </h1>
           <p className="text-zinc-400 text-sm">
-            Select release format, pay securely via Razorpay (Cards, UPI, NetBanking) or merchant UPI QR (<span className="text-[#DEDCFF] font-mono">9691546208-3@ybl</span>), and unlock uploads instantly.
+            Select release format, pay securely via Razorpay (Cards, UPI, NetBanking, Wallets), and unlock uploads instantly.
           </p>
         </div>
 
@@ -314,7 +314,7 @@ const UploadRelease = () => {
                   <span>Audio & Artwork Upload Locked (₹{currentPrice} Payment Verification Required)</span>
                 </div>
                 <p className="text-xs text-zinc-300">
-                  Pay <strong className="text-white">₹{currentPrice}</strong> for {formData.releaseType} release via Razorpay or UPI QR. Uploads unlock instantly upon payment confirmation.
+                  Pay <strong className="text-white">₹{currentPrice}</strong> for {formData.releaseType} release via Razorpay. Uploads unlock instantly upon payment confirmation.
                 </p>
               </div>
 
@@ -324,7 +324,7 @@ const UploadRelease = () => {
                 className="btn-primary px-6 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-500/20 shrink-0 cursor-pointer"
               >
                 <Zap className="w-4 h-4" />
-                <span>Pay ₹{currentPrice} (Razorpay / UPI)</span>
+                <span>Pay ₹{currentPrice} with Razorpay</span>
               </button>
             </div>
           </div>
@@ -710,7 +710,7 @@ const UploadRelease = () => {
 
       </div>
 
-      {/* Official Merchant UPI Payment Modal */}
+      {/* Razorpay Payment Modal */}
       <UpiPaymentModal
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
