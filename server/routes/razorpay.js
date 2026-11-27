@@ -2,6 +2,7 @@ import express from 'express';
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import { syncPaymentSuccess, syncOrderCreated } from '../services/firebaseSync.js';
+import { escHtml, getAdminEmail, sendEmail } from '../services/emailService.js';
 
 const router = express.Router();
 
@@ -215,6 +216,43 @@ router.post('/verify-payment', async (req, res) => {
     } catch (syncErr) {
       console.warn('⚠️ [RAZORPAY SYNC NOTICE]:', syncErr.message);
     }
+
+    // Send verified billing notifications (non-blocking)
+    const displayAmount = rupees ?? 0;
+    if (userEmail && userEmail !== 'customer@adventurerecords.com') {
+      sendEmail({
+        to: userEmail,
+        fromName: 'Adventure Records Billing',
+        subject: `✅ Payment Verified — Adventure Records [${resolvedOrderId}]`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0d0d12; color: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #27272a;">
+            <h2 style="color: #4ade80; text-align: center; margin-top: 0;">Payment Successful ✓</h2>
+            <p style="color: #e4e4e7; font-size: 14px; line-height: 1.6;">
+              Your Razorpay payment${displayAmount ? ` of <strong>₹${displayAmount}</strong>` : ''} has been verified (${escHtml(resolvedPaymentId)}). Your release upload access is now unlocked.
+            </p>
+            <p style="color: #a1a1aa; font-size: 12px;">Order ID: ${escHtml(resolvedOrderId)}</p>
+          </div>
+        `
+      }).catch(() => {});
+    }
+
+    sendEmail({
+      to: getAdminEmail(),
+      fromName: 'Adventure Records Billing',
+      subject: `⚡ [Razorpay Verified] ₹${displayAmount} (${resolvedOrderId})`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0d0d12; color: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #27272a;">
+          <h2 style="color: #38bdf8; margin-top: 0;">⚡ Razorpay Payment Verified</h2>
+          <p style="color: #d4d4d8; font-size: 13px;">
+            Customer: ${escHtml(customerName || 'Artist')} (${escHtml(userEmail || 'N/A')})<br/>
+            Order ID: ${escHtml(resolvedOrderId)}<br/>
+            Payment ID: ${escHtml(resolvedPaymentId)}<br/>
+            Amount: ₹${displayAmount}<br/>
+            Target: ${escHtml(releaseTitle || targetId || paymentType)}
+          </p>
+        </div>
+      `
+    }).catch(() => {});
 
     return res.status(200).json({
       success: true,

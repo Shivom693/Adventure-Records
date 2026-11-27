@@ -19,7 +19,7 @@ const Contact = () => {
 
   const [files, setFiles] = useState([]);
   const [fileError, setFileError] = useState('');
-  const [status, setStatus] = useState({ submitted: false, error: null, ticketId: null });
+  const [status, setStatus] = useState({ submitted: false, error: null, ticketId: null, emailDelivery: null });
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -102,7 +102,8 @@ const Contact = () => {
       setStatus({
         submitted: true,
         error: null,
-        ticketId: result.ticketId || result.ticket?.ticketId || 'AR-TICK-' + Date.now().toString(36).toUpperCase()
+        ticketId: result.ticketId || result.ticket?.ticketId || 'AR-TICK-' + Date.now().toString(36).toUpperCase(),
+        emailDelivery: result.emailDelivery || result.ticket?.emailDelivery || { adminSent: false, customerSent: false }
       });
       setFormData({
         name: '',
@@ -118,7 +119,8 @@ const Contact = () => {
       setStatus({
         submitted: false,
         error: result.error || 'Unable to submit your support ticket. Please check your connection and retry.',
-        ticketId: null
+        ticketId: null,
+        emailDelivery: null
       });
     }
   };

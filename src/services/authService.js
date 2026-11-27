@@ -1,3 +1,5 @@
+import { API_URL } from '../config';
+
 /**
  * Adventure Records — Secure Authentication Service
  * OTP generation and verification handled exclusively server-side.
@@ -13,7 +15,7 @@ export const maskEmail = (email) => {
   return `${name[0]}***${name[name.length - 1]}@${domain}`;
 };
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = API_URL;
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token') || '';
@@ -33,7 +35,7 @@ export const sendOtpToEmail = async (email, userDetails = {}) => {
   try {
     const response = await fetch(`${API_BASE_URL}/api/send-otp`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders(),
       body: JSON.stringify({
         email: targetEmail,
         subject: "Your Adventure Records verification code"

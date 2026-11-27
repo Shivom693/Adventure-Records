@@ -2,7 +2,6 @@
 import cors from 'cors';
 import path from 'path';
 import dotenv from 'dotenv';
-import nodemailer from 'nodemailer';
 import { fileURLToPath } from 'url';
 import { connectDB } from './db/dbFallback.js';
 import authRoutes, { authenticateToken } from './routes/auth.js';
@@ -12,6 +11,13 @@ import chatbotRoutes from './routes/chatbot.js';
 import ticketRoutes from './routes/tickets.js';
 import paymentRoutes from './routes/payments.js';
 import razorpayRoutes from './routes/razorpay.js';
+import {
+  escHtml,
+  getAdminEmail,
+  getAdminPanelUrl,
+  sanitizeHeaderField,
+  sendEmail
+} from './services/emailService.js';
 
 dotenv.config();
 

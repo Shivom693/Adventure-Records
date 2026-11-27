@@ -15,6 +15,7 @@ process.env.ADMIN_PANEL_URL = 'http://localhost:5173/admin';
 process.env.PAYMENT_WEBHOOK_SECRET = 'test_webhook_secret_adventure_12345';
 process.env.RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || 'rzp_test_U3h4eknoTXNrE4';
 process.env.RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || 'J85YCWsLa2lZmrOm4tK9K45i';
+process.env.SMTP_DRY_RUN = 'true';
 
 console.log('🧪 ========================================================');
 console.log('🧪 ADVENTURE RECORDS — AUTOMATED INTEGRATION TEST SUITE');

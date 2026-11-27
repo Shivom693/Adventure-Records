@@ -534,7 +534,23 @@ export async function submitSupportTicket(ticketData) {
       method: 'POST',
       body: formData
     });
-    backendResult = await res.json();
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      backendResult = await res.json();
+    } else {
+      backendResult = {
+        success: false,
+        message: 'Email dispatch service unreachable right now.',
+        emailDelivery: { adminSent: false, customerSent: false, customerError: 'Email server unavailable' }
+      };
+    }
+
+    if (res.status === 400 && backendResult?.message) {
+      return {
+        success: false,
+        error: backendResult.message
+      };
+    }
   } catch (err) {
     console.log('Backend notification email endpoint unreachable, ticket stored securely in Firestore.');
   }
@@ -542,10 +558,11 @@ export async function submitSupportTicket(ticketData) {
   return {
     success: true,
     ticketId: backendResult?.ticketId || ticketId,
+    emailDelivery: backendResult?.emailDelivery || { adminSent: false, customerSent: false, customerError: 'Email server unavailable' },
     ticket: {
       id: savedId || backendResult?.ticket?.id || ticketId,
       ...realTicket,
-      emailDelivery: backendResult?.emailDelivery || { adminSent: false, customerSent: false }
+      emailDelivery: backendResult?.emailDelivery || { adminSent: false, customerSent: false, customerError: 'Email server unavailable' }
     }
   };
 }

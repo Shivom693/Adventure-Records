@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { db } from '../db/dbFallback.js';
+import { escHtml, sendEmail } from '../services/emailService.js';
 
 const router = express.Router();
 
@@ -129,10 +130,25 @@ router.post('/signup', async (req, res) => {
       ...defaultStats
     });
 
-    // Log OTP status only in development mode, never reveal the code in production
     if (IS_DEV) {
       console.log(`📬 [OTP DISPATCH] Verification OTP generated for ${email}`);
     }
+
+    sendEmail({
+      to: newUser.email,
+      fromName: 'Adventure Records',
+      subject: 'Your Adventure Records Verification Code',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; background-color: #0d0d12; color: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #27272a;">
+          <h2 style="color: #ffffff; text-align: center;">Adventure Records</h2>
+          <p style="color: #a1a1aa; font-size: 14px; text-align: center;">Email Verification Code</p>
+          <div style="background-color: #18181b; border: 1px solid #3f3f46; border-radius: 10px; padding: 20px; text-align: center; margin: 20px 0;">
+            <span style="font-family: monospace; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #ffffff;">${escHtml(generatedOtp)}</span>
+          </div>
+          <p style="color: #a1a1aa; font-size: 12px; text-align: center;">Enter this code to activate your Adventure Records account.</p>
+        </div>
+      `
+    }).catch(() => {});
 
     res.status(200).json({
       message: 'Signup details accepted. Verification OTP code has been dispatched.',
@@ -496,6 +512,21 @@ router.post('/forgot-password', async (req, res) => {
       if (IS_DEV) {
         console.log(`📬 [RESET PASSWORD OTP] Code generated for ${email}`);
       }
+
+      sendEmail({
+        to: user.email,
+        fromName: 'Adventure Records Security',
+        subject: 'Adventure Records Password Reset Code',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; background-color: #0d0d12; color: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #27272a;">
+            <h2 style="color: #ffffff; text-align: center;">Password Reset Code</h2>
+            <div style="background-color: #18181b; border: 1px solid #3f3f46; border-radius: 10px; padding: 20px; text-align: center; margin: 20px 0;">
+              <span style="font-family: monospace; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #ffffff;">${escHtml(generatedOtp)}</span>
+            </div>
+            <p style="color: #a1a1aa; font-size: 12px; text-align: center;">This code expires in 15 minutes.</p>
+          </div>
+        `
+      }).catch(() => {});
     }
 
     res.status(200).json({

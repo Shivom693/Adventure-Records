@@ -1,5 +1,4 @@
 import express from 'express';
-import nodemailer from 'nodemailer';
 import multer from 'multer';
 import crypto from 'crypto';
 import fs from 'fs';
@@ -7,6 +6,14 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { db } from '../db/dbFallback.js';
 import { authenticateToken } from './auth.js';
+import {
+  escHtml,
+  sanitizeHeaderField,
+  validateDeliverableEmail,
+  getAdminEmail,
+  getAdminPanelUrl,
+  sendEmail
+} from '../services/emailService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -86,17 +93,6 @@ const upload = multer({
   }
 });
 
-// HTML escape helper — prevents email and XSS injection from user-supplied content
-const escHtml = (str) => String(str || '')
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&#x27;');
-
-// Strip control characters & newlines to prevent SMTP Header Injection
-const sanitizeHeaderField = (str) => String(str || '').replace(/[\r\n\t]/g, ' ').trim();
-
 // Strict Ticket Submission Rate Limiter (Max 5 submissions per 15 minutes per IP)
 const ticketRateLimitMap = new Map();
 const TICKET_RATE_LIMIT_WINDOW = 15 * 60 * 1000;
@@ -132,34 +128,15 @@ const ticketRateLimiter = (req, res, next) => {
   next();
 };
 
-// Configure Transporter securely from Environment Variables
-const createEmailTransporter = () => {
-  const emailUser = process.env.EMAIL_USER;
-  const emailPass = process.env.EMAIL_PASS;
-
-  if (emailUser && emailPass) {
-    return nodemailer.createTransport({
-      service: process.env.EMAIL_SERVICE || 'gmail',
-      auth: {
-        user: emailUser,
-        pass: emailPass
-      }
-    });
-  }
-  return null;
-};
-
 // Helper: Send email notification to platform admin
 const sendAdminNotificationEmail = async (ticketData, attachments = []) => {
-  const adminEmail = process.env.ADMIN_EMAIL || 'adventureof693@gmail.com';
-  const transporter = createEmailTransporter();
-  const adminPanelUrl = (process.env.ADMIN_PANEL_URL || 'http://localhost:5173').replace(/\/$/, '');
+  const adminEmail = getAdminEmail();
+  const adminPanelUrl = getAdminPanelUrl();
 
   const ticketId = ticketData.ticketId || ticketData.id || ticketData._id;
   const sanitizedSubject = sanitizeHeaderField(ticketData.subject || 'Support Inquiry');
   const emailSubject = `[Support Ticket ${ticketId}] ${sanitizedSubject} - ${ticketData.category || 'General Support'}`;
 
-  // Build attachments list HTML with secure access link
   let attachmentsHtml = '';
   if (attachments && attachments.length > 0) {
     attachmentsHtml = `
@@ -205,54 +182,47 @@ const sendAdminNotificationEmail = async (ticketData, attachments = []) => {
       </div>
 
       <div style="margin-top: 24px; font-size: 11px; color: #71717a; text-align: center;">
-        Adventure Records Support System • Sent automatically to ${adminEmail}
+        Adventure Records Support System • Sent automatically to ${escHtml(adminEmail)}
       </div>
     </div>
   `;
 
-  if (transporter) {
-    try {
-      // Build Nodemailer attachments (inline file delivery if total size is reasonable)
-      const mailAttachments = [];
-      let totalAttachmentSize = 0;
-      for (const att of attachments) {
-        if (att.storagePath && fs.existsSync(att.storagePath)) {
-          totalAttachmentSize += att.size;
-          if (totalAttachmentSize <= 10 * 1024 * 1024) {
-            mailAttachments.push({
-              filename: att.originalName,
-              path: att.storagePath
-            });
-          }
-        }
+  const mailAttachments = [];
+  let totalAttachmentSize = 0;
+  for (const att of attachments) {
+    if (att.storagePath && fs.existsSync(att.storagePath)) {
+      totalAttachmentSize += att.size;
+      if (totalAttachmentSize <= 10 * 1024 * 1024) {
+        mailAttachments.push({
+          filename: att.originalName,
+          path: att.storagePath
+        });
       }
-
-      await transporter.sendMail({
-        from: `"Adventure Records Support" <${process.env.EMAIL_USER}>`,
-        to: adminEmail,
-        subject: emailSubject,
-        html: emailHtml,
-        attachments: mailAttachments
-      });
-      console.log(`✉️ [ADMIN SUPPORT NOTIFICATION] Dispatched to ${adminEmail} for Ticket ${ticketId}`);
-      return { success: true };
-    } catch (err) {
-      console.error(`⚠️ [ADMIN EMAIL ERROR] Failed to send to ${adminEmail}:`, err.message);
-      return { success: false, error: err.message };
     }
-  } else {
-    console.log(`📌 [SUPPORT TICKET LOGGED TO ADMIN ${adminEmail}] Ticket ID: ${ticketId}`);
-    return { success: true, loggedLocally: true };
   }
+
+  const res = await sendEmail({
+    to: adminEmail,
+    subject: emailSubject,
+    html: emailHtml,
+    fromName: 'Adventure Records Support',
+    replyTo: ticketData.email,
+    attachments: mailAttachments
+  });
+
+  if (res.success) {
+    console.log(`✉️ [ADMIN SUPPORT NOTIFICATION] Dispatched to ${adminEmail} for Ticket ${ticketId}`);
+  } else {
+    console.error(`⚠️ [ADMIN EMAIL ERROR] Failed to send to ${adminEmail}:`, res.error);
+  }
+  return res;
 };
 
 // Helper: Send confirmation email to customer
 const sendCustomerConfirmationEmail = async (ticketData, attachmentsCount = 0) => {
-  const transporter = createEmailTransporter();
-  if (!transporter || !ticketData.email) return { success: false, error: 'Transporter or recipient email unavailable' };
+  if (!ticketData.email) return { success: false, error: 'Recipient email unavailable' };
 
   const ticketId = ticketData.ticketId || ticketData.id || ticketData._id;
-  const sanitizedSubject = sanitizeHeaderField(ticketData.subject || 'Support Inquiry');
   const emailSubject = `Adventure Records: Support Ticket Received [${ticketId}]`;
 
   const emailHtml = `
@@ -293,19 +263,19 @@ const sendCustomerConfirmationEmail = async (ticketData, attachmentsCount = 0) =
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"Adventure Records Support" <${process.env.EMAIL_USER}>`,
-      to: ticketData.email,
-      subject: emailSubject,
-      html: emailHtml
-    });
+  const res = await sendEmail({
+    to: ticketData.email,
+    subject: emailSubject,
+    html: emailHtml,
+    fromName: 'Adventure Records Support'
+  });
+
+  if (res.success) {
     console.log(`✉️ [CUSTOMER CONFIRMATION] Dispatched to ${ticketData.email} for Ticket ${ticketId}`);
-    return { success: true };
-  } catch (err) {
-    console.error(`⚠️ [CUSTOMER EMAIL ERROR] Failed to send to ${ticketData.email}:`, err.message);
-    return { success: false, error: err.message };
+  } else {
+    console.error(`⚠️ [CUSTOMER EMAIL ERROR] Failed to send to ${ticketData.email}:`, res.error);
   }
+  return res;
 };
 
 // 1. SUBMIT SUPPORT TICKET (Public & Authenticated, Supports file attachments)
@@ -348,11 +318,11 @@ router.post('/', ticketRateLimiter, (req, res) => {
       return res.status(400).json({ message: 'Please provide a valid Full Name (2 to 100 characters).' });
     }
 
-    const cleanEmail = sanitizeHeaderField(email);
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!cleanEmail || !emailRegex.test(cleanEmail) || cleanEmail.length > 100) {
-      return res.status(400).json({ message: 'Please provide a valid email address.' });
+    const emailCheck = await validateDeliverableEmail(email);
+    if (!emailCheck.valid) {
+      return res.status(400).json({ message: emailCheck.reason || 'Please provide a valid deliverable email address.' });
     }
+    const cleanEmail = emailCheck.email;
 
     const cleanSubject = sanitizeHeaderField(subject);
     if (!cleanSubject || cleanSubject.length < 2 || cleanSubject.length > 200) {
@@ -365,6 +335,7 @@ router.post('/', ticketRateLimiter, (req, res) => {
 
     // Category whitelist validation
     const allowedCategories = [
+      'General Support',
       'General Contact',
       'General Inquiry',
       'Billing & Pricing',
@@ -455,7 +426,9 @@ router.post('/', ticketRateLimiter, (req, res) => {
 
       return res.status(201).json({
         success: true,
-        message: 'Support ticket submitted successfully! A confirmation has been sent to your email.',
+        message: emailStatusUpdate.customerSent
+          ? 'Support ticket submitted successfully! A confirmation email has been sent to your inbox.'
+          : 'Support ticket saved successfully, but email delivery failed or is unavailable right now.',
         ticketId,
         ticket: updatedTicket || savedTicket,
         emailDelivery: emailStatusUpdate

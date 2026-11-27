@@ -1,6 +1,5 @@
 import express from 'express';
 import crypto from 'crypto';
-import nodemailer from 'nodemailer';
 import { db } from '../db/dbFallback.js';
 import { authenticateToken } from './auth.js';
 import { 
@@ -12,6 +11,13 @@ import {
   verifyCashfreeWebhookSignature 
 } from '../services/cashfree.js';
 import { syncPaymentSuccess, syncOrderCreated } from '../services/firebaseSync.js';
+import {
+  escHtml,
+  sanitizeHeaderField,
+  getAdminEmail,
+  getAdminPanelUrl,
+  sendEmail
+} from '../services/emailService.js';
 
 const router = express.Router();
 
@@ -22,23 +28,9 @@ export const isEmailFlaggedFraud = (email) => {
   return FLAGGED_FRAUD_EMAILS.includes(email.toLowerCase().trim());
 };
 
-// Transporter helper for automated transactional billing emails
-const createEmailTransporter = () => {
-  const emailUser = process.env.EMAIL_USER;
-  const emailPass = process.env.EMAIL_PASS;
-  if (emailUser && emailPass) {
-    return nodemailer.createTransport({
-      service: process.env.EMAIL_SERVICE || 'gmail',
-      auth: { user: emailUser, pass: emailPass }
-    });
-  }
-  return null;
-};
-
 // Dispatch Automated Customer Payment Confirmation Email
 const sendCustomerPaymentSuccessEmail = async (payment) => {
-  const transporter = createEmailTransporter();
-  if (!transporter || !payment.userEmail) return;
+  if (!payment.userEmail) return;
 
   const emailSubject = `✅ Payment Confirmed — Adventure Records [${payment.orderId}]`;
   const emailHtml = `
@@ -54,12 +46,12 @@ const sendCustomerPaymentSuccessEmail = async (payment) => {
         </p>
       </div>
       <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px;">
-        <tr><td style="padding: 8px 0; color: #8b949e; border-bottom: 1px solid #21262d;">Order ID:</td><td style="padding: 8px 0; color: #f0f6fc; font-family: monospace; font-weight: bold; text-align: right; border-bottom: 1px solid #21262d;">${payment.orderId}</td></tr>
-        <tr><td style="padding: 8px 0; color: #8b949e; border-bottom: 1px solid #21262d;">Gateway Payment ID:</td><td style="padding: 8px 0; color: #38bdf8; font-family: monospace; text-align: right; border-bottom: 1px solid #21262d;">${payment.gatewayPaymentId || 'UPI_QR'}</td></tr>
-        ${payment.bankReference ? `<tr><td style="padding: 8px 0; color: #8b949e; border-bottom: 1px solid #21262d;">Bank Reference / UTR:</td><td style="padding: 8px 0; color: #facc15; font-family: monospace; text-align: right; border-bottom: 1px solid #21262d;">${payment.bankReference}</td></tr>` : ''}
-        <tr><td style="padding: 8px 0; color: #8b949e; border-bottom: 1px solid #21262d;">Plan / Title:</td><td style="padding: 8px 0; color: #f0f6fc; text-align: right; border-bottom: 1px solid #21262d;">${payment.releaseTitle || payment.planName || 'Music Distribution'}</td></tr>
+        <tr><td style="padding: 8px 0; color: #8b949e; border-bottom: 1px solid #21262d;">Order ID:</td><td style="padding: 8px 0; color: #f0f6fc; font-family: monospace; font-weight: bold; text-align: right; border-bottom: 1px solid #21262d;">${escHtml(payment.orderId)}</td></tr>
+        <tr><td style="padding: 8px 0; color: #8b949e; border-bottom: 1px solid #21262d;">Gateway Payment ID:</td><td style="padding: 8px 0; color: #38bdf8; font-family: monospace; text-align: right; border-bottom: 1px solid #21262d;">${escHtml(payment.gatewayPaymentId || 'UPI_QR')}</td></tr>
+        ${payment.bankReference ? `<tr><td style="padding: 8px 0; color: #8b949e; border-bottom: 1px solid #21262d;">Bank Reference / UTR:</td><td style="padding: 8px 0; color: #facc15; font-family: monospace; text-align: right; border-bottom: 1px solid #21262d;">${escHtml(payment.bankReference)}</td></tr>` : ''}
+        <tr><td style="padding: 8px 0; color: #8b949e; border-bottom: 1px solid #21262d;">Plan / Title:</td><td style="padding: 8px 0; color: #f0f6fc; text-align: right; border-bottom: 1px solid #21262d;">${escHtml(payment.releaseTitle || payment.planName || 'Music Distribution')}</td></tr>
         <tr><td style="padding: 8px 0; color: #8b949e; border-bottom: 1px solid #21262d;">Amount:</td><td style="padding: 8px 0; color: #3fb950; font-weight: bold; text-align: right; border-bottom: 1px solid #21262d;">₹${payment.amount}</td></tr>
-        <tr><td style="padding: 8px 0; color: #8b949e; border-bottom: 1px solid #21262d;">Method:</td><td style="padding: 8px 0; color: #f0f6fc; text-align: right; border-bottom: 1px solid #21262d;">${payment.paymentMethod || 'Dynamic UPI QR'}</td></tr>
+        <tr><td style="padding: 8px 0; color: #8b949e; border-bottom: 1px solid #21262d;">Method:</td><td style="padding: 8px 0; color: #f0f6fc; text-align: right; border-bottom: 1px solid #21262d;">${escHtml(payment.paymentMethod || 'Dynamic UPI QR')}</td></tr>
         <tr><td style="padding: 8px 0; color: #8b949e;">Status:</td><td style="padding: 8px 0; color: #3fb950; font-weight: bold; text-align: right;">SUCCESS (UNLOCKED)</td></tr>
       </table>
       <div style="text-align: center; margin: 24px 0;">
@@ -73,70 +65,54 @@ const sendCustomerPaymentSuccessEmail = async (payment) => {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"Adventure Records Billing" <${process.env.EMAIL_USER}>`,
-      to: payment.userEmail,
-      subject: emailSubject,
-      html: emailHtml
-    });
+  const res = await sendEmail({
+    to: payment.userEmail,
+    subject: emailSubject,
+    html: emailHtml,
+    fromName: 'Adventure Records Billing'
+  });
+  if (res.success) {
     console.log(`✅ [PAYMENT CONFIRMATION SENT] to ${payment.userEmail}`);
-  } catch (err) {
-    console.error('❌ [CUSTOMER EMAIL ERROR]:', err.message);
+  } else {
+    console.error('❌ [CUSTOMER EMAIL ERROR]:', res.error);
   }
 };
 
 // Dispatch Admin Audit Alert Email
 const sendAdminPaymentAlertEmail = async (payment) => {
-  const adminEmail = process.env.ADMIN_EMAIL || 'adventureof693@gmail.com';
-  const transporter = createEmailTransporter();
-  if (!transporter) return;
-
+  const adminEmail = getAdminEmail();
   const emailSubject = `⚡ [Automatic UPI QR Verified] ₹${payment.amount} (${payment.orderId})`;
   const emailHtml = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #07070a; color: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #1f1f2e;">
       <h2 style="color: #38bdf8; margin-top: 0;">⚡ Payment Automatically Verified</h2>
       <p style="color: #94a3b8; font-size: 13px;">No manual approval needed. Automatic UPI gateway verified this transaction cryptographically.</p>
       <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin: 16px 0;">
-        <tr><td style="padding: 6px 0; color: #8b949e;">Customer:</td><td style="color: #f0f6fc; font-weight: bold;">${payment.customerName || 'Artist'} (${payment.userEmail})</td></tr>
-        <tr><td style="padding: 6px 0; color: #8b949e;">Order ID:</td><td style="color: #f0f6fc; font-family: monospace;">${payment.orderId}</td></tr>
-        <tr><td style="padding: 6px 0; color: #8b949e;">Gateway Tx ID:</td><td style="color: #38bdf8; font-family: monospace;">${payment.gatewayPaymentId || 'N/A'}</td></tr>
-        ${payment.bankReference ? `<tr><td style="padding: 6px 0; color: #8b949e;">Bank UTR:</td><td style="color: #facc15; font-family: monospace;">${payment.bankReference}</td></tr>` : ''}
+        <tr><td style="padding: 6px 0; color: #8b949e;">Customer:</td><td style="color: #f0f6fc; font-weight: bold;">${escHtml(payment.customerName || 'Artist')} (${escHtml(payment.userEmail)})</td></tr>
+        <tr><td style="padding: 6px 0; color: #8b949e;">Order ID:</td><td style="color: #f0f6fc; font-family: monospace;">${escHtml(payment.orderId)}</td></tr>
+        <tr><td style="padding: 6px 0; color: #8b949e;">Gateway Tx ID:</td><td style="color: #38bdf8; font-family: monospace;">${escHtml(payment.gatewayPaymentId || 'N/A')}</td></tr>
+        ${payment.bankReference ? `<tr><td style="padding: 6px 0; color: #8b949e;">Bank UTR:</td><td style="color: #facc15; font-family: monospace;">${escHtml(payment.bankReference)}</td></tr>` : ''}
         <tr><td style="padding: 6px 0; color: #8b949e;">Amount:</td><td style="color: #3fb950; font-weight: bold;">₹${payment.amount}</td></tr>
-        <tr><td style="padding: 6px 0; color: #8b949e;">Target / Plan:</td><td style="color: #f0f6fc;">${payment.releaseTitle || payment.planName || 'Release'}</td></tr>
-        <tr><td style="padding: 6px 0; color: #8b949e;">Verification Method:</td><td style="color: #3fb950;">${payment.verifiedBy || 'CASHFREE_GATEWAY_WEBHOOK'}</td></tr>
-        <tr><td style="padding: 6px 0; color: #8b949e;">Timestamp:</td><td style="color: #f0f6fc;">${payment.verifiedAt || new Date().toISOString()}</td></tr>
+        <tr><td style="padding: 6px 0; color: #8b949e;">Target / Plan:</td><td style="color: #f0f6fc;">${escHtml(payment.releaseTitle || payment.planName || 'Release')}</td></tr>
+        <tr><td style="padding: 6px 0; color: #8b949e;">Verification Method:</td><td style="color: #3fb950;">${escHtml(payment.verifiedBy || 'CASHFREE_GATEWAY_WEBHOOK')}</td></tr>
+        <tr><td style="padding: 6px 0; color: #8b949e;">Timestamp:</td><td style="color: #f0f6fc;">${escHtml(payment.verifiedAt || new Date().toISOString())}</td></tr>
       </table>
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"Adventure Records Billing" <${process.env.EMAIL_USER}>`,
-      to: adminEmail,
-      subject: emailSubject,
-      html: emailHtml
-    });
+  const res = await sendEmail({
+    to: adminEmail,
+    subject: emailSubject,
+    html: emailHtml,
+    fromName: 'Adventure Records Billing'
+  });
+  if (res.success) {
     console.log(`✅ [ADMIN AUDIT ALERT SENT] to ${adminEmail}`);
-  } catch (err) {
-    console.error('❌ [ADMIN EMAIL ERROR]:', err.message);
+  } else {
+    console.error('❌ [ADMIN EMAIL ERROR]:', res.error);
   }
 };
 
-const escHtml = (str) => {
-  if (typeof str !== 'string') return '';
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-};
-
-const sanitizeHeader = (str) => {
-  if (typeof str !== 'string') return '';
-  return str.replace(/[\r\n\t]/g, ' ').trim();
-};
+const sanitizeHeader = sanitizeHeaderField;
 
 // Server-side Fake UTR pattern detection
 export const detectFakeUtr = (utr, upiApp = '') => {
@@ -224,9 +200,8 @@ export const detectFakeUtr = (utr, upiApp = '') => {
 };
 
 const sendAdminPaymentNotification = async (payment) => {
-  const adminEmail = process.env.ADMIN_EMAIL || 'adventureof693@gmail.com';
-  const transporter = createEmailTransporter();
-  const adminPanelUrl = (process.env.ADMIN_PANEL_URL || 'http://localhost:5173').replace(/\/$/, '');
+  const adminEmail = getAdminEmail();
+  const adminPanelUrl = getAdminPanelUrl();
 
   const emailSubject = `💳 [Payment Submitted] UTR: ${payment.utr} (₹${payment.amount})`;
   const emailHtml = `
@@ -251,28 +226,22 @@ const sendAdminPaymentNotification = async (payment) => {
       </div>
 
       <div style="margin-top: 24px; font-size: 11px; color: #71717a; text-align: center;">
-        Adventure Records Payments Desk • Notification sent to ${adminEmail}
+        Adventure Records Payments Desk • Notification sent to ${escHtml(adminEmail)}
       </div>
     </div>
   `;
 
-  if (transporter) {
-    try {
-      await transporter.sendMail({
-        from: `"Adventure Records Billing" <${process.env.EMAIL_USER}>`,
-        to: adminEmail,
-        subject: emailSubject,
-        html: emailHtml
-      });
-    } catch (e) {
-      console.error('SMTP Error:', e.message);
-    }
-  }
+  await sendEmail({
+    to: adminEmail,
+    subject: emailSubject,
+    html: emailHtml,
+    fromName: 'Adventure Records Billing',
+    replyTo: payment.userEmail
+  });
 };
 
 const sendCustomerPaymentResultEmail = async (payment, action, reasonNotes = '') => {
-  const transporter = createEmailTransporter();
-  if (!transporter || !payment.userEmail) return;
+  if (!payment.userEmail) return;
 
   const isVerified = action === 'verified';
   const targetTitle = payment.releaseTitle || payment.planName || 'Adventure Records';
@@ -306,16 +275,12 @@ const sendCustomerPaymentResultEmail = async (payment, action, reasonNotes = '')
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"Adventure Records Billing" <${process.env.EMAIL_USER}>`,
-      to: payment.userEmail,
-      subject,
-      html: emailHtml
-    });
-  } catch (e) {
-    console.error('SMTP customer email error:', e.message);
-  }
+  await sendEmail({
+    to: payment.userEmail,
+    subject,
+    html: emailHtml,
+    fromName: 'Adventure Records Billing'
+  });
 };
 
 // 0. SUBMIT PAYMENT FOR MANUAL UTR VERIFICATION
