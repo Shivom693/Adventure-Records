@@ -7,6 +7,7 @@ import {
 import RazorpayCheckout from './RazorpayCheckout';
 import { createPaymentOrder, pollPaymentOrderStatus } from '../services/dataService';
 import { auth, db } from '../firebase';
+import { useAuth } from '../context/AuthContext';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 const UpiPaymentModal = ({ 
@@ -20,6 +21,7 @@ const UpiPaymentModal = ({
 }) => {
   const merchantUpi = '9691546208-3@ybl';
   const merchantName = 'Adventure Records';
+  const { user: authContextUser } = useAuth();
 
   // Order & Payment State
   const [order, setOrder] = useState(null);
@@ -46,7 +48,30 @@ const UpiPaymentModal = ({
   const firestoreUnsubRef = useRef(null);
   const isResolvedRef = useRef(false);
 
-  // Initialize unique Dynamic UPI QR Order
+  const getResolvedUser = useCallback(() => {
+    const authUser = auth?.currentUser;
+    const storedUserStr = localStorage.getItem('user');
+    let userId = authContextUser?.uid || authContextUser?.id || authContextUser?._id || authUser?.uid || '';
+    let userEmail = authContextUser?.email || authUser?.email || '';
+    let customerName = authContextUser?.name || authContextUser?.artistName || authUser?.displayName || '';
+
+    if (storedUserStr) {
+      try {
+        const parsed = JSON.parse(storedUserStr);
+        userId = userId || parsed.uid || parsed._id || parsed.id || '';
+        userEmail = userEmail || parsed.email || '';
+        customerName = customerName || parsed.name || parsed.artistName || parsed.username || '';
+      } catch (e) {}
+    }
+
+    return {
+      userId,
+      userEmail: userEmail || 'artist@adventurerecords.com',
+      customerName
+    };
+  }, [authContextUser]);
+
+  // Initialize unique Dynamic UPI QR Order (only when UPI QR tab is active)
   const initializeOrder = useCallback(async () => {
     setLoadingOrder(true);
     setOrderError('');
@@ -57,38 +82,20 @@ const UpiPaymentModal = ({
     setQrTimeLeft(600);
     isResolvedRef.current = false;
 
-    const authUser = auth?.currentUser;
-    const storedUserStr = localStorage.getItem('user');
-    let userId = authUser?.uid;
-    let userEmail = authUser?.email;
-    let customerName = authUser?.displayName || '';
+    const resolved = getResolvedUser();
+    setUserInfo(resolved);
 
-    if (storedUserStr) {
-      try {
-        const parsed = JSON.parse(storedUserStr);
-        userId = userId || parsed.uid || parsed._id || parsed.id;
-        userEmail = userEmail || parsed.email;
-        customerName = customerName || parsed.name || parsed.username || '';
-      } catch (e) {}
-    }
-
-    if (!userId) {
-      setOrderError('Please log in to initiate payment.');
+    if (!resolved.userId) {
+      setOrderError('Please log in to initiate UPI QR payment.');
       setLoadingOrder(false);
       return;
     }
 
-    setUserInfo({
-      userId: userId || 'artist',
-      userEmail: userEmail || 'artist@adventurerecords.com',
-      customerName: customerName || ''
-    });
-
     try {
       const orderRes = await createPaymentOrder({
-        userId,
-        userEmail: userEmail || 'artist@adventurerecords.com',
-        customerName,
+        userId: resolved.userId,
+        userEmail: resolved.userEmail,
+        customerName: resolved.customerName,
         amount,
         paymentType,
         targetId,
@@ -108,7 +115,7 @@ const UpiPaymentModal = ({
     } finally {
       setLoadingOrder(false);
     }
-  }, [amount, paymentType, targetId, title]);
+  }, [amount, paymentType, targetId, title, getResolvedUser]);
 
   // Handle Confirmed Payment Completion (Automatic transition)
   const handlePaymentConfirmed = useCallback((paymentData) => {
@@ -158,9 +165,9 @@ const UpiPaymentModal = ({
     };
   }, [isOpen, order, paymentSuccess, paymentFailed]);
 
-  // Real-Time Automatic Detection (Firestore Snapshot Listener + Backend Polling)
+  // Real-Time Automatic Detection (Firestore Snapshot Listener + Backend Polling) — only when UPI QR tab is active
   useEffect(() => {
-    if (!isOpen || !order?.orderId || paymentSuccess || qrExpired || paymentFailed) {
+    if (!isOpen || activePaymentTab !== 'upi_qr' || !order?.orderId || paymentSuccess || qrExpired || paymentFailed) {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
       if (typeof firestoreUnsubRef.current === 'function') {
         firestoreUnsubRef.current();
@@ -218,8 +225,16 @@ const UpiPaymentModal = ({
   // Modal Lifecycle
   useEffect(() => {
     if (isOpen) {
-      initializeOrder();
+      isResolvedRef.current = false;
+      setPaymentSuccess(false);
+      setPaymentFailed(false);
+      setOrderError('');
+      setUserInfo(getResolvedUser());
+      if (activePaymentTab === 'upi_qr' && !order?.orderId) {
+        initializeOrder();
+      }
     } else {
+      setOrder(null);
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
       if (timerRef.current) clearInterval(timerRef.current);
       if (typeof firestoreUnsubRef.current === 'function') {
@@ -233,7 +248,7 @@ const UpiPaymentModal = ({
         firestoreUnsubRef.current();
       }
     };
-  }, [isOpen, initializeOrder]);
+  }, [isOpen, activePaymentTab, order?.orderId, getResolvedUser, initializeOrder]);
 
   if (!isOpen) return null;
 
@@ -285,7 +300,7 @@ const UpiPaymentModal = ({
             <div className="max-w-xs mx-auto p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-left text-xs space-y-2 font-mono">
               <div className="flex justify-between text-zinc-500 dark:text-zinc-400">
                 <span>Order ID:</span>
-                <span className="text-zinc-900 dark:text-white font-bold">{order?.orderId || 'Confirmed'}</span>
+                <span className="text-zinc-900 dark:text-white font-bold">{verifiedPayment?.orderId || order?.orderId || 'Confirmed'}</span>
               </div>
               <div className="flex justify-between text-zinc-500 dark:text-zinc-400">
                 <span>Amount Paid:</span>
@@ -313,13 +328,15 @@ const UpiPaymentModal = ({
             <div>
               <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 mb-1">
                 <ShieldCheck className="w-4 h-4" />
-                <span>Adventure Records • Automated UPI Gateway</span>
+                <span>Adventure Records • Automated Payment Gateway</span>
               </div>
               <h2 className="font-heading font-black text-xl sm:text-2xl text-zinc-900 dark:text-white tracking-tight">
                 PAYMENT DETAILS
               </h2>
               <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
-                Scan with any UPI app to pay. Your release unlocks automatically upon payment.
+                {activePaymentTab === 'razorpay'
+                  ? 'Complete payment via Razorpay (Cards, UPI, NetBanking). Your release unlocks immediately.'
+                  : 'Scan with any UPI app to pay. Your release unlocks automatically upon payment.'}
               </p>
             </div>
 
@@ -333,7 +350,9 @@ const UpiPaymentModal = ({
               <div className="text-right">
                 <span className="text-zinc-500 dark:text-zinc-400 text-[10px] uppercase font-bold block">Order ID</span>
                 <span className="font-mono text-xs text-sky-600 dark:text-sky-400 font-bold select-all">
-                  {loadingOrder ? 'Generating...' : (order?.orderId || 'Active')}
+                  {activePaymentTab === 'upi_qr'
+                    ? (loadingOrder ? 'Generating...' : (order?.orderId || 'Active'))
+                    : `RZP_${targetId || 'READY'}`}
                 </span>
                 <span className="text-[10px] text-emerald-600 dark:text-emerald-400 block mt-0.5 font-semibold">100% Royalty Retention</span>
               </div>
@@ -503,8 +522,8 @@ const UpiPaymentModal = ({
               </>
             )}
 
-            {/* Errors */}
-            {(orderError || (paymentFailed && failureReason)) && (
+            {/* Errors (UPI QR Tab) */}
+            {activePaymentTab === 'upi_qr' && (orderError || (paymentFailed && failureReason)) && (
               <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs flex items-center gap-2.5">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{orderError || failureReason}</span>
