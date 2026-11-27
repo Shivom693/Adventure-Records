@@ -228,12 +228,19 @@ const Contact = () => {
                     <span className="font-mono text-base font-bold text-amber-400">{status.ticketId}</span>
                   </div>
 
-                  <p className="text-zinc-300 text-xs max-w-md mx-auto leading-relaxed">
-                    A confirmation email has been dispatched to your inbox. Our curation team will review your inquiry within <strong className="text-white">12 hours</strong>.
-                  </p>
+                  {status.emailDelivery?.customerSent ? (
+                    <p className="text-zinc-300 text-xs max-w-md mx-auto leading-relaxed">
+                      A confirmation email has been dispatched to your inbox. Our curation team will review your inquiry within <strong className="text-white">12 hours</strong>.
+                    </p>
+                  ) : (
+                    <div className="max-w-md mx-auto p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs leading-relaxed">
+                      Your ticket was saved in our support queue, but the confirmation email could not be delivered right now
+                      {status.emailDelivery?.customerError ? ` (${status.emailDelivery.customerError})` : ''}. Please keep your Ticket ID for reference.
+                    </div>
+                  )}
 
                   <button
-                    onClick={() => setStatus({ submitted: false, error: null, ticketId: null })}
+                    onClick={() => setStatus({ submitted: false, error: null, ticketId: null, emailDelivery: null })}
                     className="btn-secondary px-6 py-2.5 rounded-xl text-xs font-semibold mt-4"
                   >
                     Open Another Support Ticket

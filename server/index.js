@@ -215,63 +215,54 @@ app.use('/api/razorpay', razorpayRoutes);
 app.use('/api', razorpayRoutes);
 
 // Direct OTP Endpoint (High Reliability with Real SMTP Email Dispatch)
-// Requires authentication â€” the OTP is read from the user's record, never from the request body
+// Requires authentication — the OTP is read from the user's record, never from the request body
 app.post('/api/send-otp', authenticateToken, async (req, res) => {
-  const { email } = req.body;
-  if (!email) {
+  const rawEmail = req.body?.email;
+  if (!rawEmail) {
     return res.status(400).json({ message: 'Email is required.' });
   }
 
+  const normalizedEmail = String(rawEmail).trim().toLowerCase();
+  const authEmail = String(req.user?.email || '').trim().toLowerCase();
+
   // Validate the requester can only send OTP for their own email
-  if (req.user.email !== email) {
+  if (!authEmail || authEmail !== normalizedEmail) {
     return res.status(403).json({ message: 'Forbidden. You may only request OTP for your own account.' });
   }
 
-  const isDevMode = process.env.NODE_ENV !== 'production';
-  if (isDevMode) {
-    console.log(`ðŸ“¬ [SERVER OTP DISPATCH] Verification code requested for ${email}`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[SERVER OTP DISPATCH] Verification code requested for ${normalizedEmail}`);
   }
 
-  // Look up the OTP from DB â€” never trust the client to supply it
+  // Look up the OTP from DB — never trust the client to supply it
   const { db } = await import('./db/dbFallback.js');
-  const user = await db.users.findOne({ email });
+  const user = await db.users.findOne({ email: normalizedEmail });
   if (!user || !user.otpCode) {
     return res.status(400).json({ message: 'No pending OTP found for this account.' });
   }
   const otp = user.otpCode;
 
-  const emailUser = process.env.EMAIL_USER;
-  const emailPass = process.env.EMAIL_PASS;
+  const mailResult = await sendEmail({
+    fromName: 'Adventure Records',
+    to: normalizedEmail,
+    subject: 'Your Adventure Records Verification Code',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; background-color: #0d0d12; color: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #27272a;">
+        <h2 style="color: #ffffff; text-align: center;">Adventure Records</h2>
+        <p style="color: #a1a1aa; font-size: 14px; text-align: center;">Email Verification Code</p>
+        <div style="background-color: #18181b; border: 1px solid #3f3f46; border-radius: 10px; padding: 20px; text-align: center; margin: 20px 0;">
+          <span style="font-family: monospace; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #ffffff;">${escHtml(otp)}</span>
+        </div>
+        <p style="color: #a1a1aa; font-size: 12px; text-align: center;">This code will expire in 5 minutes. If you did not request this code, please ignore this email.</p>
+      </div>
+    `
+  });
 
-  if (emailUser && emailPass) {
-    try {
-      const transporter = nodemailer.createTransport({
-        service: process.env.EMAIL_SERVICE || 'gmail',
-        auth: {
-          user: emailUser,
-          pass: emailPass
-        }
-      });
-
-      await transporter.sendMail({
-        from: `"Adventure Records" <${emailUser}>`,
-        to: email,
-        subject: 'Your Adventure Records Verification Code',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; background-color: #0d0d12; color: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #27272a;">
-            <h2 style="color: #ffffff; text-align: center;">Adventure Records</h2>
-            <p style="color: #a1a1aa; font-size: 14px; text-align: center;">Email Verification Code</p>
-            <div style="background-color: #18181b; border: 1px solid #3f3f46; border-radius: 10px; padding: 20px; text-align: center; margin: 20px 0;">
-              <span style="font-family: monospace; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #ffffff;">${otp}</span>
-            </div>
-            <p style="color: #a1a1aa; font-size: 12px; text-align: center;">This code will expire in 5 minutes. If you did not request this code, please ignore this email.</p>
-          </div>
-        `
-      });
-      console.log(`âœ… [REAL EMAIL DISPATCHED] Verification code sent to ${email}`);
-    } catch (mailErr) {
-      console.error(`âŒ [SMTP MAIL ERROR] Failed to send email to ${email}:`, mailErr.message);
-    }
+  if (!mailResult.success) {
+    return res.status(mailResult.invalidEmail ? 400 : 502).json({
+      success: false,
+      message: mailResult.error || 'Failed to send verification code email.'
+    });
   }
 
   res.status(200).json({ success: true, message: 'OTP dispatched successfully.' });
@@ -279,240 +270,228 @@ app.post('/api/send-otp', authenticateToken, async (req, res) => {
 
 // New Song Uploaded Email Notification Endpoint (requires authentication)
 app.post('/api/notify-upload', authenticateToken, async (req, res) => {
-  const { 
-    releaseTitle, 
-    primaryArtist, 
-    featuringArtists, 
-    releaseType, 
-    genre, 
-    language, 
-    releaseDate, 
-    artworkUrl, 
+  const {
+    releaseTitle,
+    primaryArtist,
+    featuringArtists,
+    releaseType,
+    genre,
+    language,
+    releaseDate,
+    artworkUrl,
     artworkDriveLink,
     audioUrl,
     audioDriveLink,
     googleDriveLink,
-    tracks, 
-    userEmail 
-  } = req.body;
-  const adminEmail = process.env.ADMIN_EMAIL || 'adventureof693@gmail.com';
+    tracks,
+    userEmail
+  } = req.body || {};
 
+  const adminEmail = getAdminEmail();
+  const adminPanelUrl = getAdminPanelUrl();
+  const authEmail = String(req.user?.email || '').trim().toLowerCase();
+  const bodyEmail = userEmail && userEmail !== 'Artist User' ? String(userEmail).trim().toLowerCase() : '';
+
+  if (bodyEmail && authEmail && authEmail !== bodyEmail) {
+    return res.status(403).json({ message: 'Forbidden. Email mismatch.' });
+  }
+
+  const resolvedUserEmail = authEmail || bodyEmail;
   const resolvedAudioLink = audioDriveLink || audioUrl || googleDriveLink || (tracks && tracks[0] && (tracks[0].audioDriveLink || tracks[0].audioUrl)) || '';
   const resolvedArtworkLink = artworkDriveLink || artworkUrl || '';
 
-  // Validate the notified email matches the authenticated user
-  if (userEmail && req.user.email !== userEmail) {
-    return res.status(403).json({ message: 'Forbidden. Email mismatch.' });
-  }
-
   console.log(`\n=================================================`);
-  console.log(`ðŸŽµ [NEW SONG UPLOADED] ${releaseTitle} by ${primaryArtist}`);
-  if (resolvedAudioLink) console.log(`ðŸ”— [AUDIO DRIVE LINK]: ${resolvedAudioLink}`);
-  if (resolvedArtworkLink) console.log(`ðŸ”— [ARTWORK LINK]: ${resolvedArtworkLink}`);
+  console.log(`[NEW SONG UPLOADED] ${releaseTitle} by ${primaryArtist}`);
+  if (resolvedAudioLink) console.log(`[AUDIO DRIVE LINK]: ${resolvedAudioLink}`);
+  if (resolvedArtworkLink) console.log(`[ARTWORK LINK]: ${resolvedArtworkLink}`);
   console.log(`=================================================\n`);
 
-  const emailUser = process.env.EMAIL_USER;
-  const emailPass = process.env.EMAIL_PASS;
+  const trackListHtml = Array.isArray(tracks) && tracks.length > 0
+    ? tracks.map((t, idx) => {
+        const trkAudio = t.audioDriveLink || t.audioUrl || resolvedAudioLink;
+        return `
+          <li style="margin-bottom: 8px;">
+            <strong>Track ${idx + 1}:</strong> ${escHtml(t.title || releaseTitle)} ${t.isrc ? `(ISRC: ${escHtml(t.isrc)})` : ''}
+            ${trkAudio ? `<br/><a href="${escHtml(trkAudio)}" target="_blank" style="color: #38bdf8; font-size: 11px; word-break: break-all;">Open Track Drive Audio &rarr;</a>` : ''}
+          </li>
+        `;
+      }).join('')
+    : `<li>${escHtml(releaseTitle)} ${resolvedAudioLink ? `<br/><a href="${escHtml(resolvedAudioLink)}" target="_blank" style="color: #38bdf8; font-size: 11px;">Open Audio Drive Link</a>` : ''}</li>`;
 
-  if (emailUser && emailPass) {
-    try {
-      const transporter = nodemailer.createTransport({
-        service: process.env.EMAIL_SERVICE || 'gmail',
-        auth: {
-          user: emailUser,
-          pass: emailPass
-        }
-      });
+  const mailResult = await sendEmail({
+    fromName: 'Adventure Records Curation',
+    to: adminEmail,
+    replyTo: resolvedUserEmail || undefined,
+    subject: sanitizeHeaderField(`[New Song Uploaded] ${releaseTitle} - ${primaryArtist}`),
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0d0d12; color: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #27272a;">
+        <h2 style="color: #eab308; text-align: center; margin-top: 0;">New Song Uploaded</h2>
+        <hr style="border: 0; border-top: 1px solid #27272a; margin: 16px 0;" />
 
-      const trackListHtml = Array.isArray(tracks) && tracks.length > 0
-        ? tracks.map((t, idx) => {
-            const trkAudio = t.audioDriveLink || t.audioUrl || resolvedAudioLink;
-            return `
-              <li style="margin-bottom: 8px;">
-                <strong>Track ${idx + 1}:</strong> ${t.title || releaseTitle} ${t.isrc ? `(ISRC: ${t.isrc})` : ''}
-                ${trkAudio ? `<br/><a href="${trkAudio}" target="_blank" style="color: #38bdf8; font-size: 11px; word-break: break-all;">ðŸ”— Open Track Drive Audio â†’</a>` : ''}
-              </li>
-            `;
-          }).join('')
-        : `<li>${releaseTitle} ${resolvedAudioLink ? `<br/><a href="${resolvedAudioLink}" target="_blank" style="color: #38bdf8; font-size: 11px;">ðŸ”— Open Audio Drive Link</a>` : ''}</li>`;
+        <div style="margin-bottom: 20px;">
+          <h3 style="margin: 0 0 4px 0; color: #ffffff; font-size: 20px;">${escHtml(releaseTitle)}</h3>
+          <p style="margin: 0; color: #a1a1aa; font-size: 14px;">By <strong>${escHtml(primaryArtist)}</strong> ${featuringArtists ? `(ft. ${escHtml(featuringArtists)})` : ''}</p>
+          <p style="margin: 6px 0 0 0; color: #71717a; font-size: 12px;">Type: ${escHtml(releaseType || 'Single')} &bull; Genre: ${escHtml(genre || 'Pop')} &bull; Language: ${escHtml(language || 'Hindi')}</p>
+        </div>
 
-      await transporter.sendMail({
-        from: `"Adventure Records Curation" <${emailUser}>`,
-        to: adminEmail,
-        subject: `ðŸŽµ [New Song Uploaded] ${releaseTitle} - ${primaryArtist}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0d0d12; color: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #27272a;">
-            <h2 style="color: #eab308; text-align: center; margin-top: 0;">ðŸŽµ New Song Uploaded</h2>
-            <hr style="border: 0; border-top: 1px solid #27272a; margin: 16px 0;" />
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #d4d4d8; margin-bottom: 20px;">
+          <tr><td style="padding: 6px 0; font-weight: bold; width: 140px; color: #a1a1aa;">Target Date:</td><td style="color: #ffffff;">${escHtml(releaseDate || 'Immediate')}</td></tr>
+          <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Uploader Email:</td><td style="color: #ffffff;">${resolvedUserEmail ? `<a href="mailto:${escHtml(resolvedUserEmail)}" style="color: #38bdf8;">${escHtml(resolvedUserEmail)}</a>` : 'Artist'}</td></tr>
+          <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Submitted At:</td><td style="color: #ffffff;">${new Date().toLocaleString()}</td></tr>
+        </table>
 
-            <div style="margin-bottom: 20px;">
-              <h3 style="margin: 0 0 4px 0; color: #ffffff; font-size: 20px;">${releaseTitle}</h3>
-              <p style="margin: 0; color: #a1a1aa; font-size: 14px;">By <strong>${primaryArtist}</strong> ${featuringArtists ? `(ft. ${featuringArtists})` : ''}</p>
-              <p style="margin: 6px 0 0 0; color: #71717a; font-size: 12px;">Type: ${releaseType || 'Single'} â€¢ Genre: ${genre || 'Pop'} â€¢ Language: ${language || 'Hindi'}</p>
-            </div>
+        <div style="background-color: #18181b; border: 1px solid #3f3f46; border-radius: 8px; padding: 14px; margin-bottom: 20px;">
+          <h4 style="margin: 0 0 10px 0; color: #10b981; font-size: 13px; text-transform: uppercase;">Google Drive Submission Links:</h4>
 
-            <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #d4d4d8; margin-bottom: 20px;">
-              <tr><td style="padding: 6px 0; font-weight: bold; width: 140px; color: #a1a1aa;">Target Date:</td><td style="color: #ffffff;">${releaseDate || 'Immediate'}</td></tr>
-              <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Uploader Email:</td><td style="color: #ffffff;"><a href="mailto:${userEmail}" style="color: #38bdf8;">${userEmail || 'Artist'}</a></td></tr>
-              <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Submitted At:</td><td style="color: #ffffff;">${new Date().toLocaleString()}</td></tr>
-            </table>
-
-            <!-- Direct Google Drive Links in Email -->
-            <div style="background-color: #18181b; border: 1px solid #3f3f46; border-radius: 8px; padding: 14px; margin-bottom: 20px;">
-              <h4 style="margin: 0 0 10px 0; color: #10b981; font-size: 13px; text-transform: uppercase;">Google Drive Submission Links:</h4>
-              
-              <div style="margin-bottom: 12px;">
-                <span style="color: #a1a1aa; font-size: 12px; font-weight: bold;">ðŸŽµ Audio Master File:</span><br/>
-                ${resolvedAudioLink ? `
-                  <a href="${resolvedAudioLink}" target="_blank" style="display: inline-block; margin-top: 4px; background-color: #10b981; color: #000000; font-weight: bold; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 12px;">Open Audio Drive Link â†—</a>
-                  <p style="margin: 4px 0 0 0; font-size: 11px; color: #a1a1aa; word-break: break-all;">${resolvedAudioLink}</p>
-                ` : `<span style="color: #f59e0b; font-size: 12px;">âš ï¸ No Audio Drive link provided</span>`}
-              </div>
-
-              ${resolvedArtworkLink ? `
-                <div style="margin-top: 10px; border-top: 1px solid #27272a; padding-top: 10px;">
-                  <span style="color: #a1a1aa; font-size: 12px; font-weight: bold;">ðŸ–¼ï¸ Cover Artwork:</span><br/>
-                  <a href="${resolvedArtworkLink}" target="_blank" style="display: inline-block; margin-top: 4px; background-color: #3f3f46; color: #ffffff; font-weight: bold; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 12px;">Open Artwork Link â†—</a>
-                  <p style="margin: 4px 0 0 0; font-size: 11px; color: #a1a1aa; word-break: break-all;">${resolvedArtworkLink}</p>
-                </div>
-              ` : ''}
-            </div>
-
-            <div style="background-color: #18181b; border: 1px solid #3f3f46; border-radius: 8px; padding: 14px; margin-bottom: 20px;">
-              <h4 style="margin: 0 0 8px 0; color: #eab308; font-size: 13px; text-transform: uppercase;">Tracks List:</h4>
-              <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #f4f4f5;">
-                ${trackListHtml}
-              </ul>
-            </div>
-
-            <div style="text-align: center; margin-top: 24px;">
-              <a href="${process.env.ADMIN_PANEL_URL || 'http://localhost:5173'}/admin" style="display: inline-block; background-color: #eab308; color: #000000; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 13px;">Review Release in Admin Panel â†’</a>
-            </div>
-
-            <div style="margin-top: 24px; font-size: 11px; color: #71717a; text-align: center;">
-              Adventure Records Ingestion Desk â€¢ Sent automatically to ${adminEmail}
-            </div>
+          <div style="margin-bottom: 12px;">
+            <span style="color: #a1a1aa; font-size: 12px; font-weight: bold;">Audio Master File:</span><br/>
+            ${resolvedAudioLink ? `
+              <a href="${escHtml(resolvedAudioLink)}" target="_blank" style="display: inline-block; margin-top: 4px; background-color: #10b981; color: #000000; font-weight: bold; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 12px;">Open Audio Drive Link &#8599;</a>
+              <p style="margin: 4px 0 0 0; font-size: 11px; color: #a1a1aa; word-break: break-all;">${escHtml(resolvedAudioLink)}</p>
+            ` : `<span style="color: #f59e0b; font-size: 12px;">No Audio Drive link provided</span>`}
           </div>
-        `
-      });
-      console.log(`âœ… [SONG UPLOAD EMAIL DISPATCHED] Sent to ${adminEmail}`);
-    } catch (err) {
-      console.error(`âŒ [SMTP SONG UPLOAD ERROR]:`, err.message);
-    }
+
+          ${resolvedArtworkLink ? `
+            <div style="margin-top: 10px; border-top: 1px solid #27272a; padding-top: 10px;">
+              <span style="color: #a1a1aa; font-size: 12px; font-weight: bold;">Cover Artwork:</span><br/>
+              <a href="${escHtml(resolvedArtworkLink)}" target="_blank" style="display: inline-block; margin-top: 4px; background-color: #3f3f46; color: #ffffff; font-weight: bold; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 12px;">Open Artwork Link &#8599;</a>
+              <p style="margin: 4px 0 0 0; font-size: 11px; color: #a1a1aa; word-break: break-all;">${escHtml(resolvedArtworkLink)}</p>
+            </div>
+          ` : ''}
+        </div>
+
+        <div style="background-color: #18181b; border: 1px solid #3f3f46; border-radius: 8px; padding: 14px; margin-bottom: 20px;">
+          <h4 style="margin: 0 0 8px 0; color: #eab308; font-size: 13px; text-transform: uppercase;">Tracks List:</h4>
+          <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #f4f4f5;">
+            ${trackListHtml}
+          </ul>
+        </div>
+
+        <div style="text-align: center; margin-top: 24px;">
+          <a href="${escHtml(adminPanelUrl)}/admin" style="display: inline-block; background-color: #eab308; color: #000000; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 13px;">Review Release in Admin Panel &rarr;</a>
+        </div>
+
+        <div style="margin-top: 24px; font-size: 11px; color: #71717a; text-align: center;">
+          Adventure Records Ingestion Desk &bull; Sent automatically to ${escHtml(adminEmail)}
+        </div>
+      </div>
+    `
+  });
+
+  if (!mailResult.success) {
+    return res.status(502).json({
+      success: false,
+      emailSent: false,
+      message: mailResult.error || 'Upload recorded, but admin notification email could not be delivered.'
+    });
   }
 
-  res.status(200).json({ success: true, message: 'Upload notification email sent.' });
+  res.status(200).json({ success: true, emailSent: true, message: 'Upload notification email sent.' });
 });
 
-// 1. New Payment Verification Submitted Notification (To admin â€” requires authentication)
+// 1. New Payment Verification Submitted Notification (To admin — requires authentication)
 app.post('/api/notify-payment-submitted', authenticateToken, async (req, res) => {
-  const { paymentType, targetTitle, amount, utr, upiApp, userEmail, merchantUpiId } = req.body;
-  const adminEmail = process.env.ADMIN_EMAIL || 'adventureof693@gmail.com';
+  const { paymentType, targetTitle, amount, utr, upiApp, userEmail, merchantUpiId } = req.body || {};
+  const adminEmail = getAdminEmail();
+  const adminPanelUrl = getAdminPanelUrl();
+  const authEmail = String(req.user?.email || '').trim().toLowerCase();
+  const bodyEmail = userEmail ? String(userEmail).trim().toLowerCase() : '';
 
-  // Validate the notified email matches the authenticated user
-  if (userEmail && req.user.email !== userEmail) {
+  if (bodyEmail && authEmail && authEmail !== bodyEmail) {
     return res.status(403).json({ message: 'Forbidden. Email mismatch.' });
   }
 
+  const resolvedUserEmail = authEmail || bodyEmail;
+
   console.log(`\n=================================================`);
-  console.log(`ðŸ’³ [NEW UPI PAYMENT SUBMITTED] UTR: ${utr} | Amount: â‚¹${amount}`);
+  console.log(`[NEW UPI PAYMENT SUBMITTED] UTR: ${utr} | Amount: Rs.${amount}`);
   console.log(`=================================================\n`);
 
-  const emailUser = process.env.EMAIL_USER;
-  const emailPass = process.env.EMAIL_PASS;
+  const mailResult = await sendEmail({
+    fromName: 'Adventure Records Payments',
+    to: adminEmail,
+    replyTo: resolvedUserEmail || undefined,
+    subject: sanitizeHeaderField(`[New UPI Payment Verification Submitted] UTR: ${utr} (Rs.${amount})`),
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0d0d12; color: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #27272a;">
+        <h2 style="color: #38bdf8; text-align: center; margin-top: 0;">Payment Verification Submitted</h2>
+        <hr style="border: 0; border-top: 1px solid #27272a; margin: 16px 0;" />
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #d4d4d8; margin-bottom: 20px;">
+          <tr><td style="padding: 6px 0; font-weight: bold; width: 140px; color: #a1a1aa;">Payment Type:</td><td style="color: #ffffff; text-transform: uppercase;">${escHtml(paymentType)}</td></tr>
+          <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Release / Plan:</td><td style="color: #ffffff;">${escHtml(targetTitle || 'Platform Distribution')}</td></tr>
+          <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Amount Paid:</td><td style="color: #4ade80; font-weight: bold; font-size: 16px;">&#8377;${escHtml(amount)}</td></tr>
+          <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">UTR / Trans ID:</td><td style="color: #facc15; font-family: monospace; font-size: 16px;">${escHtml(utr)}</td></tr>
+          <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">UPI App Used:</td><td style="color: #ffffff;">${escHtml(upiApp || 'UPI')}</td></tr>
+          <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Receiver UPI:</td><td style="color: #ffffff;">${escHtml(merchantUpiId || '9691546208-3@ybl')}</td></tr>
+          <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Uploader Email:</td><td style="color: #ffffff;"><a href="mailto:${escHtml(resolvedUserEmail)}" style="color: #38bdf8;">${escHtml(resolvedUserEmail)}</a></td></tr>
+          <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Submitted At:</td><td style="color: #ffffff;">${new Date().toLocaleString()}</td></tr>
+        </table>
+        <div style="text-align: center; margin-top: 24px;">
+          <a href="${escHtml(adminPanelUrl)}/admin" style="display: inline-block; background-color: #38bdf8; color: #000000; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 13px;">Review &amp; Verify in Admin Panel &rarr;</a>
+        </div>
+      </div>
+    `
+  });
 
-  if (emailUser && emailPass) {
-    try {
-      const transporter = nodemailer.createTransport({
-        service: process.env.EMAIL_SERVICE || 'gmail',
-        auth: { user: emailUser, pass: emailPass }
-      });
-
-      await transporter.sendMail({
-        from: `"Adventure Records Payments" <${emailUser}>`,
-        to: adminEmail,
-        subject: `ðŸ’³ [New UPI Payment Verification Submitted] UTR: ${utr} (â‚¹${amount})`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0d0d12; color: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #27272a;">
-            <h2 style="color: #38bdf8; text-align: center; margin-top: 0;">ðŸ’³ Payment Verification Submitted</h2>
-            <hr style="border: 0; border-top: 1px solid #27272a; margin: 16px 0;" />
-            <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #d4d4d8; margin-bottom: 20px;">
-              <tr><td style="padding: 6px 0; font-weight: bold; width: 140px; color: #a1a1aa;">Payment Type:</td><td style="color: #ffffff; text-transform: uppercase;">${paymentType}</td></tr>
-              <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Release / Plan:</td><td style="color: #ffffff;">${targetTitle || 'Platform Distribution'}</td></tr>
-              <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Amount Paid:</td><td style="color: #4ade80; font-weight: bold; font-size: 16px;">â‚¹${amount}</td></tr>
-              <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">UTR / Trans ID:</td><td style="color: #facc15; font-family: monospace; font-size: 16px;">${utr}</td></tr>
-              <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">UPI App Used:</td><td style="color: #ffffff;">${upiApp || 'UPI'}</td></tr>
-              <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Receiver UPI:</td><td style="color: #ffffff;">${merchantUpiId || '9691546208-3@ybl'}</td></tr>
-              <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Uploader Email:</td><td style="color: #ffffff;"><a href="mailto:${userEmail}" style="color: #38bdf8;">${userEmail}</a></td></tr>
-              <tr><td style="padding: 6px 0; font-weight: bold; color: #a1a1aa;">Submitted At:</td><td style="color: #ffffff;">${new Date().toLocaleString()}</td></tr>
-            </table>
-            <div style="text-align: center; margin-top: 24px;">
-              <a href="${process.env.ADMIN_PANEL_URL || 'http://localhost:5173'}/admin" style="display: inline-block; background-color: #38bdf8; color: #000000; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 13px;">Review & Verify in Admin Panel â†’</a>
-            </div>
-          </div>
-        `
-      });
-      console.log(`âœ… [PAYMENT NOTIFICATION SENT] Sent to ${adminEmail}`);
-    } catch (err) {
-      console.error(`âŒ [SMTP PAYMENT NOTIFY ERROR]:`, err.message);
-    }
+  if (!mailResult.success) {
+    return res.status(502).json({
+      success: false,
+      emailSent: false,
+      message: mailResult.error || 'Payment notification email failed to dispatch.'
+    });
   }
 
-  res.status(200).json({ success: true, message: 'Payment verification notification dispatched.' });
+  res.status(200).json({ success: true, emailSent: true, message: 'Payment verification notification dispatched.' });
 });
 
 // 2. Admin Verified/Rejected Payment Result Notification (To User)
 app.post('/api/notify-payment-result', authenticateToken, async (req, res) => {
-  const adminEmail = process.env.ADMIN_EMAIL || 'adventureof693@gmail.com';
-  if (req.user.role !== 'Admin' && req.user.email !== adminEmail) {
+  const adminEmail = getAdminEmail();
+  if (req.user.role !== 'Admin' && String(req.user.email || '').toLowerCase() !== adminEmail.toLowerCase()) {
     return res.status(403).json({ message: 'Forbidden. Admin credentials required to send payment verification results.' });
   }
-  const { userEmail, status, amount, utr, paymentType, targetTitle, reason } = req.body;
+  const { userEmail, status, amount, utr, paymentType, targetTitle, reason } = req.body || {};
 
   if (!userEmail) return res.status(400).json({ message: 'User email is required.' });
 
-  const emailUser = process.env.EMAIL_USER;
-  const emailPass = process.env.EMAIL_PASS;
+  const isVerified = status === 'verified';
+  const subject = sanitizeHeaderField(
+    isVerified
+      ? `Payment Verified - ${targetTitle || 'Adventure Records'}`
+      : `Payment Submission Update - ${targetTitle || 'Adventure Records'}`
+  );
 
-  if (emailUser && emailPass) {
-    try {
-      const transporter = nodemailer.createTransport({
-        service: process.env.EMAIL_SERVICE || 'gmail',
-        auth: { user: emailUser, pass: emailPass }
-      });
+  const mailResult = await sendEmail({
+    fromName: 'Adventure Records Billing',
+    to: userEmail,
+    subject,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0d0d12; color: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #27272a;">
+        <h2 style="color: ${isVerified ? '#4ade80' : '#f87171'}; text-align: center; margin-top: 0;">
+          ${isVerified ? 'Payment Verified' : 'Payment Verification Status'}
+        </h2>
+        <hr style="border: 0; border-top: 1px solid #27272a; margin: 16px 0;" />
+        <p style="color: #e4e4e7; font-size: 14px; line-height: 1.5;">
+          ${isVerified
+            ? `Great news! Your payment of <strong>&#8377;${escHtml(amount)}</strong> (UTR: <code style="color: #facc15;">${escHtml(utr)}</code>) has been verified by our billing team. Your ${paymentType === 'release' ? 'release upload features' : 'subscription benefits'} are now fully unlocked!`
+            : `Your payment submission of <strong>&#8377;${escHtml(amount)}</strong> (UTR: <code style="color: #facc15;">${escHtml(utr)}</code>) could not be verified. ${reason ? `Reason: ${escHtml(reason)}` : ''}`}
+        </p>
+        <div style="margin-top: 24px; font-size: 11px; color: #71717a; text-align: center;">
+          Adventure Records Payment Desk &bull; Sent to ${escHtml(userEmail)}
+        </div>
+      </div>
+    `
+  });
 
-      const isVerified = status === 'verified';
-      const subject = isVerified 
-        ? `âœ… Payment Verified âœ“ - ${targetTitle || 'Adventure Records'}`
-        : `âŒ Payment Submission Update - ${targetTitle || 'Adventure Records'}`;
-
-      await transporter.sendMail({
-        from: `"Adventure Records Billing" <${emailUser}>`,
-        to: userEmail,
-        subject: subject,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0d0d12; color: #ffffff; padding: 24px; border-radius: 12px; border: 1px solid #27272a;">
-            <h2 style="color: ${isVerified ? '#4ade80' : '#f87171'}; text-align: center; margin-top: 0;">
-              ${isVerified ? 'âœ… Payment Verified âœ“' : 'âŒ Payment Verification Status'}
-            </h2>
-            <hr style="border: 0; border-top: 1px solid #27272a; margin: 16px 0;" />
-            <p style="color: #e4e4e7; font-size: 14px; line-height: 1.5;">
-              ${isVerified 
-                ? `Great news! Your payment of <strong>â‚¹${amount}</strong> (UTR: <code style="color: #facc15;">${utr}</code>) has been verified by our billing team. Your ${paymentType === 'release' ? 'release upload features' : 'subscription benefits'} are now fully unlocked!`
-                : `Your payment submission of <strong>â‚¹${amount}</strong> (UTR: <code style="color: #facc15;">${utr}</code>) could not be verified. ${reason ? `Reason: ${reason}` : ''}`}
-            </p>
-            <div style="margin-top: 24px; font-size: 11px; color: #71717a; text-align: center;">
-              Adventure Records Payment Desk â€¢ Sent to ${userEmail}
-            </div>
-          </div>
-        `
-      });
-    } catch (err) {
-      console.error(`âŒ [SMTP PAYMENT RESULT ERROR]:`, err.message);
-    }
+  if (!mailResult.success) {
+    return res.status(mailResult.invalidEmail ? 400 : 502).json({
+      success: false,
+      emailSent: false,
+      message: mailResult.error || 'Failed to deliver payment result email.'
+    });
   }
 
-  res.status(200).json({ success: true, message: 'Payment result notification sent.' });
+  res.status(200).json({ success: true, emailSent: true, message: 'Payment result notification sent.' });
 });
 
 // Root API Health Endpoint

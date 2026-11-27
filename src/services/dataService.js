@@ -238,6 +238,35 @@ export async function createFirestoreRelease(releaseData) {
     updatedAt: new Date().toISOString()
   };
 
+  const notifyUploadToBackend = (resolvedEmail) => {
+    try {
+      const token = localStorage.getItem('token') || '';
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      fetch(`${API_URL}/api/notify-upload`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          releaseTitle,
+          primaryArtist: resolvedArtist,
+          featuringArtists,
+          releaseType,
+          genre,
+          language,
+          releaseDate,
+          artworkUrl: cleanArtworkUrl,
+          artworkDriveLink: cleanArtworkUrl,
+          audioUrl: cleanAudioUrl,
+          audioDriveLink: cleanAudioUrl,
+          googleDriveLink: (googleDriveLink || cleanAudioUrl || cleanArtworkUrl || '').trim(),
+          tracks: cleanTracks,
+          userEmail: resolvedEmail || ''
+        })
+      }).catch(err => console.error('Upload notification email dispatch failed:', err));
+    } catch (err) {}
+  };
+
   if (db) {
     try {
       // Use withTimeout (5s) to guarantee Firestore writes never freeze UI execution
@@ -268,30 +297,7 @@ export async function createFirestoreRelease(releaseData) {
       }
 
       // Dispatch email notification to admin (adventureof693@gmail.com)
-      try {
-        let uEmail = userEmailStr || 'Artist User';
-        const apiHost = typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:5000' : '';
-        fetch(`${apiHost}/api/notify-upload`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            releaseTitle,
-            primaryArtist: resolvedArtist,
-            featuringArtists,
-            releaseType,
-            genre,
-            language,
-            releaseDate,
-            artworkUrl: cleanArtworkUrl,
-            artworkDriveLink: cleanArtworkUrl,
-            audioUrl: cleanAudioUrl,
-            audioDriveLink: cleanAudioUrl,
-            googleDriveLink: (googleDriveLink || cleanAudioUrl || cleanArtworkUrl || '').trim(),
-            tracks: cleanTracks,
-            userEmail: uEmail
-          })
-        }).catch(err => console.error('Upload notification email dispatch failed:', err));
-      } catch (err) {}
+      notifyUploadToBackend(userEmailStr);
 
       return { success: true, release: createdRelease };
     } catch (err) {
@@ -311,29 +317,7 @@ export async function createFirestoreRelease(releaseData) {
       localStorage.setItem('user', JSON.stringify(u));
 
       // Dispatch email notification for local release as well
-      try {
-        const apiHost = typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:5000' : '';
-        fetch(`${apiHost}/api/notify-upload`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            releaseTitle,
-            primaryArtist: resolvedArtist,
-            featuringArtists,
-            releaseType,
-            genre,
-            language,
-            releaseDate,
-            artworkUrl: cleanArtworkUrl,
-            artworkDriveLink: cleanArtworkUrl,
-            audioUrl: cleanAudioUrl,
-            audioDriveLink: cleanAudioUrl,
-            googleDriveLink: (googleDriveLink || cleanAudioUrl || cleanArtworkUrl || '').trim(),
-            tracks: cleanTracks,
-            userEmail: u.email || 'Artist User'
-          })
-        }).catch(err => console.error('Upload notification email dispatch failed:', err));
-      } catch (err) {}
+      notifyUploadToBackend(u.email || userEmailStr);
 
       return { success: true, release: newLocalRelease };
     }
