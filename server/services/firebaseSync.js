@@ -56,11 +56,18 @@ export async function syncPaymentSuccess({
   bankReference,
   amount,
   paymentMethod = 'UPI',
-  verifiedBy = 'CASHFREE_WEBHOOK_VERIFIED'
+  verifiedBy = 'CASHFREE_WEBHOOK_VERIFIED',
+  targetId,
+  paymentType = 'release',
+  userId,
+  userEmail,
+  customerName = '',
+  releaseTitle = '',
+  verifiedAt
 }) {
-  const completionTimestamp = new Date().toISOString();
+  const completionTimestamp = verifiedAt || new Date().toISOString();
 
-  // 1. Update Local Database
+  // 1. Update Local Database (or create record if backend restarted before verification)
   let localPayment = await localDb.payments.findOne({ orderId });
   if (localPayment) {
     await localDb.payments.findByIdAndUpdate(localPayment._id || localPayment.id, {
@@ -78,30 +85,60 @@ export async function syncPaymentSuccess({
           action: 'payment_verified_success',
           performedBy: verifiedBy,
           timestamp: completionTimestamp,
-          notes: `Verified ₹${amount} via ${paymentMethod} (${gatewayPaymentId || bankReference || ''})`
+          notes: `Verified ₹${amount ?? localPayment.amount ?? 0} via ${paymentMethod} (${gatewayPaymentId || bankReference || ''})`
         }
       ]
     });
 
-    // Unlock release in local DB if targetId exists
-    if (localPayment.paymentType === 'release' && localPayment.targetId) {
+    const resolvedTargetId = localPayment.targetId || targetId;
+    const resolvedType = localPayment.paymentType || paymentType;
+    if (resolvedType === 'release' && resolvedTargetId) {
       try {
-        await localDb.releases.findByIdAndUpdate(localPayment.targetId, {
+        await localDb.releases.findByIdAndUpdate(resolvedTargetId, {
           paymentStatus: 'paid',
           uploadUnlocked: true,
           updatedAt: completionTimestamp
         });
-        console.log(`🔓 [LOCAL DB] Release ${localPayment.targetId} unlocked!`);
+        console.log(`🔓 [LOCAL DB] Release ${resolvedTargetId} unlocked!`);
       } catch (e) {
         console.warn('Local release update error:', e.message);
       }
     }
+  } else {
+    await localDb.payments.create({
+      orderId,
+      gatewayPaymentId: gatewayPaymentId || null,
+      bankReference: bankReference || null,
+      paymentGateway: paymentMethod === 'RAZORPAY' ? 'RAZORPAY' : 'CASHFREE',
+      userId: userId ? String(userId) : 'guest',
+      userEmail: userEmail || '',
+      customerName,
+      paymentType,
+      targetId: targetId || null,
+      releaseTitle,
+      amount: amount ?? 0,
+      currency: 'INR',
+      paymentMethod,
+      status: 'SUCCESS',
+      verifiedAt: completionTimestamp,
+      verifiedBy,
+      completedAt: completionTimestamp,
+      createdAt: completionTimestamp,
+      updatedAt: completionTimestamp,
+      auditLog: [
+        {
+          action: 'payment_verified_success',
+          performedBy: verifiedBy,
+          timestamp: completionTimestamp,
+          notes: `Verified ₹${amount ?? 0} via ${paymentMethod} (${gatewayPaymentId || bankReference || ''})`
+        }
+      ]
+    });
   }
 
   // 2. Update Firestore if Firebase Admin is initialized
   if (isFirebaseAdminInitialized && adminDb) {
     try {
-      // Find matching payment doc by orderId
       const paymentsRef = adminDb.collection('payments');
       const qSnap = await paymentsRef.where('orderId', '==', orderId).get();
 
@@ -119,21 +156,44 @@ export async function syncPaymentSuccess({
             updatedAt: completionTimestamp
           });
 
-          // Unlock associated release if present
-          if (docData.targetId && docData.paymentType === 'release') {
+          const resolvedTargetId = docData.targetId || targetId;
+          const resolvedType = docData.paymentType || paymentType;
+          if (resolvedTargetId && resolvedType === 'release') {
             try {
-              await adminDb.collection('releases').doc(docData.targetId).update({
+              await adminDb.collection('releases').doc(resolvedTargetId).update({
                 paymentStatus: 'paid',
                 uploadUnlocked: true,
                 updatedAt: completionTimestamp
               });
-              console.log(`🔓 [FIRESTORE ADMIN] Release ${docData.targetId} unlocked in Firestore!`);
+              console.log(`🔓 [FIRESTORE ADMIN] Release ${resolvedTargetId} unlocked in Firestore!`);
             } catch (relErr) {
               console.warn('Firestore release unlock notice:', relErr.message);
             }
           }
         }
         console.log(`✅ [FIRESTORE ADMIN] Payment order ${orderId} updated to SUCCESS.`);
+      } else if (userId || userEmail) {
+        await paymentsRef.add({
+          orderId,
+          gatewayPaymentId: gatewayPaymentId || null,
+          bankReference: bankReference || null,
+          paymentGateway: paymentMethod === 'RAZORPAY' ? 'RAZORPAY' : 'CASHFREE',
+          userId: userId ? String(userId) : 'guest',
+          userEmail: userEmail || '',
+          customerName,
+          paymentType,
+          targetId: targetId || null,
+          releaseTitle,
+          amount: amount ?? 0,
+          currency: 'INR',
+          paymentMethod,
+          status: 'SUCCESS',
+          verifiedAt: completionTimestamp,
+          verifiedBy,
+          completedAt: completionTimestamp,
+          createdAt: completionTimestamp,
+          updatedAt: completionTimestamp
+        });
       }
     } catch (fsErr) {
       console.warn('⚠️ [FIRESTORE ADMIN SYNC ERROR]:', fsErr.message);

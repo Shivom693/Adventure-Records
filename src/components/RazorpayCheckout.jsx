@@ -6,21 +6,60 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { CreditCard, Loader2, AlertCircle, CheckCircle2, Zap } from 'lucide-react';
+import { API_URL } from '../config';
+import { auth } from '../firebase';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const RZP_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID;
 
-/** Loads checkout.js once and resolves when window.Razorpay is ready */
+/** Loads checkout.js safely (reusing the tag from index.html if present) */
 const loadRazorpayScript = () =>
   new Promise((resolve) => {
     if (window.Razorpay) return resolve(true);
+    const existing = document.querySelector('script[src*="checkout.razorpay.com/v1/checkout.js"]');
+    if (existing) {
+      const onLoad = () => resolve(Boolean(window.Razorpay));
+      const onError = () => {
+        existing.remove();
+        resolve(false);
+      };
+      existing.addEventListener('load', onLoad, { once: true });
+      existing.addEventListener('error', onError, { once: true });
+      // Fallback poll in case the script finished loading before listeners attached
+      setTimeout(() => {
+        if (window.Razorpay) resolve(true);
+      }, 300);
+      return;
+    }
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.async = true;
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
+    script.onload = () => resolve(Boolean(window.Razorpay));
+    script.onerror = () => {
+      script.remove();
+      resolve(false);
+    };
     document.body.appendChild(script);
   });
+
+const resolveUserIdentity = (userId, userEmail, customerName) => {
+  if (userId && userEmail) {
+    return { userId, userEmail, customerName };
+  }
+  const authUser = auth?.currentUser;
+  let resolvedId = userId || authUser?.uid || '';
+  let resolvedEmail = userEmail || authUser?.email || '';
+  let resolvedName = customerName || authUser?.displayName || '';
+  try {
+    const raw = localStorage.getItem('user');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      resolvedId = resolvedId || parsed.uid || parsed._id || parsed.id || '';
+      resolvedEmail = resolvedEmail || parsed.email || '';
+      resolvedName = resolvedName || parsed.name || parsed.artistName || '';
+    }
+  } catch (_) {}
+  return { userId: resolvedId, userEmail: resolvedEmail, customerName: resolvedName };
+};
 
 /**
  * @param {object}   props

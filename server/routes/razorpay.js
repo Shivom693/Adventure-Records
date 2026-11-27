@@ -115,17 +115,18 @@ router.post('/create-order', async (req, res) => {
     });
   } catch (err) {
     console.error('❌ [RAZORPAY CREATE ORDER ERROR]:', err);
+    const rzpDesc = err?.error?.description || err?.message || 'Failed to create Razorpay order.';
     if (err.statusCode === 401 || err.error?.code === 'BAD_REQUEST_ERROR') {
       return res.status(err.statusCode || 401).json({
         success: false,
-        error: 'Razorpay authentication or request failed.',
-        message: err.message
+        error: `Razorpay authentication or request failed: ${rzpDesc}`,
+        message: `Razorpay authentication failed (${rzpDesc}). Please verify RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.`
       });
     }
     return res.status(500).json({
       success: false,
       error: 'Failed to create Razorpay order.',
-      message: err.message
+      message: rzpDesc
     });
   }
 });

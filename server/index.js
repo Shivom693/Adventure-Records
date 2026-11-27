@@ -36,7 +36,17 @@ app.set('trust proxy', 1);
 // Middleware
 app.use(cors({
   origin: function (origin, callback) {
-    const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:5000').split(',').map(o => o.trim());
+    const defaultOrigins = [
+      'http://localhost:5173',
+      'http://localhost:5000',
+      'https://adventurerecords.web.app',
+      'https://music-b2696.web.app',
+      'https://music-b2696.firebaseapp.com'
+    ];
+    const envOrigins = process.env.ALLOWED_ORIGINS
+      ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
+      : [];
+    const allowedOrigins = Array.from(new Set([...defaultOrigins, ...envOrigins]));
     // Allow requests with no origin (mobile apps, curl, etc.)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
@@ -63,8 +73,8 @@ app.use((req, res, next) => {
   res.setHeader('X-XSS-Protection', '0'); // Modern browsers use CSP instead; '1; mode=block' can cause issues
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(self "https://api.razorpay.com" "https://checkout.razorpay.com")');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   res.setHeader('Content-Security-Policy', [
     "default-src 'self'",
@@ -72,8 +82,8 @@ app.use((req, res, next) => {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: https: blob:",
-    "connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.firebaseapp.com wss://*.firebaseio.com https://api.razorpay.com https://lumberjack.razorpay.com " + (process.env.ALLOWED_ORIGINS || 'http://localhost:5173'),
-    "frame-src https://accounts.google.com https://*.firebaseapp.com",
+    "connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://*.firebaseapp.com wss://*.firebaseio.com https://api.razorpay.com https://lumberjack.razorpay.com " + (process.env.ALLOWED_ORIGINS || 'http://localhost:5173 https://adventurerecords.web.app https://music-b2696.web.app'),
+    "frame-src https://accounts.google.com https://*.firebaseapp.com https://api.razorpay.com https://checkout.razorpay.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'"

@@ -300,7 +300,7 @@ const UploadRelease = () => {
             Create New Release
           </h1>
           <p className="text-zinc-400 text-sm">
-            Select release format, scan the official merchant UPI QR code (<span className="text-[#DEDCFF] font-mono">9691546208-3@ybl</span>) to pay, and unlock uploads instantly.
+            Select release format, pay securely via Razorpay (Cards, UPI, NetBanking) or merchant UPI QR (<span className="text-[#DEDCFF] font-mono">9691546208-3@ybl</span>), and unlock uploads instantly.
           </p>
         </div>
 
@@ -314,7 +314,7 @@ const UploadRelease = () => {
                   <span>Audio & Artwork Upload Locked (₹{currentPrice} Payment Verification Required)</span>
                 </div>
                 <p className="text-xs text-zinc-300">
-                  Scan the merchant UPI QR code to complete payment of <strong className="text-white">₹{currentPrice}</strong> for {formData.releaseType} release. Uploads will be unlocked instantly upon QR verification.
+                  Pay <strong className="text-white">₹{currentPrice}</strong> for {formData.releaseType} release via Razorpay or UPI QR. Uploads unlock instantly upon payment confirmation.
                 </p>
               </div>
 
@@ -323,8 +323,8 @@ const UploadRelease = () => {
                 onClick={() => setIsPaymentModalOpen(true)}
                 className="btn-primary px-6 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-500/20 shrink-0 cursor-pointer"
               >
-                <QrCode className="w-4 h-4" />
-                <span>Pay via UPI QR (₹{currentPrice})</span>
+                <Zap className="w-4 h-4" />
+                <span>Pay ₹{currentPrice} (Razorpay / UPI)</span>
               </button>
             </div>
           </div>
