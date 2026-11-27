@@ -51,7 +51,7 @@
             },
             {
               "key": "Permissions-Policy",
-              "value": "camera=(), microphone=(), geolocation=(), payment=()"
+              "value": "camera=(), microphone=(), geolocation=(), payment=(self \"https://api.razorpay.com\" \"https://checkout.razorpay.com\")"
             },
             {
               "key": "Cross-Origin-Opener-Policy",
@@ -182,7 +182,7 @@
             },
             {
               "key": "Permissions-Policy",
-              "value": "camera=(), microphone=(), geolocation=(), payment=()"
+              "value": "camera=(), microphone=(), geolocation=(), payment=(self \"https://api.razorpay.com\" \"https://checkout.razorpay.com\")"
             },
             {
               "key": "Cross-Origin-Opener-Policy",
