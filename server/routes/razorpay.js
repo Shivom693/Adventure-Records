@@ -111,6 +111,7 @@ router.post('/create-order', async (req, res) => {
       order_id: order.id,
       amount: order.amount,
       currency: order.currency,
+      key_id: process.env.RAZORPAY_KEY_ID,
       id: order.id,
       receipt: order.receipt
     });

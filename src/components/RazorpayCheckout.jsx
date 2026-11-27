@@ -110,12 +110,6 @@ const RazorpayCheckout = ({
       return;
     }
 
-    if (!RZP_KEY_ID) {
-      setErrorMsg('Razorpay key is not configured. Contact support.');
-      setStatus('error');
-      return;
-    }
-
     const identity = resolveUserIdentity(userId, userEmail, customerName);
 
     // 2. Create order on backend
@@ -154,11 +148,18 @@ const RazorpayCheckout = ({
       return;
     }
 
+    const checkoutKey = orderData.key_id || RZP_KEY_ID;
+    if (!checkoutKey) {
+      setErrorMsg('Razorpay key is not configured. Contact support.');
+      setStatus('error');
+      return;
+    }
+
     setStatus('idle'); // Modal is now in control
 
-    // 3. Open Razorpay checkout modal
+    // 3. Open Razorpay checkout modal (using exact matching key that created the order)
     const options = {
-      key: RZP_KEY_ID,
+      key: checkoutKey,
       amount: orderData.amount,       // paise (echoed from Razorpay)
       currency: orderData.currency,
       name: 'Adventure Records',
