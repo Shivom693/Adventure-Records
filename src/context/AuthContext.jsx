@@ -10,6 +10,7 @@ import {
   browserLocalPersistence
 } from 'firebase/auth';
 import { auth, googleProvider, isConfigured } from '../firebase';
+import { API_URL } from '../config';
 
 const AuthContext = createContext({
   user: null,
@@ -64,7 +65,8 @@ export const mapFirebaseAuthError = (error) => {
     return 'An account already exists with the same email address using a different sign-in method.';
   }
   if (code.includes('auth/unauthorized-domain')) {
-    return 'This web domain is not authorized in Firebase Authentication Console.';
+    const host = typeof window !== 'undefined' ? window.location.hostname : 'this domain';
+    return `This web domain (${host}) is not authorized in Firebase Authentication Console.`;
   }
 
   return error.message || 'Authentication failed. Please try again.';
@@ -90,6 +92,7 @@ export const AuthProvider = ({ children }) => {
           // Stale user from another account found in storage — purge it immediately!
           localStorage.removeItem('user');
           localStorage.removeItem('token');
+          localStorage.removeItem('tokenSource');
         }
       }
     } catch (e) {}
@@ -100,9 +103,15 @@ export const AuthProvider = ({ children }) => {
     const role = (email === 'adventureof693@gmail.com') ? 'Admin' : 'Artist';
 
     let token = `firebase-${fbUser.uid}`;
-    try {
-      token = await fbUser.getIdToken();
-    } catch (e) {}
+    const existingToken = storedUser ? localStorage.getItem('token') : null;
+    const existingSource = storedUser ? localStorage.getItem('tokenSource') : null;
+    if (existingToken && existingSource === 'backend') {
+      token = existingToken;
+    } else {
+      try {
+        token = await fbUser.getIdToken();
+      } catch (e) {}
+    }
 
     const profile = {
       uid: fbUser.uid,
@@ -148,6 +157,7 @@ export const AuthProvider = ({ children }) => {
             setUser(null);
             localStorage.removeItem('user');
             localStorage.removeItem('token');
+            localStorage.removeItem('tokenSource');
             sessionStorage.clear();
           }
         }
@@ -194,7 +204,34 @@ export const AuthProvider = ({ children }) => {
     return profile;
   };
 
-  // Google OAuth Login
+  const syncWithBackend = async (profile) => {
+    if (!profile?.email) return;
+    try {
+      const backendUrl = API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const res = await fetch(`${backendUrl}/api/auth/firebase-sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: profile.email,
+          name: profile.name,
+          artistName: profile.artistName,
+          role: profile.role,
+          firebaseUid: profile.uid
+        })
+      });
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('tokenSource', 'backend');
+        }
+      }
+    } catch (_) {
+      // Backend offline fallback - Firebase session stays active
+    }
+  };
+
+  // Google OAuth Login / Sign Up
   const loginWithGoogle = async () => {
     if (!isConfigured || !auth) {
       throw new Error('Firebase authentication is not configured.');
@@ -202,6 +239,7 @@ export const AuthProvider = ({ children }) => {
     await setPersistence(auth, browserLocalPersistence);
     const result = await signInWithPopup(auth, googleProvider);
     const profile = await buildUserProfile(result.user);
+    await syncWithBackend(profile);
     setUser(profile);
     setFirebaseUser(result.user);
     window.dispatchEvent(new Event('auth-change'));
@@ -219,6 +257,7 @@ export const AuthProvider = ({ children }) => {
       await updateProfile(userCredential.user, { displayName: name.trim() });
     }
     const profile = await buildUserProfile(userCredential.user);
+    await syncWithBackend(profile);
     setUser(profile);
     setFirebaseUser(userCredential.user);
     window.dispatchEvent(new Event('auth-change'));
@@ -232,6 +271,7 @@ export const AuthProvider = ({ children }) => {
       setFirebaseUser(null);
       localStorage.removeItem('user');
       localStorage.removeItem('token');
+      localStorage.removeItem('tokenSource');
       localStorage.removeItem('activeUser');
       sessionStorage.clear();
       if (isConfigured && auth) {
@@ -244,6 +284,7 @@ export const AuthProvider = ({ children }) => {
       setFirebaseUser(null);
       localStorage.removeItem('user');
       localStorage.removeItem('token');
+      localStorage.removeItem('tokenSource');
       localStorage.removeItem('activeUser');
       sessionStorage.clear();
       window.dispatchEvent(new Event('auth-change'));

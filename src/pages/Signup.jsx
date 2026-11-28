@@ -16,7 +16,7 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const { signup, isAuthenticated, user, authLoading, mapFirebaseAuthError } = useAuth();
+  const { signup, loginWithGoogle, isAuthenticated, user, authLoading, mapFirebaseAuthError } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -99,6 +99,24 @@ const Signup = () => {
     }
   };
 
+  // Google OAuth Sign-Up / Sign-In Handler
+  const handleGoogleSignup = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const profile = await loginWithGoogle();
+      if (profile?.role === 'Admin') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (err) {
+      setError(mapFirebaseAuthError(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="relative min-h-[85vh] flex items-center justify-center pt-8 pb-20 px-4 sm:px-6 lg:px-8 bg-[#070709] text-zinc-100 font-outfit">
       
@@ -127,6 +145,26 @@ const Signup = () => {
             <span>{error}</span>
           </div>
         )}
+
+        <div className="space-y-6">
+          {/* Google Sign Up */}
+          <button
+            type="button"
+            onClick={handleGoogleSignup}
+            disabled={loading}
+            className="btn-secondary w-full py-3.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-3 cursor-pointer"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-6.887 4.114-4.68 0-8.46-3.87-8.46-8.514 0-4.644 3.78-8.514 8.46-8.514 2.428 0 4.103.951 5.03 1.802l3.076-3.076C18.285.926 15.547 0 12.24 0 5.58 0 0 5.485 0 12.285S5.58 24.57 12.24 24.57c6.643 0 11.237-4.671 11.237-11.43 0-.759-.09-1.346-.225-1.855H12.24z" />
+            </svg>
+            Continue with Google
+          </button>
+
+          {/* Divider */}
+          <div className="relative flex items-center justify-center">
+            <div className="w-full border-t border-white/10"></div>
+            <span className="bg-[#0d0d12] px-3 text-[10px] uppercase font-bold tracking-widest text-zinc-500 absolute">OR</span>
+          </div>
 
         <form onSubmit={handleSignupSubmit} className="space-y-4">
           
@@ -243,6 +281,8 @@ const Signup = () => {
           <Link to="/login" className="text-white font-semibold underline">
             Sign In
           </Link>
+        </div>
+
         </div>
 
       </div>

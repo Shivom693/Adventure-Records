@@ -55,6 +55,7 @@ const Login = () => {
           const data = await response.json();
           if (data.token) {
             localStorage.setItem('token', data.token);
+            localStorage.setItem('tokenSource', 'backend');
           }
         }
       } catch (backendErr) {
@@ -80,21 +81,6 @@ const Login = () => {
 
     try {
       const profile = await loginWithGoogle();
-
-      // Sync with backend if online
-      try {
-        const backendUrl = API_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        await fetch(`${backendUrl}/api/auth/firebase-sync`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: profile.email,
-            name: profile.name,
-            artistName: profile.artistName,
-            firebaseUid: profile.uid
-          })
-        });
-      } catch (syncErr) {}
 
       if (profile?.role === 'Admin') {
         navigate('/admin');
